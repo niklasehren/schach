@@ -1,0 +1,211 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* Rahmen */
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wordmark {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  letter-spacing: 0.01em;
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-link {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nav-link.is-active {
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.nav-link.is-soon {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 24px 20px 32px;
+}
+
+/* Spielseite: Brett groß, Seitenleiste rechts (am Handy darunter) */
+.play {
+  /* auf ein Vielfaches von 8 Pixeln runden, damit die Felder exakt aufgehen */
+  --board-size: round(down, min(calc(100dvh - 140px), calc(100vw - 380px), 760px), 8px);
+  display: grid;
+  grid-template-columns: var(--board-size) 300px;
+  gap: 28px;
+  align-items: start;
+}
+
+.play-board {
+  position: relative;
+  justify-self: center;
+}
+
+.play-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  max-height: var(--board-size);
+}
+
+.status {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 550;
+}
+
+.status-checkmate,
+.status-draw {
+  color: var(--accent);
+}
+
+.movelist {
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.movelist-empty {
+  margin: 8px 14px;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.movelist-row {
+  display: grid;
+  grid-template-columns: 44px 1fr 1fr;
+  padding: 3px 14px;
+  font-size: 15px;
+}
+
+.movelist-row:nth-child(even) {
+  background: color-mix(in srgb, var(--line) 35%, transparent);
+}
+
+.movelist-num {
+  color: var(--text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms;
+}
+
+.btn:hover {
+  border-color: color-mix(in srgb, var(--text) 25%, var(--line));
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn-primary:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 88%, var(--text));
+}
+
+.btn:focus-visible,
+.nav-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Handy und schmale Fenster: alles untereinander, Brett bildschirmbreit */
+@media (max-width: 760px) {
+  .topbar {
+    padding: 10px 14px;
+  }
+
+  .wordmark {
+    font-size: 22px;
+  }
+
+  .main {
+    padding: 12px 0 20px;
+  }
+
+  .play {
+    --board-size: round(down, 100vw, 8px);
+    grid-template-columns: 1fr;
+    gap: 14px;
+    width: 100%;
+  }
+
+  .play-side {
+    max-height: none;
+    padding: 0 14px;
+  }
+
+  .movelist {
+    max-height: 30dvh;
+  }
+}

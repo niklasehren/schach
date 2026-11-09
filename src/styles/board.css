@@ -1,0 +1,140 @@
+/* Brett: eigenes, ruhiges Farbschema über den Grundstil von chessground */
+.board-frame {
+  width: var(--board-size);
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+.board {
+  width: 100%;
+  height: 100%;
+}
+
+/* Schachbrettmuster ohne Bilddatei: a8 hell, a1 dunkel */
+.board cg-board {
+  background: repeating-conic-gradient(var(--sq-dark) 0 25%, var(--sq-light) 0 50%) 0 0 / 25% 25%;
+}
+
+.board cg-board square.last-move {
+  background-color: var(--sq-last);
+}
+
+.board cg-board square.selected {
+  background-color: var(--sq-selected);
+}
+
+.board cg-board square.move-dest {
+  background: radial-gradient(var(--sq-dest) 19%, transparent 20%);
+}
+
+.board cg-board square.move-dest:hover {
+  background: var(--sq-dest);
+}
+
+.board cg-board square.oc.move-dest {
+  background: radial-gradient(transparent 0%, transparent 79%, var(--sq-dest) 80%);
+}
+
+.board cg-board square.check {
+  background: radial-gradient(ellipse at center, var(--sq-check) 0%, rgba(186, 52, 36, 0.35) 40%, transparent 72%);
+}
+
+/* Koordinaten klein und dezent im Feld */
+.board coords {
+  font-family: var(--font-sans);
+  font-size: clamp(8px, 1.6vmin, 11px);
+  font-weight: 600;
+  opacity: 1;
+}
+
+.board coords.files {
+  text-transform: none;
+}
+
+.board coords.ranks {
+  top: 2px;
+  left: 3px;
+}
+
+.board coords.ranks coord {
+  transform: none;
+}
+
+.board coords.files {
+  bottom: 1px;
+  left: auto;
+  right: 3px;
+  text-align: right;
+}
+
+/* Schrift jeweils in der Farbe des anderen Feldtyps, damit sie lesbar bleibt */
+.board coords coord:nth-child(odd) {
+  color: var(--sq-light);
+}
+
+.board coords coord:nth-child(even) {
+  color: var(--sq-dark);
+}
+
+.board coords.black coord:nth-child(odd) {
+  color: var(--sq-dark);
+}
+
+.board coords.black coord:nth-child(even) {
+  color: var(--sq-light);
+}
+
+/* Umwandlungs-Auswahl */
+.promotion {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 24, 22, 0.35);
+  border-radius: var(--radius-sm);
+  z-index: 20;
+}
+
+.promotion-panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 16px 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.promotion-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.promotion-choices {
+  display: flex;
+  gap: 8px;
+}
+
+.promotion-choice {
+  width: calc(var(--board-size) / 8);
+  min-width: 52px;
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--sq-light);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+
+.promotion-choice:hover {
+  border-color: var(--accent);
+}
+
+.promotion-choice piece {
+  position: absolute;
+  inset: 6%;
+  width: auto;
+  height: auto;
+}

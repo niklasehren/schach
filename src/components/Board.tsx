@@ -1,0 +1,47 @@
+import { useEffect, useRef } from 'react';
+import { Chessground } from '@lichess-org/chessground';
+import type { Api } from '@lichess-org/chessground/api';
+import type { Config } from '@lichess-org/chessground/config';
+import type { Key } from '@lichess-org/chessground/types';
+
+type Props = {
+  config: Config;
+  onMove: (from: Key, to: Key) => void;
+};
+
+/**
+ * Hülle um das Lichess-Brett (chessground). Das Brett selbst kennt keine Regeln;
+ * es bekommt von außen Stellung und erlaubte Züge und meldet gezogene Züge zurück.
+ */
+export function Board({ config, onMove }: Props) {
+  const el = useRef<HTMLDivElement>(null);
+  const api = useRef<Api | null>(null);
+  const onMoveRef = useRef(onMove);
+  onMoveRef.current = onMove;
+
+  useEffect(() => {
+    if (!el.current) return;
+    api.current = Chessground(el.current, {
+      animation: { enabled: true, duration: 180 },
+      highlight: { lastMove: true, check: true },
+      movable: { free: false, showDests: true, events: { after: (from, to) => onMoveRef.current(from, to) } },
+      premovable: { enabled: false },
+      draggable: { showGhost: true },
+      coordinates: true,
+    });
+    // set() führt verschachtelte Einstellungen zusammen, statt sie zu ersetzen (wichtig für movable.events)
+    api.current.set(config);
+    return () => api.current?.destroy();
+    // Brett nur einmal erzeugen; Änderungen laufen über den zweiten Effekt
+  }, []);
+
+  useEffect(() => {
+    api.current?.set(config);
+  }, [config]);
+
+  return (
+    <div className="board-frame">
+      <div ref={el} className="board" data-testid="board" />
+    </div>
+  );
+}

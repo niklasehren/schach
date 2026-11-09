@@ -1,0 +1,47 @@
+/* Gestaltungs-Grundwerte: Farben, Schrift, Abstände. Hell und dunkel folgen der Systemeinstellung. */
+:root {
+  --bg: #f4f1ea;
+  --surface: #fbfaf6;
+  --line: #e2ddd1;
+  --text: #1d211f;
+  --text-muted: #6d716b;
+  --accent: #2f4a3f;
+  --accent-text: #f6f3ea;
+  --danger: #a5402d;
+
+  --sq-light: #e9e2d0;
+  --sq-dark: #8b9c88;
+  --sq-last: rgba(214, 178, 74, 0.42);
+  --sq-selected: rgba(47, 74, 63, 0.35);
+  --sq-dest: rgba(29, 33, 31, 0.22);
+  --sq-check: rgba(186, 52, 36, 0.75);
+
+  --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --gap: 16px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161a1f;
+    --surface: #1d2228;
+    --line: #2c333b;
+    --text: #e8e6e0;
+    --text-muted: #8d939a;
+    --accent: #9fbfae;
+    --accent-text: #14181c;
+    --danger: #e08a74;
+
+    --sq-light: #c9c3b3;
+    --sq-dark: #6f7f6e;
+    --sq-last: rgba(196, 164, 80, 0.38);
+    --sq-selected: rgba(20, 40, 32, 0.45);
+
+    color-scheme: dark;
+  }
+}
