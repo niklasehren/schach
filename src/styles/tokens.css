@@ -15,6 +15,8 @@
   --sq-selected: rgba(47, 74, 63, 0.35);
   --sq-dest: rgba(29, 33, 31, 0.22);
   --sq-check: rgba(186, 52, 36, 0.75);
+  --coord-on-light: #4a5a48;
+  --coord-on-dark: #f7f3e8;
 
   --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
@@ -40,6 +42,8 @@
     --sq-light: #c9c3b3;
     --sq-dark: #6f7f6e;
     --sq-last: rgba(196, 164, 80, 0.38);
+    --coord-on-light: #44523f;
+    --coord-on-dark: #f1ede2;
     --sq-selected: rgba(20, 40, 32, 0.45);
 
     color-scheme: dark;

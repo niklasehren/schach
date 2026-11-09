@@ -44,8 +44,8 @@
 /* Koordinaten klein und dezent im Feld */
 .board coords {
   font-family: var(--font-sans);
-  font-size: clamp(8px, 1.6vmin, 11px);
-  font-weight: 600;
+  font-size: clamp(11px, calc(var(--board-size) / 46), 15px);
+  font-weight: 700;
   opacity: 1;
 }
 
@@ -54,8 +54,8 @@
 }
 
 .board coords.ranks {
-  top: 2px;
-  left: 3px;
+  top: 3px;
+  left: 4px;
 }
 
 .board coords.ranks coord {
@@ -63,27 +63,27 @@
 }
 
 .board coords.files {
-  bottom: 1px;
+  bottom: 2px;
   left: auto;
-  right: 3px;
+  right: 4px;
   text-align: right;
 }
 
-/* Schrift jeweils in der Farbe des anderen Feldtyps, damit sie lesbar bleibt */
+/* Schrift in kräftigem Kontrast zum jeweiligen Feld */
 .board coords coord:nth-child(odd) {
-  color: var(--sq-light);
+  color: var(--coord-on-dark);
 }
 
 .board coords coord:nth-child(even) {
-  color: var(--sq-dark);
+  color: var(--coord-on-light);
 }
 
 .board coords.black coord:nth-child(odd) {
-  color: var(--sq-dark);
+  color: var(--coord-on-light);
 }
 
 .board coords.black coord:nth-child(even) {
-  color: var(--sq-light);
+  color: var(--coord-on-dark);
 }
 
 /* Umwandlungs-Auswahl */

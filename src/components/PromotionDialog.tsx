@@ -36,7 +36,7 @@ export function PromotionDialog({ color, onChoose, onCancel }: Props) {
 declare module 'react' {
   namespace JSX {
     interface IntrinsicElements {
-      piece: React.HTMLAttributes<HTMLElement>;
+      piece: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
     }
   }
 }

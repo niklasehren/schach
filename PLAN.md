@@ -44,8 +44,8 @@ Quelle: README des npm-Pakets `stockfish` v19.0.1 (Stockfish.js von Nathan Rugg,
 
 ### Spielstärke einstellen
 
-- Ab einer Mindest-Elo: `UCI_LimitStrength` + `UCI_Elo`. **Annahme:** Untergrenze liegt wie bei Stockfish 16/17 bei 1320 – prüfe ich in Block 2 direkt an der Engine.
-- Darunter: `Skill Level` 0–20 (0 = sehr schwach). In der Oberfläche ein einziger Regler mit Stufen, z. B. „Einsteiger (Skill 0)“ … „1320“ … „2400“.
+- Ab einer Mindest-Elo: `UCI_LimitStrength` + `UCI_Elo`. **Geprüft (9.11.2026):** Stockfish 19 Lite meldet selbst die Spanne **1320–3190**.
+- Darunter: `Skill Level` 0–20 (0 = sehr schwach). In der Oberfläche ein einziger Regler: „Einsteiger 1/4–4/4“ (Skill 0/3/6/9, ohne Elo-Angabe, weil Stockfish dafür keine nennt), dann Elo 1320 … 3000.
 - Gegner bekommt eine kurze, feste Bedenkzeit pro Zug (z. B. 0,3–1 s, plus kleine Zufallsschwankung), damit er sich natürlich anfühlt und nicht die eigene Uhr verbraucht.
 
 ---
@@ -94,7 +94,7 @@ Von Anfang an so angelegt, dass es später zu Supabase passt (eindeutige IDs, Ze
 
 | Tabelle | Inhalt |
 |---|---|
-| `games` | ID, Datum, Quelle (`app` / `chesscom` / `brett`), meine Farbe, Gegner-Stärke, Bedenkzeit, Ergebnis, Abbruchgrund, **PGN mit Restzeit pro Zug** (Standard-Format `{[%clk 0:14:32]}`, wie Lichess/Chess.com) |
+| `games` | ID, Datum, Quelle (`app` / `chesscom` / `brett`), Modus (gegen Computer / gegen Freund am selben Gerät), Spielernamen, meine Farbe, Gegner-Stärke, Bedenkzeit, Ergebnis, Abbruchgrund, **PGN mit Restzeit pro Zug** (Standard-Format `{[%clk 0:14:32]}`, wie Lichess/Chess.com) |
 | `analyses` | Partie-ID, Engine-Version, Tiefe, pro Zug: Bewertung, bester Zug, Klasse, Phase, Merkmale (Figur eingestellt, Matt übersehen, Zeitnot) |
 | `puzzles` | ID, Partie-ID, Stellung (FEN), Lösung(en), Thema/Merkmale, Leitner-Kasten, nächster Fälligkeitstag |
 | `attempts` | Puzzle-ID, Datum, richtig/falsch, benötigte Zeit |
@@ -154,9 +154,9 @@ Jeder Block endet mit: Test (automatisch + im Browser in Mac- und Handy-Größe)
 
 | Block | Inhalt | Ergebnis zum Ausprobieren |
 |---|---|---|
-| **0 Einrichtung** | Projekt anlegen, Bibliotheken installieren, Git-Repo, GitHub Pages + automatisches Veröffentlichen | Leere App läuft lokal und unter einer öffentlichen Adresse |
-| **1 Brett & Regeln** | Brett mit chessground + chess.js, legale Züge, Umwandlung (Bauer → Dame etc.), Grund-Layout, Design-Grundlagen | Man kann eine Partie gegen sich selbst ziehen |
-| **2 Gegen Stockfish** | Engine im Worker, Einstellungen: Farbe, Stärke (Elo/Skill), Start-Dialog | Partie gegen den Computer |
+| **0 Einrichtung** ✅ | Projekt anlegen, Bibliotheken installieren, Git-Repo, GitHub Pages + automatisches Veröffentlichen | Leere App läuft lokal und unter einer öffentlichen Adresse |
+| **1 Brett & Regeln** ✅ | Brett mit chessground + chess.js, legale Züge, Umwandlung (Bauer → Dame etc.), Grund-Layout, Design-Grundlagen | Man kann eine Partie gegen sich selbst ziehen |
+| **2 Gegen Stockfish** ✅ | Engine im Worker, Start-Bildschirm: Farbe, Stärke (Elo/Skill) · zweiter Modus „Gegen Freund (am selben Gerät)“ mit Namen · Aufgeben · Materialvorteil und geschlagene Figuren · Zurückblättern (Pfeiltasten, Knöpfe, Zugliste) · größere Koordinaten | Partie gegen den Computer oder einen Freund |
 | **3 Uhr & Partieende** | Schachuhr mit Inkrement (Standard 15+10, wählbar), Matt/Patt/Remis-Regeln/Zeit/Aufgeben, keine Zugrücknahme, keine Hinweise | Vollständige Partie mit Uhr |
 | **4 Speichern** | IndexedDB, PGN mit Restzeit pro Zug, Partienliste, PGN-Export, Datensicherung | Partien bleiben nach Neuladen erhalten |
 | **5 Analyse-Rechnung** | Hintergrund-Analyse, Gewinnchance, Klassen, Phase, Figur eingestellt, Matt übersehen, Zeitnot | Analyse startet automatisch nach Partieende |
@@ -187,6 +187,6 @@ Bewusst **nicht** geplant: Online-Spiel gegeneinander.
 
 ## 10. Offene Punkte / Annahmen
 
-- Untergrenze der Elo-Begrenzung bei Stockfish 19 (Annahme 1320) → Prüfung in Block 2.
+- Partien „gegen Freund“ werden wie Computer-Partien gespeichert und analysiert (beide Seiten). Offen: Aus welchen Fehlern entstehen dort Puzzles – nur aus meinen? Dann muss ich beim Start angeben, welcher Spieler ich bin. → Klären vor Block 7.
 - Analyse-Dauer pro Partie im Browser mit der Lite-Engine (Erwartung: etwa 1–3 Minuten für eine Partie mit 40 Zügen, am Handy länger) → Messung in Block 5; ggf. Tiefe anpassen.
 - Schwellen für Spielphase und „Figur eingestellt“ → an echten Partien feinjustieren.

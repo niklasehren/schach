@@ -1,44 +1,114 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Chess } from 'chess.js';
 import type { Config } from '@lichess-org/chessground/config';
 import type { Color, Key } from '@lichess-org/chessground/types';
 import { Board } from '../components/Board';
 import { MoveList } from '../components/MoveList';
+import { PlayerBar } from '../components/PlayerBar';
 import { PromotionDialog } from '../components/PromotionDialog';
-import { checkSquare, gameStatus, isPromotion, legalDests, statusText, turnColor, type PromotionPiece } from '../chess/game';
+import { SetupPanel } from '../components/SetupPanel';
+import { gameStatus, isPromotion, legalDests, turnColor, type PromotionPiece } from '../chess/game';
+import { materialInfo } from '../chess/material';
+import {
+  createSession,
+  loadSetup,
+  resultFromStatus,
+  resultScore,
+  resultText,
+  saveSetup,
+  type GameResult,
+  type GameSetup,
+  type Player,
+  type Session,
+} from '../chess/session';
+import { getEngine } from '../engine/stockfish';
+import { strengthLabel, strengthLevels, strengthOptions } from '../engine/strength';
 
-/**
- * Block 1: freies Ziehen beider Seiten auf dem Brett.
- * In Block 2 übernimmt Stockfish eine Seite.
- */
+const other = (c: Color): Color => (c === 'white' ? 'black' : 'white');
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export function PlayPage() {
+  const [setup, setSetup] = useState<GameSetup>(loadSetup);
+  const [session, setSession] = useState<Session | null>(null);
   const chess = useRef(new Chess());
   // chess.js ändert sich „innen“; dieser Zähler sagt React, dass neu gezeichnet werden muss
   const [version, setVersion] = useState(0);
+  const [result, setResult] = useState<GameResult | null>(null);
   const [orientation, setOrientation] = useState<Color>('white');
+  /** null = aktuelle Stellung, sonst angezeigter Halbzug beim Zurückblättern */
+  const [viewPly, setViewPly] = useState<number | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Key; to: Key } | null>(null);
+  const [confirmResign, setConfirmResign] = useState(false);
+  const [thinking, setThinking] = useState(false);
 
-  const status = gameStatus(chess.current);
   const history = chess.current.history({ verbose: true });
-  const last = history.at(-1);
+  const ply = viewPly ?? history.length;
+  const isLive = ply === history.length;
+  const turn = turnColor(chess.current);
+  const humanToMove = !!session && !result && !session.players[turn].isEngine;
 
-  const config = useMemo<Config>(() => {
-    const c = chess.current;
-    const over = status.kind !== 'playing';
-    return {
-      fen: c.fen(),
-      orientation,
-      turnColor: turnColor(c),
-      lastMove: last ? [last.from, last.to] : undefined,
-      check: checkSquare(c) ? turnColor(c) : false,
-      movable: { color: over ? undefined : turnColor(c), dests: over ? new Map() : legalDests(c) },
+  const refresh = () => setVersion((v) => v + 1);
+
+  // Vor der Partie zeigt das Brett schon die gewählte Seite unten
+  const boardOrientation: Color = session
+    ? orientation
+    : setup.mode === 'computer' && setup.colorChoice === 'black'
+      ? 'black'
+      : 'white';
+
+  // Nach jedem Zug: Partieende prüfen
+  useEffect(() => {
+    if (!session || result) return;
+    const r = resultFromStatus(gameStatus(chess.current));
+    if (r) setResult(r);
+  }, [version, session, result]);
+
+  // Stockfish zieht, wenn er am Zug ist
+  useEffect(() => {
+    if (!session || result || !session.players[turn].isEngine) return;
+    if (gameStatus(chess.current).kind !== 'playing') return;
+    const id = session.id;
+    let cancelled = false;
+    setThinking(true);
+    (async () => {
+      // Kurze, leicht schwankende Bedenkzeit, damit es sich natürlich anfühlt
+      const started = Date.now();
+      const uci = await getEngine().bestMove(chess.current.fen(), 500);
+      await wait(Math.max(0, 450 + Math.random() * 600 - (Date.now() - started)));
+      if (cancelled || id !== session.id) return;
+      chess.current.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
+      setThinking(false);
+      refresh();
+    })();
+    return () => {
+      cancelled = true;
+      setThinking(false);
     };
-    // version steht für „Stellung hat sich geändert“
-  }, [version, orientation]);
+  }, [version, session, result]);
+
+  const start = useCallback(async () => {
+    saveSetup(setup);
+    const s = createSession(setup);
+    chess.current = new Chess();
+    setResult(null);
+    setViewPly(null);
+    setConfirmResign(false);
+    setPendingPromotion(null);
+    setOrientation(s.orientation);
+    if (setup.mode === 'computer') {
+      const engine = getEngine();
+      await engine.newGame();
+      await engine.setOptions(strengthOptions(strengthLevels[setup.strengthIndex]));
+    }
+    setSession(s);
+    refresh();
+    window.scrollTo({ top: 0 });
+  }, [setup]);
 
   function play(from: Key, to: Key, promotion?: PromotionPiece) {
     chess.current.move({ from, to, promotion });
-    setVersion((v) => v + 1);
+    setViewPly(null);
+    refresh();
   }
 
   function handleMove(from: Key, to: Key) {
@@ -46,46 +116,199 @@ export function PlayPage() {
     else play(from, to);
   }
 
-  function newGame() {
+  function backToSetup() {
     chess.current = new Chess();
-    setPendingPromotion(null);
-    setVersion((v) => v + 1);
+    setResult(null);
+    setViewPly(null);
+    setSession(null);
+    refresh();
   }
 
+  function resign() {
+    if (!session) return;
+    // Gegen Computer gibt immer der Mensch auf, am selben Gerät der Spieler am Zug
+    const loser = session.setup.mode === 'computer' ? session.orientation : turn;
+    setResult({ winner: other(loser), reason: 'resign' });
+    setConfirmResign(false);
+  }
+
+  const goTo = useCallback(
+    (target: number) => {
+      const len = chess.current.history().length;
+      const clamped = Math.max(0, Math.min(len, target));
+      setViewPly(clamped === len ? null : clamped);
+    },
+    [],
+  );
+
+  // Pfeiltasten: ← → einen Zug, ↑ / Pos1 Anfang, ↓ / Ende aktuelle Stellung
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const len = chess.current.history().length;
+      const current = viewPly ?? len;
+      const map: Record<string, number> = { ArrowLeft: current - 1, ArrowRight: current + 1, ArrowUp: 0, Home: 0, ArrowDown: len, End: len };
+      if (e.key in map) {
+        e.preventDefault();
+        goTo(map[e.key]);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [viewPly, goTo]);
+
+  const config = useMemo<Config>(() => {
+    const shown = ply === 0 ? new Chess() : new Chess(history[ply - 1].after);
+    const last = ply > 0 ? history[ply - 1] : undefined;
+    const canMove = isLive && humanToMove;
+    return {
+      fen: shown.fen(),
+      orientation: boardOrientation,
+      turnColor: turnColor(shown),
+      lastMove: last ? [last.from, last.to] : undefined,
+      check: shown.inCheck() ? turnColor(shown) : false,
+      movable: { color: canMove ? turn : undefined, dests: canMove ? legalDests(chess.current) : new Map() },
+    };
+  }, [version, ply, boardOrientation, humanToMove]);
+
+  const material = materialInfo(chess.current, ply);
+  const players = session?.players ?? previewPlayers(setup);
+
+  const bar = (color: Color) => (
+    <PlayerBar
+      player={players[color]}
+      color={color}
+      captured={material.captured[color]}
+      advantage={material.advantage[color]}
+      active={!!session && !result && turn === color}
+      thinking={thinking && players[color].isEngine}
+    />
+  );
+
+  function statusLine(): string {
+    if (!session) return '';
+    if (result) return '';
+    const p = session.players[turn];
+    if (p.isEngine) return 'Stockfish ist am Zug';
+    const check = chess.current.inCheck() ? ' – Schach!' : '';
+    if (p.name === 'Du') return `Du bist am Zug${check}`;
+    return `${p.name} ist am Zug${check}`;
+  }
+
+  const summary = result && session ? resultText(result, session.players) : null;
+
   return (
-    <div className="play">
+    <div className={`play ${session ? '' : 'is-setup'}`}>
       <section className="play-board">
-        <Board config={config} onMove={handleMove} />
-        {pendingPromotion && (
-          <PromotionDialog
-            color={turnColor(chess.current)}
-            onChoose={(piece) => {
-              play(pendingPromotion.from, pendingPromotion.to, piece);
-              setPendingPromotion(null);
-            }}
-            onCancel={() => {
-              // Zug zurück aufs Brett setzen, ohne ihn auszuführen
-              setPendingPromotion(null);
-              setVersion((v) => v + 1);
-            }}
-          />
-        )}
+        {bar(other(boardOrientation))}
+        <div className="board-area">
+          <Board config={config} onMove={handleMove} />
+          {pendingPromotion && (
+            <PromotionDialog
+              color={turn}
+              onChoose={(piece) => {
+                play(pendingPromotion.from, pendingPromotion.to, piece);
+                setPendingPromotion(null);
+              }}
+              onCancel={() => {
+                // Zug zurück aufs Brett setzen, ohne ihn auszuführen
+                setPendingPromotion(null);
+                refresh();
+              }}
+            />
+          )}
+        </div>
+        {bar(boardOrientation)}
       </section>
 
       <aside className="play-side">
-        <p className={`status status-${status.kind}`} data-testid="status" aria-live="polite">
-          {statusText(status)}
-        </p>
-        <MoveList moves={history.map((m) => m.san)} />
-        <div className="actions">
-          <button className="btn" onClick={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}>
-            Brett drehen
-          </button>
-          <button className="btn btn-primary" onClick={newGame}>
-            Neue Partie
-          </button>
-        </div>
+        {!session ? (
+          <SetupPanel setup={setup} onChange={setSetup} onStart={start} />
+        ) : (
+          <>
+            {summary && result ? (
+              <div className="result" data-testid="result" role="status">
+                <span className="result-score">{resultScore(result)}</span>
+                <span className="result-headline">{summary.headline}</span>
+                <span className="result-detail">{summary.detail}</span>
+              </div>
+            ) : (
+              <p className="status" data-testid="status" aria-live="polite">
+                {statusLine()}
+              </p>
+            )}
+
+            <MoveList moves={history.map((m) => m.san)} currentPly={ply} onSelect={goTo} />
+
+            <div className="nav-controls" aria-label="Züge durchblättern">
+              <button className="icon-btn" aria-label="Zum Anfang" onClick={() => goTo(0)} disabled={ply === 0}>
+                <Icon d="M7 6v12M18 6l-7 6 7 6" />
+              </button>
+              <button className="icon-btn" aria-label="Zug zurück" onClick={() => goTo(ply - 1)} disabled={ply === 0}>
+                <Icon d="M15 6l-6 6 6 6" />
+              </button>
+              <button className="icon-btn" aria-label="Zug vor" onClick={() => goTo(ply + 1)} disabled={isLive}>
+                <Icon d="M9 6l6 6-6 6" />
+              </button>
+              <button className="icon-btn" aria-label="Zur aktuellen Stellung" onClick={() => goTo(history.length)} disabled={isLive}>
+                <Icon d="M17 6v12M6 6l7 6-7 6" />
+              </button>
+            </div>
+
+            <div className="actions">
+              {result ? (
+                <>
+                  <button className="btn" onClick={backToSetup}>
+                    Einstellungen
+                  </button>
+                  <button className="btn btn-primary" onClick={start}>
+                    Neue Partie
+                  </button>
+                </>
+              ) : confirmResign ? (
+                <>
+                  <button className="btn" onClick={() => setConfirmResign(false)}>
+                    Weiterspielen
+                  </button>
+                  <button className="btn btn-danger" onClick={resign}>
+                    {session.setup.mode === 'friend' ? `${players[turn].name} gibt auf` : 'Ja, aufgeben'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="btn" onClick={() => setOrientation(other)}>
+                    Brett drehen
+                  </button>
+                  <button className="btn" onClick={() => setConfirmResign(true)}>
+                    Aufgeben
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        )}
       </aside>
     </div>
+  );
+}
+
+/** Spielernamen vor dem Start (bei „Zufall“ steht Stockfish vorläufig oben) */
+function previewPlayers(setup: GameSetup): Record<Color, Player> {
+  if (setup.mode === 'friend') {
+    return {
+      white: { name: setup.whiteName.trim() || 'Weiß', isEngine: false },
+      black: { name: setup.blackName.trim() || 'Schwarz', isEngine: false },
+    };
+  }
+  const engine: Player = { name: 'Stockfish', detail: strengthLabel(strengthLevels[setup.strengthIndex]), isEngine: true };
+  const me: Player = { name: 'Du', isEngine: false };
+  return setup.colorChoice === 'black' ? { white: engine, black: me } : { white: me, black: engine };
+}
+
+function Icon({ d }: { d: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={d} />
+    </svg>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Chessground } from '@lichess-org/chessground';
 import type { Api } from '@lichess-org/chessground/api';
 import type { Config } from '@lichess-org/chessground/config';
@@ -31,11 +31,22 @@ export function Board({ config, onMove }: Props) {
     });
     // set() führt verschachtelte Einstellungen zusammen, statt sie zu ersetzen (wichtig für movable.events)
     api.current.set(config);
-    return () => api.current?.destroy();
+    // Das Brett merkt sich seine Bildschirmposition. Verschiebt sich das Layout (ohne Scrollen oder
+    // Größenänderung), wäre sie veraltet – daher vor jeder Berührung neu messen lassen.
+    const root = el.current;
+    const remeasure = () => api.current?.state.dom.bounds.clear();
+    root.addEventListener('mousedown', remeasure, { capture: true });
+    root.addEventListener('touchstart', remeasure, { capture: true, passive: true });
+    return () => {
+      root.removeEventListener('mousedown', remeasure, { capture: true });
+      root.removeEventListener('touchstart', remeasure, { capture: true });
+      api.current?.destroy();
+    };
     // Brett nur einmal erzeugen; Änderungen laufen über den zweiten Effekt
   }, []);
 
-  useEffect(() => {
+  // Vor dem Zeichnen anwenden, damit Brett und Zugliste nie auseinanderlaufen
+  useLayoutEffect(() => {
     api.current?.set(config);
   }, [config]);
 

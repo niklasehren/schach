@@ -5,7 +5,9 @@
   "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/copy-engine.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/copy-engine.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
@@ -17,7 +19,8 @@
     "@lichess-org/chessground": "^10.5.0",
     "chess.js": "^1.4.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "stockfish": "^19.0.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",
