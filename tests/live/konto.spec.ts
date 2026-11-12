@@ -36,7 +36,7 @@ test.afterAll(() => {
 test('Konto: Registrieren übernimmt lokale Daten, zweites Gerät bekommt sie, Abmelden leert nur das Gerät, Konto löschen', async ({ browser }) => {
   // Gerät 1: hat schon eine Einstellung lokal (ohne Konto entstanden)
   const dev1 = await (await browser.newContext()).newPage();
-  await dev1.goto('/#/einstellungen');
+  await dev1.goto('./#/einstellungen');
   await expect(dev1.getByTestId('account-card')).toContainText('Anmelden');
   await dev1.evaluate(
     () =>
@@ -67,7 +67,7 @@ test('Konto: Registrieren übernimmt lokale Daten, zweites Gerät bekommt sie, A
 
   // Gerät 2: Anmelden mit Benutzername → bekommt die Daten
   const dev2 = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
-  await dev2.goto('/#/einstellungen');
+  await dev2.goto('./#/einstellungen');
   await dev2.getByLabel('Benutzername oder E-Mail').fill(U.username);
   await dev2.getByLabel('Passwort').fill(U.password);
   await dev2.getByRole('button', { name: 'Anmelden' }).click();
