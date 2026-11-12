@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { mockChessCom, runImport } from './helpers';
+import { importZwischenzug, mockChessCom, runImport } from './helpers';
 
 const shot = (page: Page, name: string, full = true) => page.screenshot({ path: `test-results/${name}-${test.info().project.name}.png`, fullPage: full });
 
@@ -55,4 +55,15 @@ test('Einstellungen: heller Modus und Brett-Theme bleiben nach Neuladen', async 
   await expect(page.locator('html')).toHaveAttribute('data-board', 'schiefer');
   await expect(page.getByTestId('light-mode')).toBeChecked();
   await shot(page, 'einstellungen-hell');
+});
+
+test('Analyse am Mac (1440×900) ohne Scrollen', async ({ page }) => {
+  test.skip(test.info().project.name !== 'mac', 'nur Mac-Größe');
+  test.setTimeout(150000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await importZwischenzug(page);
+  await page.getByTestId('game-row').click();
+  await page.getByTestId('next-error').click();
+  await expect(page.getByTestId('error-card')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(0);
 });

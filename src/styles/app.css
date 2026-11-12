@@ -1394,7 +1394,8 @@ input[type='range'] {
 .analysis-layout {
   --evalbar: 30px;
   --side-h: calc(var(--board-size) + 2 * var(--bar-height) + 12px + 58px);
-  --board-size: round(down, min(calc(100dvh - 250px), calc(100vw - 560px), 720px), 8px);
+  /* Kopfzeile, Abstände, 2 Spielerzeilen und Knopfreihe ≈ 290 px: so passt alles ohne Scrollen auf den Bildschirm */
+  --board-size: round(down, min(calc(100dvh - 290px), calc(100vw - 560px), 720px), 8px);
   display: grid;
   grid-template-columns: auto 420px;
   gap: 28px;
