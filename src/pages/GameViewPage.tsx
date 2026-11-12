@@ -22,7 +22,8 @@ import {
 import { getGame } from '../db/games';
 import { downloadFile } from '../db/backup';
 import { db, type AnalysisRecord, type GameRecord, type MoveAnalysis, type MoveClass, type PositionEval, type Side } from '../db/schema';
-import { explain, playLine, type Explanation } from '../analysis/explain';
+import { explain, playLine, winWords, type Explanation } from '../analysis/explain';
+import { RichText } from '../components/RichText';
 import { pov, povChances, toPercent } from '../analysis/rules';
 import { EvalBar } from '../components/EvalBar';
 import { EvalChart } from '../components/EvalChart';
@@ -358,7 +359,7 @@ function explainMove(m: MoveAnalysis, fens: string[], a: AnalysisRecord): Explan
   const mover: Side = new Chess(fens[m.ply - 1]).turn() === 'w' ? 'white' : 'black';
   const before = a.evals[m.ply - 1];
   const after = a.evals[m.ply];
-  if (!before || !after) return { played: [], better: [] };
+  if (!before || !after) return { played: [], better: [], merke: null };
   return explain({
     fenBefore: fens[m.ply - 1],
     played: m.uci,
@@ -437,8 +438,8 @@ function ErrorCard({
           {moveLabel} – {classText[move.class!]}
         </strong>
         {tags.length > 0 && <span className="error-tags">{tags.join(' · ')}</span>}
-        <span className="error-win">
-          Gewinnchance {Math.round(move.winBefore)} % → {Math.round(move.winAfter)} %
+        <span className="error-win" data-testid="win-words">
+          {winSentence(move.winBefore, move.winAfter)} (Gewinnchance {Math.round(move.winBefore)} % → {Math.round(move.winAfter)} %)
         </span>
       </header>
       <p className="arrow-legend">
@@ -453,8 +454,10 @@ function ErrorCard({
         <div className="error-why">
           <span className="error-why-title">Warum {san} schlecht ist</span>
           <ul data-testid="explain-played">
-            {explanation.played.map((t) => (
-              <li key={t}>{t}</li>
+            {explanation.played.map((item) => (
+              <li key={item.text}>
+                <RichText text={item.text} />
+              </li>
             ))}
           </ul>
         </div>
@@ -463,11 +466,18 @@ function ErrorCard({
         <div className="error-why">
           <span className="error-why-title">Warum {best} besser ist</span>
           <ul data-testid="explain-better">
-            {explanation.better.map((t) => (
-              <li key={t}>{t}</li>
+            {explanation.better.map((item) => (
+              <li key={item.text}>
+                <RichText text={item.text} />
+              </li>
             ))}
           </ul>
         </div>
+      )}
+      {explanation.merke && (
+        <p className="merke" data-testid="merke">
+          <strong>Merke:</strong> {explanation.merke}
+        </p>
       )}
       {canShowLine && (
         <button className="btn btn-primary" onClick={onShowLine} data-testid="show-line">
@@ -517,4 +527,13 @@ function VariationCard({ fen, moves, step, onStep, onClose }: { fen: string; mov
       </button>
     </section>
   );
+}
+
+/** „Vorher ausgeglichen, danach klar schlechter für dich“ */
+function winSentence(before: number, after: number): string {
+  const a = winWords(before);
+  const b = winWords(after);
+  const fmt = (w: string) => (w === 'ausgeglichen' || w === 'gewonnen' || w === 'verloren' ? w : `${w} für dich`);
+  if (a === b) return `Die Stellung bleibt ${fmt(a)}`;
+  return `Vorher ${fmt(a)}, danach ${fmt(b)}`;
 }

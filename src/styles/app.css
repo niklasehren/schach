@@ -1203,11 +1203,8 @@ input[type='range'] {
 }
 
 .error-why-title {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .error-why ul {
@@ -1334,6 +1331,47 @@ input[type='range'] {
   white-space: nowrap;
   pointer-events: none;
   font-variant-numeric: tabular-nums;
+}
+
+/* Fachbegriffe und Merksatz */
+.term {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.term.is-open {
+  color: var(--accent);
+}
+
+.term:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.term-def {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  font-size: 14px;
+}
+
+.merke {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  font-size: 15px;
 }
 
 /* Handy und schmale Fenster: alles untereinander, Brett bildschirmbreit */

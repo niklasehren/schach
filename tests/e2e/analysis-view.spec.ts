@@ -39,10 +39,24 @@ test('Zwischenzug 7. Lxc6+: Pfeile, Erklärung mit Schach, Variante zum Durchkli
   await expect(card).toContainText('7. Df1??');
   await expect(card).toContainText('Patzer');
   await expect(card).toContainText('besser Lxc6+');
-  await expect(page.getByTestId('explain-better')).toContainText('Schach');
-  await expect(page.getByTestId('explain-better')).toContainText('Zwischenzug');
-  await expect(page.getByTestId('explain-better')).toContainText('deine Dame nicht mehr angegriffen');
-  await expect(page.getByTestId('explain-played')).toContainText('Dxd4');
+  const better = page.getByTestId('explain-better');
+  await expect(better).toContainText('schlägt dein Läufer den Springer auf c6 (Lxc6+), und zwar mit Schach');
+  await expect(better).toContainText('Er hat keine Zeit, deine Dame zu schlagen');
+  await expect(page.getByTestId('explain-played')).toContainText('dein Bauer auf d4 bleibt ungedeckt');
+  await expect(page.getByTestId('explain-played')).toContainText('einen weiteren Bauern');
+  await expect(page.getByTestId('win-words')).toContainText('Vorher ausgeglichen, danach klar schlechter für dich');
+  await expect(page.getByTestId('merke')).toHaveText('Merke: Wird eine deiner Figuren angegriffen, schau zuerst, ob du Schach geben oder etwas schlagen kannst.');
+
+  // Fachbegriff antippen zeigt die Erklärung (am Handy per Tippen), nochmal antippen schließt sie
+  const term = better.getByTestId('term').filter({ hasText: 'Zwischenzug' });
+  const touch = !!test.info().project.use.hasTouch;
+  await (touch ? term.tap() : term.click());
+  await expect(better.getByTestId('term-def')).toContainText('Zwischenzug: Ein Zug, auf den der Gegner sofort reagieren muss');
+  await expect(term).toHaveAttribute('aria-expanded', 'true');
+  await page.waitForTimeout(300);
+  await shot(page, 'begriff');
+  await (touch ? term.tap() : term.click());
+  await expect(better.getByTestId('term-def')).toHaveCount(0);
   await expect(page.getByTestId('eval-readout')).toContainText('Bewertung');
   await page.waitForTimeout(400);
   await shot(page, 'fehler-pfeile');
