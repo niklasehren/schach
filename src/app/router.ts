@@ -7,13 +7,19 @@ export type Route =
   | { page: 'partien' }
   | { page: 'partie'; id: string; ply?: number }
   | { page: 'import' }
-  | { page: 'training' };
+  | { page: 'training'; mode?: TrainingMode; theme?: string };
+
+/** fehler = Tagesziel aus meinen Fehlern, mehr = „Weiter üben“ ohne Limit, allgemein = Lichess-Puzzles (Thema oder „schwaechen“) */
+export type TrainingMode = 'fehler' | 'mehr' | 'allgemein';
 
 /** Seiten über den Teil nach „#“ in der Adresse – funktioniert auf GitHub Pages ohne Server-Einstellungen */
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
   if (parts[0] === 'partien' && parts[1]) return { page: 'partie', id: parts[1], ply: parts[2] !== undefined && /^\d+$/.test(parts[2]) ? Number(parts[2]) : undefined };
-  if (parts[0] === 'training') return { page: 'training' };
+  if (parts[0] === 'training') {
+    const mode = parts[1] === 'fehler' || parts[1] === 'mehr' || parts[1] === 'allgemein' ? parts[1] : undefined;
+    return mode === 'allgemein' ? { page: 'training', mode, theme: parts[2] ?? 'schwaechen' } : mode ? { page: 'training', mode } : { page: 'training' };
+  }
   if (parts[0] === 'spielen') return { page: 'spielen' };
   if (parts[0] === 'einstellungen') return { page: 'einstellungen' };
   if (parts[0] === 'partien') return { page: 'partien' };
@@ -23,6 +29,7 @@ export function parseRoute(hash: string): Route {
 
 export function href(route: Route): string {
   if (route.page === 'partie') return `#/partien/${encodeURIComponent(route.id)}${route.ply !== undefined ? `/${route.ply}` : ''}`;
+  if (route.page === 'training' && route.mode) return `#/training/${route.mode}${route.mode === 'allgemein' && route.theme ? `/${route.theme}` : ''}`;
   return `#/${route.page}`;
 }
 

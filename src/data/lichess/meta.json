@@ -1,0 +1,31 @@
+{
+  "source": "https://database.lichess.org/lichess_db_puzzle.csv.zst",
+  "license": "CC0 (Lichess)",
+  "created": "2026-11-12",
+  "filters": {
+    "rating": [
+      400,
+      1800
+    ],
+    "minPopularity": 85,
+    "minPlays": 1000,
+    "maxDeviation": 90,
+    "perTheme": 300
+  },
+  "counts": {
+    "hangingPiece": 300,
+    "fork": 300,
+    "pin": 300,
+    "skewer": 300,
+    "discoveredAttack": 300,
+    "mateIn1": 300,
+    "mateIn2": 300,
+    "backRankMate": 300,
+    "defensiveMove": 300,
+    "trappedPiece": 300,
+    "quietMove": 300,
+    "deflection": 300,
+    "attraction": 300,
+    "promotion": 300
+  }
+}

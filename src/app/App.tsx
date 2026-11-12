@@ -121,7 +121,7 @@ export function App() {
           {route.page === 'uebersicht' && <OverviewPage />}
           {route.page === 'partien' && <GamesPage />}
           {route.page === 'partie' && <GameViewPage id={route.id} ply={route.ply} />}
-          {route.page === 'training' && <TrainingPage />}
+          {route.page === 'training' && <TrainingPage mode={route.mode} theme={route.theme} />}
           {route.page === 'einstellungen' && <SettingsPage />}
         </Suspense>
       </main>

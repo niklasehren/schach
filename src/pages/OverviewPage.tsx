@@ -7,7 +7,8 @@ import { href } from '../app/router';
 import { analysisQueue } from '../analysis/queue';
 import { useQueueState } from '../analysis/useQueue';
 import { countErrorTypes } from '../analysis/errorTypes';
-import { todaysQueue } from '../training/leitner';
+import { practiceQueue, todaysQueue } from '../training/leitner';
+import { getPuzzleRating } from '../training/general';
 import { formatDate } from '../chess/format';
 import { GameRow } from '../components/GameRow';
 import { MIN_GAMES, RANGE_LABELS, RANGE_PHRASE, ratingSeries, segments, type RatingPoint, type RatingRange } from '../stats/rating';
@@ -27,6 +28,7 @@ export function OverviewPage() {
   const games = useLive(() => db.games.orderBy('date').reverse().toArray(), []);
   const analyses = useLive(() => db.analyses.where('status').equals('done').toArray(), []);
   const puzzles = useLive(() => db.puzzles.toArray(), []);
+  const rating = useLive(() => getPuzzleRating(), []);
   const queue = useQueueState();
 
   if (!games || !analyses || !puzzles) return <p className="text-muted-foreground">Lädt …</p>;
@@ -53,6 +55,7 @@ export function OverviewPage() {
 
   const today = todaysQueue(puzzles, Date.now());
   const due = today.due.length + today.fresh.length;
+  const practice = practiceQueue(puzzles).length;
   const allTypes = countErrorTypes(analyses);
   const totalErrors = allTypes.reduce((sum, e) => sum + e.count, 0);
   // Top 3 nur mit konkreten Fehlerarten; Fehler ohne klare Taktik als eigene Zeile darunter
@@ -77,29 +80,45 @@ export function OverviewPage() {
         <span className="text-[15px] text-hero-muted">
           {today.fresh.length} neue aus deinen Fehlern · {today.due.length} Wiederholungen
         </span>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2" role="list" aria-label="Trainingsarten">
-          <a role="listitem" href={href({ page: 'training' })} className="flex items-start gap-2.5 rounded-xl border-[1.5px] border-brass bg-brass/15 p-3 text-hero-foreground no-underline">
-            <Target className="mt-0.5 size-5 shrink-0" />
-            <span className="flex flex-col">
-              <strong>Meine Fehler</strong>
-              <small className="text-hero-muted">Stellungen aus deinen Partien</small>
+        <div className="mt-auto grid grid-cols-1 gap-2.5 sm:grid-cols-2" role="list" aria-label="Trainingsarten">
+          <div role="listitem" className="flex flex-col gap-3 rounded-xl border-[1.5px] border-brass bg-brass/15 p-3.5" data-testid="overview-mine">
+            <span className="flex items-start gap-2.5">
+              <Target className="mt-0.5 size-5 shrink-0" />
+              <span className="flex flex-col">
+                <strong>Meine Fehler</strong>
+                <small className="text-hero-muted">{due ? 'Stellungen aus deinen Partien' : practice ? 'Tagesziel geschafft – weiter üben?' : 'Alles geübt'}</small>
+              </span>
             </span>
-          </a>
-          <span role="listitem" aria-disabled="true" className="flex items-start gap-2.5 rounded-xl border-[1.5px] border-dashed border-hero-foreground/30 p-3 opacity-80">
-            <BookOpen className="mt-0.5 size-5 shrink-0" />
-            <span className="flex flex-col">
-              <strong>Allgemeines Training</strong>
-              <small className="text-hero-muted">Taktik zu deinen Schwächen · kommt bald</small>
+            <a
+              className={cn(buttonVariants({ size: 'lg' }), 'mt-auto h-11 bg-brass text-base font-bold text-brass-foreground no-underline hover:bg-brass/90')}
+              href={href(due ? { page: 'training', mode: 'fehler' } : practice ? { page: 'training', mode: 'mehr' } : { page: 'training' })}
+              data-testid="overview-start"
+            >
+              {due ? 'Training starten' : practice ? 'Weiter üben' : 'Zum Training'}
+            </a>
+          </div>
+          <div role="listitem" className="flex flex-col gap-3 rounded-xl border-[1.5px] border-hero-foreground/30 p-3.5" data-testid="overview-general">
+            <span className="flex items-start gap-2.5">
+              <BookOpen className="mt-0.5 size-5 shrink-0" />
+              <span className="flex flex-col">
+                <strong>Allgemeines Training</strong>
+                <small className="text-hero-muted">
+                  Taktik zu deinen Schwächen · Puzzle-Rating{' '}
+                  <b className="text-hero-foreground tabular-nums" data-testid="overview-puzzle-rating">
+                    {rating?.rating ?? '…'}
+                  </b>
+                </small>
+              </span>
             </span>
-          </span>
+            <a
+              className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'mt-auto h-11 border-hero-foreground/40 bg-transparent text-base text-hero-foreground no-underline hover:bg-hero-foreground/10')}
+              href={href({ page: 'training', mode: 'allgemein', theme: 'schwaechen' })}
+              data-testid="overview-start-general"
+            >
+              Starten
+            </a>
+          </div>
         </div>
-        <a
-          className={cn(buttonVariants({ size: 'lg' }), 'mt-auto h-13 bg-brass text-[17px] font-bold text-brass-foreground no-underline hover:bg-brass/90')}
-          href={href({ page: 'training' })}
-          data-testid="overview-start"
-        >
-          <Target data-icon="inline-start" /> {due ? 'Training starten' : 'Zum Training'}
-        </a>
       </Card>
 
       <RatingCard games={games} />

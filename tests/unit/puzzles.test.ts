@@ -5,7 +5,7 @@ import fixture from '../fixtures/chesscom-zwischenzug.json';
 import { convertChessComGame, type ChessComGame } from '../../src/chesscom/convert';
 import { analyseGame } from '../../src/analysis/analyze';
 import { buildPuzzles, dedupe, fenKey, isAcceptable, solutionLine, ACCEPT_LOSS } from '../../src/training/puzzles';
-import { addDays, dueText, schedule, startOfDay, todaysQueue, NEW_PER_DAY } from '../../src/training/leitner';
+import { addDays, dueText, practiceQueue, schedule, startOfDay, todaysQueue, NEW_PER_DAY } from '../../src/training/leitner';
 import { finishPuzzle, logAttempt, syncAllPuzzles } from '../../src/training/store';
 import { saveGame } from '../../src/db/games';
 import { db, TABLES, type AnalysisRecord, type GameRecord, type PuzzleRecord } from '../../src/db/schema';
@@ -122,6 +122,23 @@ describe('Leitner-Wiederholung', () => {
     // heute schon 7 neue geübt → nur noch 3
     const seen = Array.from({ length: 7 }, (_, i) => make(200 + i, { box: 2, due: day(3), firstSeen: now - 1000 }));
     expect(todaysQueue([...fresh, ...seen], now).fresh).toHaveLength(3);
+  });
+
+  it('Weiter üben: nach dem Tagesziel alle übrigen neuen Puzzles ohne Limit, Wiederholungen bleiben geplant', () => {
+    const fresh = Array.from({ length: 25 }, (_, i) => make(i, { class: i % 4 === 0 ? 'blunder' : 'mistake', gameDate: i }));
+    // Tagesziel erledigt: 10 neue heute geübt, jetzt in Kasten 2 bzw. 1
+    const seen = Array.from({ length: NEW_PER_DAY }, (_, i) => make(300 + i, { box: i % 2 ? 2 : 1, due: day(i % 2 ? 3 : 1), firstSeen: now - 1000 }));
+    const notDue = make(400, { box: 3, due: day(5) });
+    const all = [...fresh, ...seen, notDue];
+    expect(todaysQueue(all, now).fresh).toHaveLength(0);
+    const more = practiceQueue(all);
+    // alle 25 neuen, kein Limit, keine Wiederholungen (auch keine erst später fälligen)
+    expect(more).toHaveLength(25);
+    expect(more.every((p) => p.box === 0)).toBe(true);
+    // gleiche Reihenfolge wie beim Tagesziel: Patzer zuerst, neuere Partien zuerst
+    expect(more.slice(0, 7).every((p) => p.class === 'blunder')).toBe(true);
+    expect(more[0].gameDate).toBeGreaterThan(more[1].gameDate);
+    expect(practiceQueue(fresh).slice(0, NEW_PER_DAY)).toEqual(todaysQueue(fresh, now).fresh);
   });
 
   it('Versuche werden protokolliert, Abschluss setzt Kasten und Termin', async () => {

@@ -43,8 +43,13 @@ test('Übersicht, Filter der Partienliste, Navigation', async ({ page }) => {
   await expect(page.getByTestId('overview-analysis')).toContainText('6 von 6');
   await page.waitForTimeout(400);
   await shot(page, 'uebersicht');
+  // Beide Trainingsarten mit eigenem Startknopf und Puzzle-Rating (Startwert aus der Chess.com-Wertung)
+  await expect(page.getByTestId('overview-puzzle-rating')).toHaveText(/^\d{3,4}$/);
   await page.getByTestId('overview-start').click();
-  await expect(page.getByTestId('due-count')).toBeVisible();
+  await expect(page.getByTestId('puzzle-task')).toContainText('Finde einen besseren Zug');
+  await page.goBack();
+  await page.getByTestId('overview-start-general').click();
+  await expect(page.getByTestId('puzzle-theme')).toContainText('passend zu deinen Schwächen');
 });
 
 test('Einstellungen: heller Modus und Brett-Theme bleiben nach Neuladen', async ({ page }) => {

@@ -34,7 +34,7 @@ test('Puzzle aus der eigenen Partie richtig lösen: Lxc6+ bxc6 Dxc6+', async ({ 
   await page.waitForTimeout(300);
   await shot(page, 'puzzle-geloest');
 
-  await page.getByRole('button', { name: '← Übersicht' }).click();
+  await page.getByRole('button', { name: '← Training' }).click();
   await expect(page.getByTestId('due-count')).toContainText(`Heute fällig: ${before - 1}`);
 });
 
@@ -59,7 +59,7 @@ test('Puzzle falsch lösen: zweiter Versuch, dann Lösung; morgen wieder fällig
   await page.waitForTimeout(300);
   await shot(page, 'puzzle-falsch');
 
-  await page.getByRole('button', { name: '← Übersicht' }).click();
+  await page.getByRole('button', { name: '← Training' }).click();
   await expect(page.getByTestId('due-count')).toContainText(`Heute fällig: ${before - 1}`);
   // Ein Puzzle liegt jetzt in Kasten 1
   await expect(page.locator('.box').first()).toContainText('1');

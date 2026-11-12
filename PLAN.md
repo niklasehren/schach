@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 12. November 2026 · Status: Blöcke 0–2, 4–7 fertig, Design „Klubhaus“ umgesetzt (auf Branch `shadcn` mit shadcn/ui neu gebaut, wartet auf Freigabe); als Nächstes: Trainingsarten (Meine Fehler / Allgemeines Training), dann Block 9 (Statistik)
+Stand: 12. November 2026 · Status: Blöcke 0–2, 4–7 und 10 (Lichess-Puzzles) fertig, Design „Klubhaus“ mit shadcn/ui umgesetzt, zwei Trainingsarten (Meine Fehler / Allgemeines Training); als Nächstes: Block 9 (Statistik)
 
 ## 1. Idee in einem Satz
 
@@ -124,7 +124,7 @@ Ansicht: Brett + Zugliste zum Durchklicken (auch per Pfeiltasten / Wischen), Bew
 - **Taktik über mehrere Züge:** Ist der beste Zug forcierend (Schach, Schlagen) oder führt er zu Matt, geht die Lösung weiter, solange meine Züge forcierend sind (höchstens 3 eigene Züge, bei Matt bis zum Matt); der Computer antwortet jeweils mit dem Zug der Engine-Variante. Ruhige beste Züge: nur ein Zug.
 - Kein Hinweis-Knopf. Nach einem Fehlversuch darf ich noch einmal; danach kommt die Lösung. Am Ende: dieselbe Erklärung, Pfeile und „Beste Fortsetzung“ wie in der Analyse, Link zur Originalpartie.
 - **Leitner:** neu = Kasten 0; richtig beim ersten Versuch → nächster Kasten (1/3/7/14/30 Tage), sonst Kasten 1 (morgen). Jeder Versuch steht in `attempts` (Zug, richtig/falsch, Versuch 1/2, Dauer).
-- **Heute fällig:** alle fälligen Wiederholungen + höchstens **10 neue** pro Tag (Patzer vor Fehlern, neuere Partien zuerst).
+- **Heute fällig (Tagesziel):** alle fälligen Wiederholungen + **10 neue** (Patzer vor Fehlern, neuere Partien zuerst). Danach **„Weiter üben“**: alle übrigen neuen Puzzles ohne Limit, gleiche Reihenfolge (`practiceQueue`). Wiederholungen bleiben nach Leitner geplant und werden nicht vorgezogen.
 - **Entscheidung „Gegen Freund“:** Beim Start fragt die App „Wer bist du?“ (Spieler 1 / Spieler 2 / Keiner). Markierungen und Puzzles nur für die eigenen Züge; bei „Keiner“ keine Puzzles.
 
 ### Ursprünglicher Plan
@@ -137,6 +137,32 @@ Ansicht: Brett + Zugliste zum Durchklicken (auch per Pfeiltasten / Wischen), Bew
   - Richtig → einen Kasten weiter. Falsch → zurück in Kasten 1 (kommt morgen wieder).
   - Startseite zeigt „Heute fällig: 7 Puzzles“.
 - Jeder Versuch wird protokolliert (für die spätere Statistik).
+
+
+## 4b. Allgemeines Training: Lichess-Puzzles (Stand 12.11.2026)
+
+- **Quelle:** Lichess-Puzzle-Datenbank (`database.lichess.org`, **CC0**), Stand 1.11.2026, ca. 6,2 Mio. Puzzles, 310 MB gepackt. Das Skript `scripts/lichess-puzzles.mjs` lädt die Datei einmalig nach `scripts/.cache/` (nicht im Repo), entpackt sie als Datenstrom (Node-eigenes zstd) und schreibt pro Thema eine Datei nach `src/data/lichess/` plus `meta.json` (Filter, Anzahl, Datum). Neu erzeugen: `node scripts/lichess-puzzles.mjs`.
+- **Auswahl:** Puzzle-Rating 400–1800, Beliebtheit ≥ 85, mindestens 1000-mal gespielt, Rating-Abweichung ≤ 90 (verlässliches Rating). Pro Thema **300 Puzzles**, gleichmäßig über 100er-Stufen verteilt, innerhalb einer Stufe die meistgespielten. Jede Zugfolge mit chess.js geprüft. Einige Themen (z. B. Gefangene Figur, Hinlenkung, Ruhiger Zug) haben unter 700 kaum beliebte Puzzles – dort beginnt die Auswahl entsprechend höher.
+- **Größe:** 14 Themen × 300 = 4200 Puzzles, zusammen **397 kB** (gepackt **185 kB**). Jedes Thema ist eine eigene Datei (ca. 28 kB, gepackt ca. 13 kB) und wird erst geladen, wenn es gebraucht wird.
+- **Themen:** Hängende Figur, Gabel, Fesselung, Spieß, Abzugsangriff, Matt in 1, Matt in 2, Grundreihenmatt, Verteidigen, Gefangene Figur, Ruhiger Zug, Ablenkung, Hinlenkung, Umwandlung – jeweils mit kurzer Erklärung in einfacher Sprache (`src/training/themes.ts`).
+- **Lichess-Format (geprüft an Puzzle 00008 und per Test für alle 4200):** Die FEN ist die Stellung **vor** dem Zug des Gegners; der erste Zug in „Moves“ ist der Zug des Gegners. Die App zeigt erst die FEN, spielt nach 0,7 s den Gegnerzug animiert vor (markiert als letzter Zug), danach beginnt meine Lösung; meine Züge stehen an Stelle 2, 4, 6 … von „Moves“, die Antworten des Gegners werden automatisch gespielt.
+- **Bedienung wie bei „Meine Fehler“:** zwei Versuche, Pfeile (rot: mein erster falscher Zug, grün: Lösung), „Lösung zeigen“ zum Durchklicken. Richtig ist nur der Lösungszug – oder jeder Zug, der matt setzt (wie bei Lichess); keine Engine-Prüfung. Statt Partie-Link: Thema mit Erklärung. Link „Puzzles: Lichess, CC0“ unter dem Puzzle und auf der Trainingsseite.
+- **Puzzle-Rating (vereinfachtes Elo):** erwartete Lösungschance E = 1 / (1 + 10^((Puzzle − ich)/400)); neues Rating = alt + K · (Ergebnis − E). Ergebnis: im ersten Versuch gelöst 1, im zweiten 0,5, nicht gelöst 0. K = 40 für die ersten 15 Puzzles, danach 20. Untergrenze 100. **Startwert:** letzte Chess.com-Wertung (Rapid, sonst Blitz, Bullet, Täglich) **+ 400**, begrenzt auf 600–1800; ohne Chess.com-Partien 1000. Begründung: Puzzle-Ratings liegen im Anfängerbereich deutlich über Partie-Ratings; das Rating findet in den ersten Puzzles schnell zum eigenen Niveau. Gespeichert in `settings` (Schlüssel `puzzleRating`), Versuche in `attempts` mit `lichess:<ID>` – beides im Backup, kein neues Datenbankschema.
+- **Auswahl passend zum Rating:** zufällig unter den noch nie gespielten Puzzles im Fenster ±100 um mein Rating; ist dort nichts, wird das Fenster verdoppelt. Sind alle gespielt, darf eines wiederkommen.
+- **„Passend zu meinen Schwächen“:** Pro Puzzle wird ein Thema nach Gewicht gezogen. 80 % der Gewichte kommen aus meinen Fehlerarten (aus der Analyse; die Anzahl einer Fehlerart wird gleichmäßig auf ihre Themen verteilt), 20 % gleichmäßig auf alle Themen, damit keines ganz verschwindet. Ohne passende Fehler: alle gleich.
+
+| Fehlerart (Analyse) | Themen |
+|---|---|
+| Matt zugelassen | Verteidigen, Grundreihenmatt, Matt in 1 |
+| Matt übersehen | Matt in 1, Matt in 2, Grundreihenmatt |
+| Drohung übersehen | Verteidigen, Abzugsangriff, Gefangene Figur |
+| Figur oder Bauer ungedeckt gelassen | Hängende Figur, Verteidigen |
+| Gabel übersehen | Gabel |
+| Material eingestellt | Hängende Figur, Fesselung, Spieß, Gefangene Figur |
+| Schach oder Schlagzug ohne Wirkung | Ruhiger Zug, Ablenkung |
+| Stellungsfehler (ohne klare Taktik) | – (kein Taktik-Thema) |
+
+- **Adressen:** `#/training` (Übersicht beider Arten), `#/training/fehler` (Tagesziel), `#/training/mehr` (Weiter üben), `#/training/allgemein/schwaechen` bzw. `#/training/allgemein/<Thema>`.
 
 ---
 
@@ -195,14 +221,14 @@ Gewählt aus zwei Entwürfen (`design-entwurf/`: A „Klubhaus“, B „Studio�
 - **Schrift:** Instrument Serif für große Zahlen und Überschriften (z. B. „10 Puzzles“, Rating), Instrument Sans für alles andere; beide lokal eingebunden.
 - **Karten mit unterschiedlichem Gewicht:** eine gefüllte Hauptkarte (grün) pro Seite, sonst ruhige Flächen.
 - **Navigation:** Linien-Symbole; am Mac oben, am Handy als Leiste unten (Daumen). Einstellungen über das Zahnrad.
-- **Übersicht** (Startseite): Heute fällig + großer Startknopf, Platz für die Trainingsarten „Meine Fehler“ und „Allgemeines Training“ (nächster Block; dann entfällt das Tageslimit), Chess.com-Wertung je Zeitklasse auf echter Zeitachse (Zeitraum Woche / 4 Wochen [Standard] / 3 Monate / Alles; Tagespunkte bzw. Wochenpunkte mit Wertung am Wochenende; Pausen als Lücke; Veränderung im gewählten Zeitraum; unter 5 Partien Hinweis statt Grafik; Info-Symbol erklärt die Wertung), 3 häufigste **konkrete** Fehlerarten (Fehler ohne klare Taktik als eigene Zeile darunter), letzte 5 Partien, Analyse-Fortschritt.
+- **Übersicht** (Startseite): Heute fällig, darunter die Trainingsarten „Meine Fehler“ (Startknopf; nach dem Tagesziel „Weiter üben“) und „Allgemeines Training“ (eigener Startknopf, Puzzle-Rating), Chess.com-Wertung je Zeitklasse auf echter Zeitachse (Zeitraum Woche / 4 Wochen [Standard] / 3 Monate / Alles; Tagespunkte bzw. Wochenpunkte mit Wertung am Wochenende; Pausen als Lücke; Veränderung im gewählten Zeitraum; unter 5 Partien Hinweis statt Grafik; Info-Symbol erklärt die Wertung), 3 häufigste **konkrete** Fehlerarten (Fehler ohne klare Taktik als eigene Zeile darunter), letzte 5 Partien, Analyse-Fortschritt.
 - **Analyse:** am Mac kein Scrollen – rechte Spalte so hoch wie das Brett mit Reitern „Fehler / Züge / Verlauf“; Navigation und „Nächster Fehler“ direkt unter dem Brett; Nebenaktionen im „…“-Menü. Dicker Bewertungsbalken mit Zahl (am Handy waagerecht über dem Brett), große Bewertungskurve. Letzter Zug mit Farbe **und** Rahmen markiert.
 - **Partienliste:** Ergebnis-Abzeichen, Zeitklassen-Symbol, Rating-Unterschied, Patzer-Zahl, Analyse-Status; Filter nach Quelle, Zeitklasse, Ergebnis.
 - **Brett-Themes:** Walnuss (Standard), Schiefer, Turniergrün – in den Einstellungen.
 - **Bewegung:** kurze, dezente Übergänge (Einblenden, Reiter, Knopfdruck); bei „Bewegung reduzieren“ im System abgeschaltet.
 - **Handy:** Brett bildschirmbreit, Bedienknöpfe groß und unten, keine abgeschnittenen Texte (Filter als gleichmäßige Raster).
 
-### Umsetzung mit shadcn/ui (Branch `shadcn`, Stand 12.11.2026)
+### Umsetzung mit shadcn/ui (Stand 12.11.2026, in main)
 
 - **Grundlage:** shadcn/ui (Preset `b0` = Stil Nova, Base UI, Lucide-Symbole) mit Tailwind v4 (`@tailwindcss/vite`), Pfad-Alias `@/`. Komponenten liegen in `src/components/ui/` (Card, Button, Badge, Tabs, ToggleGroup, Dialog, DropdownMenu, Tooltip, Popover, Slider, Switch, Input, Alert, Progress, Chart …).
 - **Farben:** Klubhaus-Farben auf die shadcn-Variablen gelegt (`src/index.css`, `:root` hell, `.dark` dunkel = Standard); Zusatzfarben für Messing, Sieg/Niederlage/Remis und Fehler-Markierungen. Eigene CSS-Datei `app.css` und `Icons.tsx` entfallen; übrig: `layout.css` (Brettgröße), `board.css`, `tokens.css` (Brett-Themes). Chessground-CSS liegt in der Ebene `base`, damit Tailwind es nicht überschreibt.
@@ -228,6 +254,7 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 | **5 Analyse-Rechnung** ✅ | Hintergrund-Analyse, Gewinnchance, Klassen, Phase, Figur eingestellt, Matt übersehen, Zeitnot (aus `%clk` der Chess.com-Partien) | Analyse läuft für App- und Chess.com-Partien |
 | **6 Analyse-Ansicht** ✅ | Durchklicken, Bewertungskurve, bester Zug als Pfeil, Zusammenfassung | Eigene Partie Zug für Zug nachvollziehen |
 | **7 Puzzles** ✅ | Puzzles aus Fehlern, Lösen am Brett, Leitner-Wiederholung, „Heute fällig“ | Eigene Fehler als Training |
+| **10 Lichess-Puzzles** ✅ (vorgezogen) | Allgemeines Training aus der Lichess-Datenbank (CC0): 14 Themen, Puzzle-Rating, „Passend zu meinen Schwächen“ oder Thema wählen; „Weiter üben“ ohne Tageslimit (s. Abschnitt 4b) | Zwei Trainingsarten mit eigenem Startknopf |
 | **9 Statistik** | (siehe unten, vorgezogen) | Wo/wie ich verliere |
 | **3 Uhr & Partieende** | Schachuhr mit Inkrement (Standard 15+10, wählbar), Partieende durch Zeit, keine Zugrücknahme, keine Hinweise | Vollständige Partie mit Uhr |
 | **8 App & Feinschliff** | PWA (Homescreen, offline), Handy-Bedienung, Ladezeiten, Endkontrolle | App aufs iPhone installieren und nutzen |
@@ -237,7 +264,6 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 | Schritt | Inhalt | Vorbereitet durch |
 |---|---|---|
 | 9 Statistik (vorgezogen, s. o.) | Wo/wie ich verliere: nach Phase, Fehlertyp, Zeitnot, Farbe, Eröffnung. Sinnvoll ab ca. 15–20 Partien (App zeigt bis dahin „noch zu wenig Daten“). | Merkmale werden schon ab Block 5 gespeichert |
-| 10 Lichess-Puzzles | Zusatz-Puzzles aus der freien Lichess-Puzzle-Datenbank (database.lichess.org, gemeinfrei/CC0), passend zu meinen Schwächen-Themen und meinem Niveau. Die Datei ist sehr groß → ein Skript schneidet vorab eine kleine Auswahl je Thema/Schwierigkeit zu, die mit der App ausgeliefert wird. | `scripts/`, gleiche Puzzle-Ansicht wie Block 7 |
 | 12 Schnell-Eintrag Brettpartie | Nur Knöpfe: Ergebnis, Phase, Fehlertyp – fließt in die Statistik ein. | Quelle `brett` |
 | 13 Freundesgruppe | Supabase (Gratis-Plan): Konten, Gruppe, Rangliste (z. B. gelöste Puzzles, Serien). Lokale Daten werden hochgeladen. | IDs + Benutzerfeld im Datenmodell |
 | 14 Maia (optional) | Menschlich spielender Gegner (trainiert auf Lichess-Partien). Im Browser technisch aufwendiger → vorher kurze Machbarkeitsprüfung. | Engine-Anbindung ist austauschbar gebaut |
@@ -250,6 +276,7 @@ Bewusst **nicht** geplant: Online-Spiel gegeneinander.
 
 - Laufende Kosten: **0 €**. GitHub (Repo + Pages) und später Supabase-Gratis-Plan ohne Kreditkarte.
 - Lizenz des Repos: **GPL-3.0** (wegen Stockfish und chessground).
+- Lichess-Puzzles: **CC0** (gemeinfrei); Hinweis „Puzzles: Lichess, CC0“ in der App.
 - Daten bleiben bis Schritt 13 ausschließlich auf deinem Gerät.
 
 ## 10. Offene Punkte / Annahmen
@@ -257,5 +284,6 @@ Bewusst **nicht** geplant: Online-Spiel gegeneinander.
 - ~~Puzzles aus „Gegen Freund“-Partien~~ → entschieden (Block 7): „Wer bist du?“ beim Start, Puzzles nur aus eigenen Zügen.
 - Fesselung, Spieß, Abzugsangriff: im Begriffs-Wörterbuch, aber noch ohne Erkennungsregel.
 - Analyse-Dauer: am Mac gemessen (~9 s/Partie bei Tiefe 16, s. Abschnitt 3). Am iPhone noch selbst ablesen (Anzeige in „Partien“).
-- Ladezeit: Das Haupt-Bundle ist ~500 kB (Vite-Hinweis) → in Block 8 aufteilen (z. B. Analyse und Training erst bei Bedarf laden).
+- Ladezeit: Seiten und Puzzle-Themen werden schon bei Bedarf geladen; Recharts (335 kB) ist der größte Brocken → in Block 8 prüfen.
+- Puzzle-Rating: Startwert (+400 auf Chess.com) und K-Faktor sind Annahmen → nach einigen Wochen am eigenen Verlauf prüfen.
 - Schwellen für Spielphase und „Figur eingestellt“ → an echten Partien feinjustieren.

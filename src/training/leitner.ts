@@ -2,7 +2,7 @@ import type { PuzzleRecord } from '../db/schema';
 
 /** Leitner-Kästen 1–5: Abstand bis zur nächsten Wiederholung in Tagen */
 export const INTERVALS = [1, 3, 7, 14, 30] as const;
-/** Höchstens so viele neue Puzzles pro Tag */
+/** Tagesziel: so viele neue Puzzles pro Tag (danach „Weiter üben“ ohne Limit) */
 export const NEW_PER_DAY = 10;
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -41,11 +41,18 @@ export function todaysQueue(puzzles: PuzzleRecord[], now: number, newPerDay = NE
   const due = puzzles.filter((p) => isDue(p, now)).sort((a, b) => a.due! - b.due! || a.id.localeCompare(b.id));
   const seenToday = puzzles.filter((p) => p.firstSeen !== null && p.firstSeen >= today).length;
   const room = Math.max(0, newPerDay - seenToday);
-  const fresh = puzzles
-    .filter((p) => p.box === 0)
-    .sort((a, b) => (a.class === b.class ? 0 : a.class === 'blunder' ? -1 : 1) || b.gameDate - a.gameDate || a.ply - b.ply)
-    .slice(0, room);
+  const fresh = practiceQueue(puzzles).slice(0, room);
   return { due, fresh };
+}
+
+/**
+ * „Weiter üben“ nach dem Tagesziel: alle noch nie geübten Puzzles, ohne Tageslimit, in derselben Reihenfolge.
+ * Wiederholungen bleiben nach Leitner geplant und kommen hier nicht vor.
+ */
+export function practiceQueue(puzzles: PuzzleRecord[]): PuzzleRecord[] {
+  return puzzles
+    .filter((p) => p.box === 0)
+    .sort((a, b) => (a.class === b.class ? 0 : a.class === 'blunder' ? -1 : 1) || b.gameDate - a.gameDate || a.ply - b.ply);
 }
 
 /** Text für den Abstand bis zur nächsten Wiederholung */

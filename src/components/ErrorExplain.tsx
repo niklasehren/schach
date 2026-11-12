@@ -126,7 +126,25 @@ export function ErrorCard({
 }
 
 /** Engine-Variante Schritt für Schritt – deutlich als „nicht gespielt“ gekennzeichnet */
-export function VariationCard({ fen, moves, step, onStep, onClose }: { fen: string; moves: Move[]; step: number; onStep: (s: number) => void; onClose: () => void }) {
+export function VariationCard({
+  fen,
+  moves,
+  step,
+  onStep,
+  onClose,
+  title = 'Variante (Engine)',
+  subtitle = 'nicht gespielt – so wäre es besser weitergegangen',
+  closeLabel = 'Zurück zur Partie',
+}: {
+  fen: string;
+  moves: Move[];
+  step: number;
+  onStep: (s: number) => void;
+  onClose: () => void;
+  title?: string;
+  subtitle?: string;
+  closeLabel?: string;
+}) {
   const [, turn, , , , full] = fen.split(' ');
   let n = Number(full) || 1;
   let white = turn === 'w';
@@ -134,9 +152,9 @@ export function VariationCard({ fen, moves, step, onStep, onClose }: { fen: stri
     <section className="variation-card flex animate-in flex-col gap-3 rounded-xl border-2 border-dashed border-brass p-3 fade-in-0" data-testid="variation" aria-label="Variante">
       <header className="flex flex-col">
         <strong className="flex items-center gap-1.5">
-          <Lightbulb className="size-4 text-brass" /> Variante (Engine)
+          <Lightbulb className="size-4 text-brass" /> {title}
         </strong>
-        <span className="text-sm text-muted-foreground">nicht gespielt – so wäre es besser weitergegangen</span>
+        <span className="text-sm text-muted-foreground">{subtitle}</span>
       </header>
       <ol className="m-0 flex list-none flex-wrap items-center gap-x-1 gap-y-0.5 p-0 tabular-nums">
         {moves.map((m, i) => {
@@ -166,7 +184,7 @@ export function VariationCard({ fen, moves, step, onStep, onClose }: { fen: stri
         </Button>
       </div>
       <Button variant="secondary" size="lg" className="h-11" onClick={onClose} data-testid="close-line">
-        <X data-icon="inline-start" /> Zurück zur Partie
+        <X data-icon="inline-start" /> {closeLabel}
       </Button>
     </section>
   );
