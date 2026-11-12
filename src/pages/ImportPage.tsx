@@ -1,0 +1,235 @@
+import { useEffect, useRef, useState } from 'react';
+import { importChessCom, ImportError, type ImportSummary, type Progress, type Range } from '../chesscom/importer';
+import { BackupError, downloadFile, exportBackup, restoreBackup } from '../db/backup';
+import { getSetting, setSetting } from '../db/games';
+import { href } from '../app/router';
+
+const USERNAME_KEY = 'chesscomUsername';
+
+type State =
+  | { kind: 'idle' }
+  | { kind: 'running'; progress: Progress }
+  | { kind: 'done'; summary: ImportSummary }
+  | { kind: 'error'; message: string; added: number };
+
+export function ImportPage() {
+  return (
+    <div className="page">
+      <h1 className="page-title">Import</h1>
+      <ChessComImport />
+      <BackupSection />
+    </div>
+  );
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+function ChessComImport() {
+  const [username, setUsername] = useState('');
+  const [range, setRange] = useState<Range>('last3');
+  const [state, setState] = useState<State>({ kind: 'idle' });
+  const abort = useRef<AbortController | null>(null);
+  const lastProgress = useRef<Progress | null>(null);
+
+  // Gespeicherten Namen vorausfüllen
+  useEffect(() => {
+    getSetting<string>(USERNAME_KEY).then((n) => n && setUsername((cur) => cur || n));
+  }, []);
+
+  async function run(e: React.FormEvent) {
+    e.preventDefault();
+    if (state.kind === 'running') return;
+    const ctrl = new AbortController();
+    abort.current = ctrl;
+    lastProgress.current = null;
+    setState({ kind: 'running', progress: { phase: 'archives', month: 0, months: 0, added: 0 } });
+    try {
+      const summary = await importChessCom(
+        username,
+        range,
+        (p) => {
+          lastProgress.current = p;
+          if (!ctrl.signal.aborted) setState({ kind: 'running', progress: p });
+          // Name merken, sobald Chess.com ihn kennt
+          if (p.phase === 'months' && p.month === 1) setSetting(USERNAME_KEY, username.trim()).catch(() => {});
+        },
+        { signal: ctrl.signal },
+      );
+      await setSetting(USERNAME_KEY, username.trim()).catch(() => {});
+      setState({ kind: 'done', summary });
+    } catch (err) {
+      const added = (lastProgress.current as Progress | null)?.added ?? 0;
+      if ((err as Error)?.name === 'AbortError') {
+        setState({ kind: 'error', message: 'Import abgebrochen.', added });
+      } else if (err instanceof ImportError) {
+        setState({ kind: 'error', message: err.message, added });
+      } else {
+        setState({ kind: 'error', message: 'Beim Speichern ist ein Fehler aufgetreten. Bitte erneut versuchen.', added });
+      }
+    } finally {
+      abort.current = null;
+    }
+  }
+
+  const running = state.kind === 'running';
+
+  return (
+    <section className="card" aria-labelledby="cc-title">
+      <h2 className="card-title" id="cc-title">
+        Partien von Chess.com
+      </h2>
+      <p className="field-note">
+        Holt deine Partien über die öffentliche Chess.com-Schnittstelle – ohne Passwort. Bereits importierte Partien werden übersprungen, ein erneuter Import holt also nur neue.
+      </p>
+      <form className="import-form" onSubmit={run}>
+        <label className="field">
+          <span className="field-label">Chess.com-Benutzername</span>
+          <span className="input-row">
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="z. B. MagnusCarlsen"
+              value={username}
+              maxLength={50}
+              disabled={running}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </span>
+        </label>
+
+        <div className="segmented" role="radiogroup" aria-label="Zeitraum">
+          <button type="button" role="radio" aria-checked={range === 'last3'} disabled={running} onClick={() => setRange('last3')}>
+            Letzte 3 Monate
+          </button>
+          <button type="button" role="radio" aria-checked={range === 'all'} disabled={running} onClick={() => setRange('all')}>
+            Alle
+          </button>
+        </div>
+
+        {running ? (
+          <button type="button" className="btn btn-large" onClick={() => abort.current?.abort()}>
+            Abbrechen
+          </button>
+        ) : (
+          <button type="submit" className="btn btn-primary btn-large" disabled={!username.trim()}>
+            Partien importieren
+          </button>
+        )}
+      </form>
+
+      {state.kind === 'running' && <ProgressView progress={state.progress} />}
+
+      {state.kind === 'done' && (
+        <div className="notice" role="status" data-testid="import-result">
+          <strong>
+            {state.summary.added === 0 ? 'Keine neuen Partien.' : `${plural(state.summary.added, 'neue Partie', 'neue Partien')} importiert.`}
+          </strong>
+          <span>
+            {plural(state.summary.months, 'Monat', 'Monate')} durchsucht
+            {state.summary.duplicates > 0 && `, ${state.summary.duplicates} schon vorhanden`}
+            {state.summary.skipped > 0 && `, ${plural(state.summary.skipped, 'Variante', 'Varianten')} übersprungen`}.
+          </span>
+          {state.summary.months === 0 && <span>In diesem Zeitraum gibt es keine Partien. Versuch es mit „Alle“.</span>}
+          <a href={href({ page: 'partien' })}>Zur Partienliste</a>
+        </div>
+      )}
+
+      {state.kind === 'error' && (
+        <div className="notice is-error" role="alert" data-testid="import-error">
+          <strong>{state.message}</strong>
+          {state.added > 0 && <span>{plural(state.added, 'neue Partie wurde', 'neue Partien wurden')} vorher schon gespeichert.</span>}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ProgressView({ progress: p }: { progress: Progress }) {
+  const text =
+    p.phase === 'archives' || p.months === 0
+      ? 'Frage Chess.com nach deinen Monaten …'
+      : `Monat ${p.month} von ${p.months}${p.label ? ` (${p.label.replace('/', '-')})` : ''}, ${plural(p.added, 'Partie', 'Partien')} neu`;
+  return (
+    <div className="progress" role="status" aria-live="polite" data-testid="import-progress">
+      <span>{text}</span>
+      <progress max={Math.max(1, p.months)} value={p.months ? p.month : undefined} />
+    </div>
+  );
+}
+
+function BackupSection() {
+  const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function doExport() {
+    setBusy(true);
+    try {
+      const backup = await exportBackup();
+      const date = new Date().toISOString().slice(0, 10);
+      downloadFile(`schach-sicherung-${date}.json`, JSON.stringify(backup), 'application/json');
+      setMessage({ text: `Sicherung mit ${plural(backup.tables.games.length, 'Partie', 'Partien')} erstellt.` });
+    } catch {
+      setMessage({ text: 'Die Sicherung konnte nicht erstellt werden.', error: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doImport(file: File) {
+    setBusy(true);
+    try {
+      let data: unknown;
+      try {
+        data = JSON.parse(await file.text());
+      } catch {
+        throw new BackupError('Die Datei ist keine gültige Sicherung (kein JSON).');
+      }
+      const s = await restoreBackup(data);
+      setMessage({
+        text: `Sicherung eingelesen: ${plural(s.games, 'Partie', 'Partien')} übernommen${s.skippedGames ? `, ${s.skippedGames} übersprungen (schon vorhanden)` : ''}.`,
+      });
+    } catch (e) {
+      setMessage({ text: e instanceof BackupError ? e.message : 'Die Sicherung konnte nicht eingelesen werden.', error: true });
+    } finally {
+      setBusy(false);
+      if (fileInput.current) fileInput.current.value = '';
+    }
+  }
+
+  return (
+    <section className="card" aria-labelledby="backup-title">
+      <h2 className="card-title" id="backup-title">
+        Datensicherung
+      </h2>
+      <p className="field-note">
+        Alle Daten liegen nur in diesem Browser. Lösche den Browserverlauf nicht ohne Sicherung. Mit einer Sicherungsdatei kannst du die Daten auch auf ein anderes Gerät übertragen; beim Einlesen wird zusammengeführt, nichts gelöscht.
+      </p>
+      <div className="actions">
+        <button className="btn" onClick={doExport} disabled={busy}>
+          Alle Daten sichern
+        </button>
+        <button className="btn" onClick={() => fileInput.current?.click()} disabled={busy}>
+          Sicherung einlesen
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          data-testid="backup-file"
+          onChange={(e) => e.target.files?.[0] && doImport(e.target.files[0])}
+        />
+      </div>
+      {message && (
+        <div className={`notice ${message.error ? 'is-error' : ''}`} role={message.error ? 'alert' : 'status'} data-testid="backup-message">
+          {message.text}
+        </div>
+      )}
+    </section>
+  );
+}

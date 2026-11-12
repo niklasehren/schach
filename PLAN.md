@@ -1,10 +1,10 @@
 # Schach-Trainings-App – Plan
 
-Stand: 9. November 2026 · Status: Entwurf, noch kein Code
+Stand: 12. November 2026 · Status: Blöcke 0–2 und 4 (mit Chess.com-Import) fertig, als Nächstes Block 5
 
 ## 1. Idee in einem Satz
 
-Ich spiele im Browser gegen Stockfish, jede Partie wird gespeichert und automatisch analysiert, und aus meinen eigenen Fehlern entstehen Puzzles, die ich mit Wiederholung trainiere.
+Meine Partien (vor allem von Chess.com, aber auch in der App gegen Stockfish gespielte) werden gespeichert und automatisch analysiert, und aus meinen eigenen Fehlern entstehen Puzzles, die ich mit Wiederholung trainiere – ein persönlicher Schachberater.
 
 ```
 Spielen  →  Speichern  →  Analysieren  →  Puzzles aus Fehlern  →  Wiederholen
@@ -150,27 +150,31 @@ Tests: **Vitest** = prüft einzelne Rechenregeln (z. B. „ist das ein Patzer?�
 
 Jeder Block endet mit: Test (automatisch + im Browser in Mac- und Handy-Größe) → kurze Zusammenfassung, wie du es ausprobierst.
 
-### Schritt 1 – MVP
+### Neue Reihenfolge (ab 12. November 2026)
+
+Schwerpunkt verschoben: Die App soll vor allem ein **persönlicher Schachberater** für meine Chess.com-Partien sein – analysieren, Fehler finden, gezielt darauf trainieren. Chess.com-Partien enthalten die Restzeit pro Zug (`%clk`), dafür braucht es die eigene Uhr noch nicht. Fehler erkennt Stockfish; kostenpflichtige KI-APIs nutzen wir vorerst nicht.
+
+Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Analyse-Ansicht → 7 Puzzles → 9 Statistik → erst danach 3 Uhr → 8 App & Feinschliff.
 
 | Block | Inhalt | Ergebnis zum Ausprobieren |
 |---|---|---|
 | **0 Einrichtung** ✅ | Projekt anlegen, Bibliotheken installieren, Git-Repo, GitHub Pages + automatisches Veröffentlichen | Leere App läuft lokal und unter einer öffentlichen Adresse |
 | **1 Brett & Regeln** ✅ | Brett mit chessground + chess.js, legale Züge, Umwandlung (Bauer → Dame etc.), Grund-Layout, Design-Grundlagen | Man kann eine Partie gegen sich selbst ziehen |
 | **2 Gegen Stockfish** ✅ | Engine im Worker, Start-Bildschirm: Farbe, Stärke (Elo/Skill) · zweiter Modus „Gegen Freund (am selben Gerät)“ mit Namen · Aufgeben · Materialvorteil und geschlagene Figuren · Zurückblättern (Pfeiltasten, Knöpfe, Zugliste) · größere Koordinaten | Partie gegen den Computer oder einen Freund |
-| **3 Uhr & Partieende** | Schachuhr mit Inkrement (Standard 15+10, wählbar), Matt/Patt/Remis-Regeln/Zeit/Aufgeben, keine Zugrücknahme, keine Hinweise | Vollständige Partie mit Uhr |
-| **4 Speichern** | IndexedDB, PGN mit Restzeit pro Zug, Partienliste, PGN-Export, Datensicherung | Partien bleiben nach Neuladen erhalten |
-| **5 Analyse-Rechnung** | Hintergrund-Analyse, Gewinnchance, Klassen, Phase, Figur eingestellt, Matt übersehen, Zeitnot | Analyse startet automatisch nach Partieende |
+| **4 Speichern + Chess.com-Import** ✅ | IndexedDB (alle Tabellen aus Abschnitt 5), App-Partien automatisch speichern, Partienliste mit Filter, Partie ansehen, PGN-Export, Datensicherung · Chess.com-Import über die öffentliche API (geprüft: funktioniert direkt aus dem Browser, CORS erlaubt), nur normales Schach, keine Doppelten, Fortschrittsanzeige | Partien bleiben nach Neuladen erhalten; eigene Chess.com-Partien in der Liste |
+| **5 Analyse-Rechnung** | Hintergrund-Analyse, Gewinnchance, Klassen, Phase, Figur eingestellt, Matt übersehen, Zeitnot (aus `%clk` der Chess.com-Partien) | Analyse läuft für App- und Chess.com-Partien |
 | **6 Analyse-Ansicht** | Durchklicken, Bewertungskurve, bester Zug als Pfeil, Zusammenfassung | Eigene Partie Zug für Zug nachvollziehen |
 | **7 Puzzles** | Puzzles aus Fehlern, Lösen am Brett, Leitner-Wiederholung, „Heute fällig“ | Eigene Fehler als Training |
+| **9 Statistik** | (siehe unten, vorgezogen) | Wo/wie ich verliere |
+| **3 Uhr & Partieende** | Schachuhr mit Inkrement (Standard 15+10, wählbar), Partieende durch Zeit, keine Zugrücknahme, keine Hinweise | Vollständige Partie mit Uhr |
 | **8 App & Feinschliff** | PWA (Homescreen, offline), Handy-Bedienung, Ladezeiten, Endkontrolle | App aufs iPhone installieren und nutzen |
 
 ### Spätere Schritte (nur vorgesehen, noch nicht gebaut)
 
 | Schritt | Inhalt | Vorbereitet durch |
 |---|---|---|
-| 9 Statistik | Wo/wie ich verliere: nach Phase, Fehlertyp, Zeitnot, Farbe, Eröffnung. Sinnvoll ab ca. 15–20 Partien (App zeigt bis dahin „noch zu wenig Daten“). | Merkmale werden schon ab Block 5 gespeichert |
+| 9 Statistik (vorgezogen, s. o.) | Wo/wie ich verliere: nach Phase, Fehlertyp, Zeitnot, Farbe, Eröffnung. Sinnvoll ab ca. 15–20 Partien (App zeigt bis dahin „noch zu wenig Daten“). | Merkmale werden schon ab Block 5 gespeichert |
 | 10 Lichess-Puzzles | Zusatz-Puzzles aus der freien Lichess-Puzzle-Datenbank (database.lichess.org, gemeinfrei/CC0), passend zu meinen Schwächen-Themen und meinem Niveau. Die Datei ist sehr groß → ein Skript schneidet vorab eine kleine Auswahl je Thema/Schwierigkeit zu, die mit der App ausgeliefert wird. | `scripts/`, gleiche Puzzle-Ansicht wie Block 7 |
-| 11 Chess.com-Import | Öffentliche API (nur Benutzername, kein Schlüssel nötig). Importierte Partien laufen durch dieselbe Analyse. | Feld „Quelle“ in `games`; PGN mit `%clk` wie bei Chess.com |
 | 12 Schnell-Eintrag Brettpartie | Nur Knöpfe: Ergebnis, Phase, Fehlertyp – fließt in die Statistik ein. | Quelle `brett` |
 | 13 Freundesgruppe | Supabase (Gratis-Plan): Konten, Gruppe, Rangliste (z. B. gelöste Puzzles, Serien). Lokale Daten werden hochgeladen. | IDs + Benutzerfeld im Datenmodell |
 | 14 Maia (optional) | Menschlich spielender Gegner (trainiert auf Lichess-Partien). Im Browser technisch aufwendiger → vorher kurze Machbarkeitsprüfung. | Engine-Anbindung ist austauschbar gebaut |

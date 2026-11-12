@@ -41,6 +41,8 @@ button {
 }
 
 .wordmark {
+  color: inherit;
+  text-decoration: none;
   font-family: var(--font-serif);
   font-size: 26px;
   letter-spacing: 0.01em;
@@ -373,11 +375,18 @@ button {
   font-size: 16px;
 }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .btn:focus-visible,
 .icon-btn:focus-visible,
 .movelist-move:focus-visible,
 .nav-link:focus-visible,
 .segmented button:focus-visible,
+.game-row:focus-visible,
+.back-link:focus-visible,
 .color-choice:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -533,6 +542,307 @@ input[type='range'] {
   outline-offset: -1px;
 }
 
+/* Seiten neben dem Spielen */
+.page-slot {
+  display: contents;
+}
+
+.page-slot[hidden] {
+  display: none;
+}
+
+.page {
+  width: min(100%, 720px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+
+.page-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.page-count {
+  color: var(--text-muted);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.page-note {
+  color: var(--text-muted);
+}
+
+.segmented-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.segmented button:disabled {
+  cursor: default;
+}
+
+.btn-inline {
+  flex: none;
+  align-self: flex-start;
+  text-decoration: none;
+}
+
+.empty {
+  padding: 20px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+}
+
+.empty p {
+  margin: 0 0 6px;
+}
+
+.empty a,
+.notice a,
+.text-link {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Partienliste */
+.game-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.game-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.game-row {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.game-row:hover {
+  background: color-mix(in srgb, var(--line) 35%, transparent);
+}
+
+.game-outcome {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 10px;
+  border-left: 3px solid var(--line);
+}
+
+.outcome-win {
+  border-left-color: var(--accent);
+}
+
+.outcome-loss {
+  border-left-color: var(--danger);
+}
+
+.outcome-draw {
+  border-left-color: var(--text-muted);
+}
+
+.game-outcome-label {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.game-score {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.game-opponent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.game-opponent-name {
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-rating {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-meta {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-chevron {
+  color: var(--text-muted);
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* Partie ansehen */
+.back-link {
+  align-self: flex-start;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 15px;
+  border-radius: 4px;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
+
+.result-meta {
+  grid-column: 2;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.result-saved {
+  grid-column: 2;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.result-saved.is-error {
+  color: var(--danger);
+}
+
+.player-clock {
+  flex: none;
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Import und Datensicherung */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.card .field-note {
+  margin: 0;
+}
+
+.import-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card .input-row input,
+.card .segmented button[aria-checked='true'] {
+  background: var(--bg);
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  font-size: 15px;
+}
+
+.notice.is-error {
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+.notice.is-error strong {
+  color: var(--danger);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress progress {
+  width: 100%;
+  height: 6px;
+  appearance: none;
+  border: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--line);
+  accent-color: var(--accent);
+}
+
+.progress progress::-webkit-progress-bar {
+  background: var(--line);
+}
+
+.progress progress::-webkit-progress-value {
+  background: var(--accent);
+}
+
+.progress progress::-moz-progress-bar {
+  background: var(--accent);
+}
+
 /* Handy und schmale Fenster: alles untereinander, Brett bildschirmbreit */
 @media (max-width: 760px) {
   .topbar {
@@ -580,5 +890,31 @@ input[type='range'] {
 
   .movelist:has(.movelist-empty) {
     display: none;
+  }
+
+  .nav-link {
+    padding: 6px 7px;
+  }
+
+  .page {
+    padding: 8px 14px 0;
+  }
+
+  .game-row {
+    grid-template-columns: 96px 1fr auto;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .game-outcome-label {
+    font-size: 14px;
+  }
+
+  .game-meta {
+    white-space: normal;
+  }
+
+  .card {
+    padding: 16px 14px;
   }
 }

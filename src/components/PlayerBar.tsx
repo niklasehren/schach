@@ -12,10 +12,12 @@ type Props = {
   advantage: number;
   active: boolean;
   thinking?: boolean;
+  /** Restzeit, z. B. „9:58“ (beim Ansehen von Chess.com-Partien) */
+  clock?: string;
 };
 
 /** Zeile über bzw. unter dem Brett: Name, geschlagene Figuren, Materialvorsprung */
-export function PlayerBar({ player, color, captured, advantage, active, thinking }: Props) {
+export function PlayerBar({ player, color, captured, advantage, active, thinking, clock }: Props) {
   const opponent: Color = color === 'white' ? 'black' : 'white';
   return (
     <div className={`player ${active ? 'is-active' : ''}`} data-testid={`player-${color}`}>
@@ -29,6 +31,11 @@ export function PlayerBar({ player, color, captured, advantage, active, thinking
         ))}
         {advantage > 0 && <span className="player-advantage">+{advantage}</span>}
       </span>
+      {clock && (
+        <span className="player-clock" data-testid={`clock-${color}`}>
+          {clock}
+        </span>
+      )}
     </div>
   );
 }

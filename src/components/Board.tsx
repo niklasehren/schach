@@ -30,7 +30,10 @@ export function Board({ config, onMove }: Props) {
       coordinates: true,
     });
     // set() führt verschachtelte Einstellungen zusammen, statt sie zu ersetzen (wichtig für movable.events)
+    // Erste Stellung ohne Animation setzen (sonst „fliegen“ die Figuren beim Öffnen einer Partie aus der Grundstellung)
+    api.current.set({ animation: { enabled: false } });
     api.current.set(config);
+    api.current.set({ animation: { enabled: true, duration: 180 } });
     // Das Brett merkt sich seine Bildschirmposition. Verschiebt sich das Layout (ohne Scrollen oder
     // Größenänderung), wäre sie veraltet – daher vor jeder Berührung neu messen lassen.
     const root = el.current;

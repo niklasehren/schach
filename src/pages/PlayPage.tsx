@@ -4,6 +4,7 @@ import type { Config } from '@lichess-org/chessground/config';
 import type { Color, Key } from '@lichess-org/chessground/types';
 import { Board } from '../components/Board';
 import { MoveList } from '../components/MoveList';
+import { NavControls } from '../components/NavControls';
 import { PlayerBar } from '../components/PlayerBar';
 import { PromotionDialog } from '../components/PromotionDialog';
 import { SetupPanel } from '../components/SetupPanel';
@@ -22,12 +23,15 @@ import {
   type Session,
 } from '../chess/session';
 import { getEngine } from '../engine/stockfish';
+import { buildAppGame, saveGame, setSetting } from '../db/games';
+import { href } from '../app/router';
 import { strengthLabel, strengthLevels, strengthOptions } from '../engine/strength';
 
 const other = (c: Color): Color => (c === 'white' ? 'black' : 'white');
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export function PlayPage() {
+/** active = Seite ist sichtbar. Die Seite bleibt beim Wechsel erhalten, damit eine laufende Partie nicht verloren geht. */
+export function PlayPage({ active = true }: { active?: boolean }) {
   const [setup, setSetup] = useState<GameSetup>(loadSetup);
   const [session, setSession] = useState<Session | null>(null);
   const chess = useRef(new Chess());
@@ -40,6 +44,9 @@ export function PlayPage() {
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Key; to: Key } | null>(null);
   const [confirmResign, setConfirmResign] = useState(false);
   const [thinking, setThinking] = useState(false);
+  /** Gespeicherte Partie (ID) bzw. Fehler beim Speichern */
+  const [saved, setSaved] = useState<{ id?: string; error?: boolean } | null>(null);
+  const savedSession = useRef<number | null>(null);
 
   const history = chess.current.history({ verbose: true });
   const ply = viewPly ?? history.length;
@@ -62,6 +69,17 @@ export function PlayPage() {
     const r = resultFromStatus(gameStatus(chess.current));
     if (r) setResult(r);
   }, [version, session, result]);
+
+  // Partieende: automatisch speichern (einmal pro Partie; Partien ganz ohne Züge nicht)
+  useEffect(() => {
+    if (!session || !result || savedSession.current === session.id) return;
+    savedSession.current = session.id;
+    if (chess.current.history().length === 0) return;
+    const record = buildAppGame(session, chess.current, result);
+    saveGame(record)
+      .then(() => setSaved({ id: record.id }))
+      .catch(() => setSaved({ error: true }));
+  }, [session, result]);
 
   // Stockfish zieht, wenn er am Zug ist
   useEffect(() => {
@@ -88,7 +106,9 @@ export function PlayPage() {
 
   const start = useCallback(async () => {
     saveSetup(setup);
+    setSetting('setup', setup).catch(() => {});
     const s = createSession(setup);
+    setSaved(null);
     chess.current = new Chess();
     setResult(null);
     setViewPly(null);
@@ -143,6 +163,7 @@ export function PlayPage() {
 
   // Pfeiltasten: ← → einen Zug, ↑ / Pos1 Anfang, ↓ / Ende aktuelle Stellung
   useEffect(() => {
+    if (!active) return;
     function onKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const len = chess.current.history().length;
@@ -155,7 +176,7 @@ export function PlayPage() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [viewPly, goTo]);
+  }, [viewPly, goTo, active]);
 
   const config = useMemo<Config>(() => {
     const shown = ply === 0 ? new Chess() : new Chess(history[ply - 1].after);
@@ -231,6 +252,12 @@ export function PlayPage() {
                 <span className="result-score">{resultScore(result)}</span>
                 <span className="result-headline">{summary.headline}</span>
                 <span className="result-detail">{summary.detail}</span>
+                {saved?.id && (
+                  <a className="result-saved" href={href({ page: 'partie', id: saved.id })} data-testid="saved">
+                    Gespeichert · ansehen
+                  </a>
+                )}
+                {saved?.error && <span className="result-saved is-error">Speichern fehlgeschlagen</span>}
               </div>
             ) : (
               <p className="status" data-testid="status" aria-live="polite">
@@ -240,20 +267,7 @@ export function PlayPage() {
 
             <MoveList moves={history.map((m) => m.san)} currentPly={ply} onSelect={goTo} />
 
-            <div className="nav-controls" aria-label="Züge durchblättern">
-              <button className="icon-btn" aria-label="Zum Anfang" onClick={() => goTo(0)} disabled={ply === 0}>
-                <Icon d="M7 6v12M18 6l-7 6 7 6" />
-              </button>
-              <button className="icon-btn" aria-label="Zug zurück" onClick={() => goTo(ply - 1)} disabled={ply === 0}>
-                <Icon d="M15 6l-6 6 6 6" />
-              </button>
-              <button className="icon-btn" aria-label="Zug vor" onClick={() => goTo(ply + 1)} disabled={isLive}>
-                <Icon d="M9 6l6 6-6 6" />
-              </button>
-              <button className="icon-btn" aria-label="Zur aktuellen Stellung" onClick={() => goTo(history.length)} disabled={isLive}>
-                <Icon d="M17 6v12M6 6l7 6-7 6" />
-              </button>
-            </div>
+            <NavControls ply={ply} last={history.length} onGo={goTo} />
 
             <div className="actions">
               {result ? (
@@ -303,12 +317,4 @@ function previewPlayers(setup: GameSetup): Record<Color, Player> {
   const engine: Player = { name: 'Stockfish', detail: strengthLabel(strengthLevels[setup.strengthIndex]), isEngine: true };
   const me: Player = { name: 'Du', isEngine: false };
   return setup.colorChoice === 'black' ? { white: engine, black: me } : { white: me, black: engine };
-}
-
-function Icon({ d }: { d: string }) {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d={d} />
-    </svg>
-  );
 }
