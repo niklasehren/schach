@@ -1,34 +1,32 @@
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
 type Props = {
   ply: number;
   last: number;
   onGo: (ply: number) => void;
+  className?: string;
 };
 
 /** Vier Knöpfe zum Durchblättern: Anfang, zurück, vor, Ende */
-export function NavControls({ ply, last, onGo }: Props) {
+export function NavControls({ ply, last, onGo, className }: Props) {
   const atEnd = ply >= last;
+  const btn = 'h-12 w-full';
   return (
-    <div className="nav-controls" aria-label="Züge durchblättern">
-      <button className="icon-btn" aria-label="Zum Anfang" onClick={() => onGo(0)} disabled={ply === 0}>
-        <Icon d="M7 6v12M18 6l-7 6 7 6" />
-      </button>
-      <button className="icon-btn" aria-label="Zug zurück" onClick={() => onGo(ply - 1)} disabled={ply === 0}>
-        <Icon d="M15 6l-6 6 6 6" />
-      </button>
-      <button className="icon-btn" aria-label="Zug vor" onClick={() => onGo(ply + 1)} disabled={atEnd}>
-        <Icon d="M9 6l6 6-6 6" />
-      </button>
-      <button className="icon-btn" aria-label="Zur aktuellen Stellung" onClick={() => onGo(last)} disabled={atEnd}>
-        <Icon d="M17 6v12M6 6l7 6-7 6" />
-      </button>
+    <div className={cn('grid grid-cols-4 gap-1.5', className)} aria-label="Züge durchblättern">
+      <Button variant="outline" size="icon-lg" className={btn} aria-label="Zum Anfang" onClick={() => onGo(0)} disabled={ply === 0}>
+        <ChevronsLeft className="size-5" />
+      </Button>
+      <Button variant="outline" size="icon-lg" className={btn} aria-label="Zug zurück" onClick={() => onGo(ply - 1)} disabled={ply === 0}>
+        <ChevronLeft className="size-5" />
+      </Button>
+      <Button variant="outline" size="icon-lg" className={btn} aria-label="Zug vor" onClick={() => onGo(ply + 1)} disabled={atEnd}>
+        <ChevronRight className="size-5" />
+      </Button>
+      <Button variant="outline" size="icon-lg" className={btn} aria-label="Zur aktuellen Stellung" onClick={() => onGo(last)} disabled={atEnd}>
+        <ChevronsRight className="size-5" />
+      </Button>
     </div>
-  );
-}
-
-export function Icon({ d, size = 20 }: { d: string; size?: number }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d={d} />
-    </svg>
   );
 }

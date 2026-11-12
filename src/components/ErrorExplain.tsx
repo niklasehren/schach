@@ -4,6 +4,16 @@ import { explain, winWords, type Explanation } from '../analysis/explain';
 import { pov } from '../analysis/rules';
 import { toGermanSan } from '../chess/game';
 import { RichText } from './RichText';
+import { ChevronLeft, ChevronRight, Lightbulb, Play, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+const classColor: Record<MoveClass, { border: string; badge: string }> = {
+  blunder: { border: 'border-l-blunder', badge: 'bg-blunder text-background' },
+  mistake: { border: 'border-l-mistake', badge: 'bg-mistake text-background' },
+  inaccuracy: { border: 'border-l-inaccuracy', badge: 'bg-inaccuracy text-background' },
+};
 
 export const markSym: Record<MoveClass, string> = { blunder: '??', mistake: '?', inaccuracy: '?!' };
 
@@ -52,28 +62,35 @@ export function ErrorCard({
   const san = toGermanSan(move.san);
   const best = move.bestSan ? toGermanSan(move.bestSan) : null;
   return (
-    <section className={`error-card note-${move.class}`} data-testid="error-card" aria-label="Fehleranalyse">
-      <header className="error-head">
-        <strong>
-          {moveLabel} – {classText[move.class!]}
-        </strong>
-        {tags.length > 0 && <span className="error-tags">{tags.join(' · ')}</span>}
-        <span className="error-win" data-testid="win-words">
+    <section
+      className={cn('error-card flex animate-in flex-col gap-3 border-l-4 pl-3 text-[15.5px] fade-in-0', classColor[move.class!].border)}
+      data-testid="error-card"
+      aria-label="Fehleranalyse"
+    >
+      <header className="flex flex-col gap-1">
+        <span className="flex flex-wrap items-center gap-2">
+          <Badge className={cn('h-5 text-[11px] font-bold tracking-wide uppercase', classColor[move.class!].badge)}>{classText[move.class!]}</Badge>
+          <strong className="text-lg">
+            {moveLabel} – {classText[move.class!]}
+          </strong>
+        </span>
+        {tags.length > 0 && <span className="font-semibold">{tags.join(' · ')}</span>}
+        <span className="text-sm text-muted-foreground" data-testid="win-words">
           {winSentence(move.winBefore, move.winAfter)} (Gewinnchance {Math.round(move.winBefore)} % → {Math.round(move.winAfter)} %)
         </span>
       </header>
-      <p className="arrow-legend">
-        <span className="arrow-key key-bad" aria-hidden /> dein Zug {san}
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <span className="h-1.5 w-6 rounded-full bg-[#e53935]" aria-hidden /> dein Zug {san}
         {best && (
           <>
-            <span className="arrow-key key-good" aria-hidden /> besser {best}
+            <span className="ml-1 h-1.5 w-6 rounded-full bg-[#1f9d55]" aria-hidden /> besser {best}
           </>
         )}
       </p>
       {explanation.played.length > 0 && (
-        <div className="error-why">
-          <span className="error-why-title">Warum {san} schlecht ist</span>
-          <ul data-testid="explain-played">
+        <div className="flex flex-col gap-1">
+          <span className="font-bold">Warum {san} schlecht ist</span>
+          <ul className="flex list-disc flex-col gap-1.5 pl-5" data-testid="explain-played">
             {explanation.played.map((item) => (
               <li key={item.text}>
                 <RichText text={item.text} />
@@ -83,9 +100,9 @@ export function ErrorCard({
         </div>
       )}
       {best && explanation.better.length > 0 && (
-        <div className="error-why">
-          <span className="error-why-title">Warum {best} besser ist</span>
-          <ul data-testid="explain-better">
+        <div className="flex flex-col gap-1">
+          <span className="font-bold">Warum {best} besser ist</span>
+          <ul className="flex list-disc flex-col gap-1.5 pl-5" data-testid="explain-better">
             {explanation.better.map((item) => (
               <li key={item.text}>
                 <RichText text={item.text} />
@@ -95,14 +112,14 @@ export function ErrorCard({
         </div>
       )}
       {explanation.merke && (
-        <p className="merke" data-testid="merke">
+        <p className="merke rounded-lg border-l-4 border-l-brass bg-brass/12 px-3 py-2.5" data-testid="merke">
           <strong>Merke:</strong> {explanation.merke}
         </p>
       )}
       {canShowLine && (
-        <button className="btn btn-primary" onClick={onShowLine} data-testid="show-line">
-          Beste Fortsetzung zeigen
-        </button>
+        <Button size="lg" className="h-11 text-[15px]" onClick={onShowLine} data-testid="show-line">
+          <Play data-icon="inline-start" /> Beste Fortsetzung zeigen
+        </Button>
       )}
     </section>
   );
@@ -114,37 +131,43 @@ export function VariationCard({ fen, moves, step, onStep, onClose }: { fen: stri
   let n = Number(full) || 1;
   let white = turn === 'w';
   return (
-    <section className="variation-card" data-testid="variation" aria-label="Variante">
-      <header className="variation-head">
-        <strong>Variante (Engine)</strong>
-        <span>nicht gespielt – so wäre es besser weitergegangen</span>
+    <section className="variation-card flex animate-in flex-col gap-3 rounded-xl border-2 border-dashed border-brass p-3 fade-in-0" data-testid="variation" aria-label="Variante">
+      <header className="flex flex-col">
+        <strong className="flex items-center gap-1.5">
+          <Lightbulb className="size-4 text-brass" /> Variante (Engine)
+        </strong>
+        <span className="text-sm text-muted-foreground">nicht gespielt – so wäre es besser weitergegangen</span>
       </header>
-      <ol className="variation-moves">
+      <ol className="m-0 flex list-none flex-wrap items-center gap-x-1 gap-y-0.5 p-0 tabular-nums">
         {moves.map((m, i) => {
           const num = white ? `${n}.` : i === 0 ? `${n}…` : '';
           if (!white) n++;
           white = !white;
           return (
-            <li key={i}>
-              {num && <span className="movelist-num">{num}</span>}
-              <button className={`movelist-move ${step === i + 1 ? 'is-current' : ''}`} onClick={() => onStep(i + 1)} data-testid="variation-move">
+            <li key={i} className="flex items-center gap-0.5">
+              {num && <span className="text-muted-foreground">{num}</span>}
+              <button
+                className={cn('movelist-move rounded-md px-2 py-0.5 hover:bg-muted', step === i + 1 && 'is-current bg-primary text-primary-foreground hover:bg-primary')}
+                onClick={() => onStep(i + 1)}
+                data-testid="variation-move"
+              >
                 {toGermanSan(m.san)}
               </button>
             </li>
           );
         })}
       </ol>
-      <div className="nav-controls nav-controls-2">
-        <button className="icon-btn" aria-label="Variante zurück" onClick={() => onStep(step - 1)} disabled={step === 0}>
-          ‹
-        </button>
-        <button className="icon-btn" aria-label="Variante vor" onClick={() => onStep(step + 1)} disabled={step >= moves.length}>
-          ›
-        </button>
+      <div className="grid grid-cols-2 gap-1.5">
+        <Button variant="outline" size="lg" className="h-11" aria-label="Variante zurück" onClick={() => onStep(step - 1)} disabled={step === 0}>
+          <ChevronLeft className="size-5" />
+        </Button>
+        <Button variant="outline" size="lg" className="h-11" aria-label="Variante vor" onClick={() => onStep(step + 1)} disabled={step >= moves.length}>
+          <ChevronRight className="size-5" />
+        </Button>
       </div>
-      <button className="btn" onClick={onClose} data-testid="close-line">
-        Zurück zur Partie
-      </button>
+      <Button variant="secondary" size="lg" className="h-11" onClick={onClose} data-testid="close-line">
+        <X data-icon="inline-start" /> Zurück zur Partie
+      </Button>
     </section>
   );
 }

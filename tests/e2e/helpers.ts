@@ -31,7 +31,7 @@ export async function move(page: Page, from: string, to: string) {
 
 export async function startFriendGame(page: Page, white = 'Anna', black = 'Ben') {
   await page.goto('/#/spielen');
-  await page.getByRole('radio', { name: 'Gegen Freund' }).click();
+  await page.getByRole('button', { name: 'Gegen Freund', exact: true }).click();
   await page.getByLabel('Name Weiß').fill(white);
   await page.getByLabel('Name Schwarz').fill(black);
   await page.getByRole('button', { name: 'Partie starten' }).click();
@@ -63,7 +63,7 @@ export async function mockChessCom(page: Page, status: Record<string, number> = 
 export async function runImport(page: Page, name: string, range: 'Alle' | 'Letzte 3 Monate' = 'Alle') {
   await page.goto('/#/import');
   await page.getByLabel('Chess.com-Benutzername').fill(name);
-  await page.getByRole('radio', { name: range }).click();
+  await page.getByRole('button', { name: range, exact: true }).click();
   await page.getByRole('button', { name: 'Partien importieren' }).click();
 }
 

@@ -17,6 +17,13 @@ import { isAcceptable, winFor } from '../training/puzzles';
 import { dueText, INTERVALS, NEW_PER_DAY, todaysQueue } from '../training/leitner';
 import { finishPuzzle, logAttempt, markSeen, syncAllPuzzles } from '../training/store';
 import { href } from '../app/router';
+import { CircleCheck, CircleX, Target } from 'lucide-react';
+import { ColorSwatch } from '../components/PlayerBar';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export function TrainingPage() {
   // Puzzles aus allen schon analysierten Partien nachziehen
@@ -32,7 +39,7 @@ export function TrainingPage() {
   const list = today ? [...today.due, ...today.fresh].filter((p) => !done.includes(p.id)) : [];
   const active = puzzles?.find((p) => p.id === current) ?? null;
 
-  if (!puzzles || !today) return <p className="page-note">Lädt …</p>;
+  if (!puzzles || !today) return <p className="text-muted-foreground">Lädt …</p>;
 
   if (active) {
     return (
@@ -56,44 +63,55 @@ export function TrainingPage() {
   const boxes = INTERVALS.map((_, i) => puzzles.filter((p) => p.box === i + 1).length);
   const fresh = puzzles.filter((p) => p.box === 0).length;
   return (
-    <div className="page">
-      <h1 className="page-title">Training</h1>
-      <section className="card training-card">
-        <span className="training-due" data-testid="due-count">
+    <div className="flex w-full max-w-2xl animate-in flex-col gap-4 px-3.5 fade-in-0 slide-in-from-bottom-1 md:px-0">
+      <h1 className="font-heading text-4xl">Training</h1>
+      <Card className="gap-3 bg-hero p-6 text-hero-foreground ring-0">
+        <span className="font-heading text-5xl leading-tight" data-testid="due-count">
           Heute fällig: {list.length} {list.length === 1 ? 'Puzzle' : 'Puzzles'}
         </span>
-        <span className="field-note">
+        <span className="text-[15px] text-hero-muted">
           {today.due.filter((p) => !done.includes(p.id)).length} Wiederholungen · {today.fresh.filter((p) => !done.includes(p.id)).length} neue (höchstens{' '}
           {NEW_PER_DAY} neue pro Tag)
         </span>
-        <button className="btn btn-primary btn-large" disabled={list.length === 0} onClick={() => setCurrent(list[0].id)} data-testid="start-training">
+        <Button
+          size="lg"
+          className="h-13 bg-brass text-[17px] font-bold text-brass-foreground hover:bg-brass/90"
+          disabled={list.length === 0}
+          onClick={() => setCurrent(list[0].id)}
+          data-testid="start-training"
+        >
+          <Target data-icon="inline-start" />
           {list.length ? 'Training starten' : 'Für heute fertig'}
-        </button>
-        <p className="field-note small">
+        </Button>
+        <p className="text-[13px] text-hero-muted">
           Jedes Puzzle ist eine Stellung aus deinen eigenen Partien, in der du einen Fehler oder Patzer gemacht hast. Finde den besseren Zug. Richtig gelöste
           Puzzles kommen nach 1, 3, 7, 14 und 30 Tagen wieder, falsch gelöste schon morgen.
         </p>
-      </section>
-      <section className="card">
-        <h2 className="card-title">Deine Puzzles</h2>
-        <span className="field-note" data-testid="puzzle-total">
-          {puzzles.length} Puzzles aus {new Set(puzzles.map((p) => p.gameId)).size} Partien · {fresh} noch nie geübt
-        </span>
-        <div className="boxes" aria-label="Leitner-Kästen">
-          {boxes.map((n, i) => (
-            <span key={i} className="box">
-              <strong>{n}</strong>
-              <span>Kasten {i + 1}</span>
-              <span className="box-interval">{INTERVALS[i] === 1 ? 'täglich' : `alle ${INTERVALS[i]} Tage`}</span>
-            </span>
-          ))}
-        </div>
-        {queueState.total > queueState.processed && (
-          <p className="field-note small">
-            Noch {queueState.total - queueState.processed} Partien werden analysiert – danach entstehen daraus weitere Puzzles.
-          </p>
-        )}
-      </section>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Deine Puzzles</CardTitle>
+          <CardDescription data-testid="puzzle-total">
+            {puzzles.length} Puzzles aus {new Set(puzzles.map((p) => p.gameId)).size} Partien · {fresh} noch nie geübt
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <div className="grid grid-cols-5 gap-2" aria-label="Leitner-Kästen">
+            {boxes.map((n, i) => (
+              <span key={i} className="box flex flex-col items-center gap-0.5 rounded-lg border bg-muted/40 px-1 py-2.5 text-center text-[13px] text-muted-foreground">
+                <strong className="text-2xl text-foreground tabular-nums">{n}</strong>
+                <span>Kasten {i + 1}</span>
+                <span className="text-xs max-sm:hidden">{INTERVALS[i] === 1 ? 'täglich' : `alle ${INTERVALS[i]} Tage`}</span>
+              </span>
+            ))}
+          </div>
+          {queueState.total > queueState.processed && (
+            <p className="text-[13px] text-muted-foreground">
+              Noch {queueState.total - queueState.processed} Partien werden analysiert – danach entstehen daraus weitere Puzzles.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -247,34 +265,41 @@ function PuzzleView({ puzzle, remaining, onNext, onExit }: { puzzle: PuzzleRecor
   const lastGameMove = gameMoves[puzzle.ply - 2];
 
   return (
-    <div className={`play ${variation ? 'in-variation' : ''}`}>
-      <section className="play-board">
-        <div className="puzzle-bar">
-          <span className={`color-swatch swatch-${me}`} aria-hidden />
+    <div className={cn('play grid w-full animate-in grid-cols-1 items-start gap-3 fade-in-0 md:w-auto md:grid-cols-[var(--board-size)_380px] md:gap-7', variation && 'in-variation')}>
+      <section className="flex flex-col gap-0.5 md:gap-1.5">
+        <div className="flex h-(--bar-height) items-center gap-2 px-0.5 max-md:px-3.5">
+          <ColorSwatch color={me} />
           <strong>{me === 'white' ? 'Weiß' : 'Schwarz'} am Zug</strong>
-          <span className="puzzle-remaining">noch {remaining} heute</span>
+          <span className="ml-auto text-sm text-muted-foreground">noch {remaining} heute</span>
         </div>
-        <div className="board-area board-with-bar">
+        <div className="board-area relative">
           <Board config={config} onMove={onMove} />
-          {variation && <span className="variation-badge">Variante</span>}
+          {variation && <Badge className="variation-badge pointer-events-none absolute top-2.5 right-2.5 z-10 bg-brass text-brass-foreground">Variante</Badge>}
         </div>
       </section>
 
-      <aside className="play-side is-analysis">
-        <button className="back-link link-reset" onClick={onExit}>
+      <aside className="flex flex-col gap-3.5 max-md:px-3.5 md:pt-[calc(var(--bar-height)+6px)]">
+        <Button variant="ghost" size="sm" className="self-start text-muted-foreground max-md:order-last" onClick={onExit}>
           ← Übersicht
-        </button>
+        </Button>
         {!finished && (
-          <section className="puzzle-task" data-testid="puzzle-task">
-            <h1 className="puzzle-title">Finde einen besseren Zug</h1>
+          <section className="flex flex-col gap-2 max-md:order-first" data-testid="puzzle-task">
+            <h1 className="font-heading text-4xl leading-tight">Finde einen besseren Zug</h1>
             {game && (
-              <p className="field-note">
+              <p className="text-muted-foreground">
                 Aus deiner Partie gegen {opponent} vom {formatDate(game.date)}. Dort hast du hier {playedSan ? toGermanSan(playedSan) : '…'} gespielt –{' '}
                 {puzzle.class === 'blunder' ? 'ein Patzer' : 'ein Fehler'}.
               </p>
             )}
             {message && (
-              <p className={`puzzle-message ${tries > 0 && phase !== 'checking' && !message.startsWith('Richtig') ? 'is-wrong' : ''}`} role="status" data-testid="puzzle-message">
+              <p
+                className={cn(
+                  'rounded-lg px-3 py-2.5 font-semibold',
+                  tries > 0 && phase !== 'checking' && !message.startsWith('Richtig') ? 'bg-loss-bg text-loss' : 'bg-primary/12',
+                )}
+                role="status"
+                data-testid="puzzle-message"
+              >
                 {message}
               </p>
             )}
@@ -282,31 +307,40 @@ function PuzzleView({ puzzle, remaining, onNext, onExit }: { puzzle: PuzzleRecor
         )}
 
         {finished && result && (
-          <section className={`puzzle-result ${phase === 'solved' ? 'is-solved' : 'is-failed'}`} role="status" data-testid="puzzle-result">
-            <strong>
+          <Alert
+            className={cn('max-md:order-first', phase === 'solved' ? 'border-win/40 bg-win-bg' : 'border-loss/40 bg-loss-bg')}
+            role="status"
+            data-testid="puzzle-result"
+          >
+            {phase === 'solved' ? <CircleCheck className="text-win" /> : <CircleX className="text-loss" />}
+            <AlertTitle className={cn('text-base', phase === 'solved' ? 'text-win' : 'text-loss')}>
               {phase === 'solved' ? (tries === 0 ? 'Richtig gelöst!' : 'Richtig – im zweiten Versuch.') : `Nicht gelöst. Besser war ${bestSan ? toGermanSan(bestSan) : '…'}.`}
-            </strong>
-            {result.alt && bestSan && result.alt !== toGermanSan(bestSan) && (
-              <span>
-                Auch gut: {result.alt} ist fast so stark wie {toGermanSan(bestSan)}.
-              </span>
-            )}
-            <span data-testid="next-due">Nächste Wiederholung: {dueText(result.due, Date.now())}.</span>
-          </section>
+            </AlertTitle>
+            <AlertDescription className="text-foreground">
+              {result.alt && bestSan && result.alt !== toGermanSan(bestSan) && (
+                <span>
+                  Auch gut: {result.alt} ist fast so stark wie {toGermanSan(bestSan)}.
+                </span>
+              )}
+              <span data-testid="next-due">Nächste Wiederholung: {dueText(result.due, Date.now())}.</span>
+            </AlertDescription>
+          </Alert>
         )}
 
         {finished && analysis && original && !variation && (
-          <ErrorCard
-            move={original}
-            moveLabel={`${toGermanSan(original.san)}${original.class === 'blunder' ? '??' : '?'} (in der Partie)`}
-            explanation={explainMove(original, fens, analysis, lastGameMove)}
-            canShowLine={puzzle.line.length > 0}
-            onShowLine={() => {
-              const pv = analysis.evals[puzzle.ply - 1]?.pv ?? puzzle.line;
-              const moves = playLine(puzzle.fen, pv.slice(0, 6));
-              setVariation({ moves, step: 1 });
-            }}
-          />
+          <Card className="px-3.5">
+            <ErrorCard
+              move={original}
+              moveLabel={`${toGermanSan(original.san)}${original.class === 'blunder' ? '??' : '?'} (in der Partie)`}
+              explanation={explainMove(original, fens, analysis, lastGameMove)}
+              canShowLine={puzzle.line.length > 0}
+              onShowLine={() => {
+                const pv = analysis.evals[puzzle.ply - 1]?.pv ?? puzzle.line;
+                const moves = playLine(puzzle.fen, pv.slice(0, 6));
+                setVariation({ moves, step: 1 });
+              }}
+            />
+          </Card>
         )}
         {finished && variation && (
           <VariationCard
@@ -319,13 +353,17 @@ function PuzzleView({ puzzle, remaining, onNext, onExit }: { puzzle: PuzzleRecor
         )}
 
         {finished && (
-          <div className="actions">
-            <a className="btn" href={href({ page: 'partie', id: puzzle.gameId, ply: puzzle.ply - 1 })} data-testid="to-game">
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 text-foreground no-underline')}
+              href={href({ page: 'partie', id: puzzle.gameId, ply: puzzle.ply - 1 })}
+              data-testid="to-game"
+            >
               Zur Originalpartie
             </a>
-            <button className="btn btn-primary" onClick={remaining > 0 ? onNext : onExit} data-testid="next-puzzle">
+            <Button size="lg" className="h-11" onClick={remaining > 0 ? onNext : onExit} data-testid="next-puzzle">
               {remaining > 0 ? 'Nächstes Puzzle' : 'Fertig'}
-            </button>
+            </Button>
           </div>
         )}
       </aside>

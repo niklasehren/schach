@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 12. November 2026 · Status: Blöcke 0–2, 4–7 fertig, Design „Klubhaus“ umgesetzt; als Nächstes: Trainingsarten (Meine Fehler / Allgemeines Training), dann Block 9 (Statistik)
+Stand: 12. November 2026 · Status: Blöcke 0–2, 4–7 fertig, Design „Klubhaus“ umgesetzt (auf Branch `shadcn` mit shadcn/ui neu gebaut, wartet auf Freigabe); als Nächstes: Trainingsarten (Meine Fehler / Allgemeines Training), dann Block 9 (Statistik)
 
 ## 1. Idee in einem Satz
 
@@ -200,7 +200,14 @@ Gewählt aus zwei Entwürfen (`design-entwurf/`: A „Klubhaus“, B „Studio�
 - **Partienliste:** Ergebnis-Abzeichen, Zeitklassen-Symbol, Rating-Unterschied, Patzer-Zahl, Analyse-Status; Filter nach Quelle, Zeitklasse, Ergebnis.
 - **Brett-Themes:** Walnuss (Standard), Schiefer, Turniergrün – in den Einstellungen.
 - **Bewegung:** kurze, dezente Übergänge (Einblenden, Reiter, Knopfdruck); bei „Bewegung reduzieren“ im System abgeschaltet.
-- **Handy:** Brett bildschirmbreit, Bedienknöpfe groß und unten, keine abgeschnittenen Texte (Filter wischbar).
+- **Handy:** Brett bildschirmbreit, Bedienknöpfe groß und unten, keine abgeschnittenen Texte (Filter als gleichmäßige Raster).
+
+### Umsetzung mit shadcn/ui (Branch `shadcn`, Stand 12.11.2026)
+
+- **Grundlage:** shadcn/ui (Preset `b0` = Stil Nova, Base UI, Lucide-Symbole) mit Tailwind v4 (`@tailwindcss/vite`), Pfad-Alias `@/`. Komponenten liegen in `src/components/ui/` (Card, Button, Badge, Tabs, ToggleGroup, Dialog, DropdownMenu, Tooltip, Popover, Slider, Switch, Input, Alert, Progress, Chart …).
+- **Farben:** Klubhaus-Farben auf die shadcn-Variablen gelegt (`src/index.css`, `:root` hell, `.dark` dunkel = Standard); Zusatzfarben für Messing, Sieg/Niederlage/Remis und Fehler-Markierungen. Eigene CSS-Datei `app.css` und `Icons.tsx` entfallen; übrig: `layout.css` (Brettgröße), `board.css`, `tokens.css` (Brett-Themes). Chessground-CSS liegt in der Ebene `base`, damit Tailwind es nicht überschreibt.
+- **Grafiken:** Wertungsverlauf und Bewertungskurve mit Recharts (shadcn Chart), Tooltip mit Datum, Wertung und Partien.
+- **Ladezeit:** Seiten werden erst bei Bedarf geladen. Bundle vorher 503 kB JS (gzip 162) + 54 kB CSS; nachher 1157 kB JS (gzip 384) in 34 Dateien + 103 kB CSS (gzip 19), davon Recharts 335 kB; beim Öffnen der Übersicht ca. 960 kB.
 
 ## 8. Reihenfolge der Schritte
 

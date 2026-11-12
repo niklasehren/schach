@@ -26,6 +26,9 @@ import { getEngine } from '../engine/stockfish';
 import { buildAppGame, saveGame, setSetting } from '../db/games';
 import { href } from '../app/router';
 import { analysisQueue } from '../analysis/queue';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { strengthLabel, strengthLevels, strengthOptions } from '../engine/strength';
 
 const other = (c: Color): Color => (c === 'white' ? 'black' : 'white');
@@ -226,10 +229,10 @@ export function PlayPage({ active = true }: { active?: boolean }) {
   const summary = result && session ? resultText(result, session.players) : null;
 
   return (
-    <div className={`play ${session ? '' : 'is-setup'}`}>
-      <section className="play-board">
-        {bar(other(boardOrientation))}
-        <div className="board-area">
+    <div className={cn('play grid w-full animate-in grid-cols-1 items-start gap-3 fade-in-0 md:w-auto md:grid-cols-[var(--board-size)_340px] md:gap-7', !session && 'is-setup')}>
+      <section className="flex flex-col gap-0.5 md:gap-1.5">
+        <div className="max-md:px-3.5">{bar(other(boardOrientation))}</div>
+        <div className="board-area relative">
           <Board config={config} onMove={handleMove} />
           {pendingPromotion && (
             <PromotionDialog
@@ -246,28 +249,28 @@ export function PlayPage({ active = true }: { active?: boolean }) {
             />
           )}
         </div>
-        {bar(boardOrientation)}
+        <div className="max-md:px-3.5">{bar(boardOrientation)}</div>
       </section>
 
-      <aside className="play-side">
+      <aside className={cn('flex min-h-0 flex-col gap-3.5 max-md:px-3.5 md:max-h-[calc(var(--board-size)+2*var(--bar-height)+12px)] md:pt-[calc(var(--bar-height)+6px)]', !session && 'max-md:order-first max-md:pb-2')}>
         {!session ? (
           <SetupPanel setup={setup} onChange={setSetup} onStart={start} />
         ) : (
           <>
             {summary && result ? (
-              <div className="result" data-testid="result" role="status">
-                <span className="result-score">{resultScore(result)}</span>
-                <span className="result-headline">{summary.headline}</span>
-                <span className="result-detail">{summary.detail}</span>
+              <Card size="sm" className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-0.5 px-4" data-testid="result" role="status">
+                <span className="row-span-3 font-heading text-4xl leading-none text-brass">{resultScore(result)}</span>
+                <span className="text-lg font-bold">{summary.headline}</span>
+                <span className="text-[15px] text-muted-foreground">{summary.detail}</span>
                 {saved?.id && (
-                  <a className="result-saved" href={href({ page: 'partie', id: saved.id })} data-testid="saved">
+                  <a className="text-[15px] font-semibold text-primary" href={href({ page: 'partie', id: saved.id })} data-testid="saved">
                     Gespeichert · ansehen
                   </a>
                 )}
-                {saved?.error && <span className="result-saved is-error">Speichern fehlgeschlagen</span>}
-              </div>
+                {saved?.error && <span className="text-[15px] font-semibold text-destructive">Speichern fehlgeschlagen</span>}
+              </Card>
             ) : (
-              <p className="status" data-testid="status" aria-live="polite">
+              <p className="min-h-7 text-lg font-semibold" data-testid="status" aria-live="polite">
                 {statusLine()}
               </p>
             )}
@@ -276,33 +279,33 @@ export function PlayPage({ active = true }: { active?: boolean }) {
 
             <NavControls ply={ply} last={history.length} onGo={goTo} />
 
-            <div className="actions">
+            <div className="grid grid-cols-2 gap-2">
               {result ? (
                 <>
-                  <button className="btn" onClick={backToSetup}>
+                  <Button variant="outline" size="lg" className="h-11" onClick={backToSetup}>
                     Einstellungen
-                  </button>
-                  <button className="btn btn-primary" onClick={start}>
+                  </Button>
+                  <Button size="lg" className="h-11" onClick={start}>
                     Neue Partie
-                  </button>
+                  </Button>
                 </>
               ) : confirmResign ? (
                 <>
-                  <button className="btn" onClick={() => setConfirmResign(false)}>
+                  <Button variant="outline" size="lg" className="h-11" onClick={() => setConfirmResign(false)}>
                     Weiterspielen
-                  </button>
-                  <button className="btn btn-danger" onClick={resign}>
+                  </Button>
+                  <Button variant="destructive" size="lg" className="h-11" onClick={resign}>
                     {session.setup.mode === 'friend' ? `${players[turn].name} gibt auf` : 'Ja, aufgeben'}
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <>
-                  <button className="btn" onClick={() => setOrientation(other)}>
+                  <Button variant="outline" size="lg" className="h-11" onClick={() => setOrientation(other)}>
                     Brett drehen
-                  </button>
-                  <button className="btn" onClick={() => setConfirmResign(true)}>
+                  </Button>
+                  <Button variant="outline" size="lg" className="h-11" onClick={() => setConfirmResign(true)}>
                     Aufgeben
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

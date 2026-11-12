@@ -29,12 +29,8 @@ export const getBoardTheme = (): BoardTheme => {
   return v === 'schiefer' || v === 'gruen' ? v : 'walnuss';
 };
 
-/** Gestaltung: „klubhaus“ (Grün/Messing) oder „b0“ (shadcn-Preset unverändert) – nur für den Vergleich */
-export const getSkin = (): 'klubhaus' | 'b0' => (read('schach.skin') === 'b0' ? 'b0' : 'klubhaus');
-
 export function applyTheme(theme = getTheme(), board = getBoardTheme()) {
   document.documentElement.dataset.theme = theme;
-  document.documentElement.dataset.skin = getSkin();
   // shadcn schaltet den dunklen Modus über die Klasse „dark“
   document.documentElement.classList.toggle('dark', theme === 'dark');
   document.documentElement.dataset.board = board;

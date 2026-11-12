@@ -1,4 +1,5 @@
-import { Check, Clock, MonitorSmartphone, Rocket, Sun, Zap, type LucideIcon } from 'lucide-react';
+import { CircleAlert, CircleCheck, CircleDashed, Clock, LoaderCircle, MonitorSmartphone, Rocket, Sun, Zap, type LucideIcon } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { AnalysisRecord, GameRecord } from '../db/schema';
 import { formatDate, formatTimeControl, myResultText, scoreText } from '../chess/format';
 import { href } from '../app/router';
@@ -64,12 +65,8 @@ export function GameRow({ game: g, analysis, analysing }: { game: GameRecord; an
           <span className="truncate font-bold">{name}</span>
           {opp?.rating !== undefined && <span className="text-muted-foreground tabular-nums">{opp.rating}</span>}
           {diff !== null && (
-            <span
-              className={cn('rounded-md bg-muted px-1.5 text-[12.5px] font-bold tabular-nums', diff > 0 ? 'text-loss' : diff < 0 ? 'text-win' : 'text-muted-foreground')}
-              title={`Gegner ${Math.abs(diff)} Punkte ${diff >= 0 ? 'stärker' : 'schwächer'}`}
-            >
-              {diff > 0 ? '+' : diff < 0 ? '−' : '±'}
-              {Math.abs(diff)}
+            <span className="rounded-md bg-muted px-1.5 text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums" data-testid="rating-diff">
+              {diff === 0 ? 'gleich stark' : `${Math.abs(diff)} ${diff > 0 ? 'stärker' : 'schwächer'}`}
             </span>
           )}
         </span>
@@ -79,26 +76,36 @@ export function GameRow({ game: g, analysis, analysing }: { game: GameRecord; an
           {me?.rating !== undefined && <> · ich {me.rating}</>}
         </span>
       </span>
-      <span className="flex md:justify-end">
-        {blunders !== null ? (
-          <Badge variant="outline" className={cn('h-6 font-bold', blunders ? 'border-blunder/40 text-blunder' : 'border-win/40 text-win')} data-testid="badge-done">
-            <Check data-icon="inline-start" />
-            {blunders ? `${blunders} Patzer` : 'analysiert'}
-          </Badge>
-        ) : analysis?.status === 'failed' ? (
-          <Badge variant="outline" className="h-6 border-dashed text-muted-foreground">
-            nicht lesbar
-          </Badge>
-        ) : analysing ? (
-          <Badge variant="outline" className="h-6 border-dashed border-primary text-primary">
-            wird analysiert
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="h-6 border-dashed text-muted-foreground">
-            offen
+      <span className="flex items-center gap-2 md:justify-end">
+        {blunders !== null && blunders > 0 && (
+          <Badge className="h-6 bg-blunder px-2 font-bold text-background" data-testid="blunder-badge">
+            {blunders} Patzer
           </Badge>
         )}
+        <AnalysisStatus status={analysis?.status === 'done' ? 'done' : analysis?.status === 'failed' ? 'failed' : analysing ? 'running' : 'open'} />
       </span>
     </a>
+  );
+}
+
+const statusInfo = {
+  done: { icon: CircleCheck, label: 'analysiert', className: 'text-win' },
+  running: { icon: LoaderCircle, label: 'wird gerade analysiert', className: 'animate-spin text-primary' },
+  failed: { icon: CircleAlert, label: 'konnte nicht analysiert werden', className: 'text-muted-foreground' },
+  open: { icon: CircleDashed, label: 'noch nicht analysiert', className: 'text-muted-foreground/70' },
+} as const;
+
+/** Dezentes Symbol für den Analyse-Stand, Erklärung als Tooltip */
+function AnalysisStatus({ status }: { status: keyof typeof statusInfo }) {
+  const info = statusInfo[status];
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<span role="img" aria-label={info.label} data-testid={status === 'done' ? 'badge-done' : `status-${status}`} className="grid size-6 place-items-center" />}
+      >
+        <info.icon className={cn('size-[18px]', info.className)} strokeWidth={2} />
+      </TooltipTrigger>
+      <TooltipContent>{info.label}</TooltipContent>
+    </Tooltip>
   );
 }

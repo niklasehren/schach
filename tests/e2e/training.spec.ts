@@ -67,11 +67,11 @@ test('Puzzle falsch lösen: zweiter Versuch, dann Lösung; morgen wieder fällig
 
 test('Gegen Freund: Frage „Wer bist du?“', async ({ page }) => {
   await page.goto('/#/spielen');
-  await page.getByRole('radio', { name: 'Gegen Freund' }).click();
+  await page.getByRole('button', { name: 'Gegen Freund', exact: true }).click();
   await page.getByLabel('Name Weiß').fill('Anna');
   await page.getByLabel('Name Schwarz').fill('Niklas');
-  const who = page.getByRole('radiogroup', { name: 'Wer bist du?' });
-  await expect(who.getByRole('radio', { name: 'Keiner' })).toHaveAttribute('aria-checked', 'true');
-  await who.getByRole('radio', { name: 'Niklas' }).click();
-  await expect(who.getByRole('radio', { name: 'Niklas' })).toHaveAttribute('aria-checked', 'true');
+  const who = page.getByRole('group', { name: 'Wer bist du?' });
+  await expect(who.getByRole('button', { name: 'Keiner', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await who.getByRole('button', { name: 'Niklas', exact: true }).click();
+  await expect(who.getByRole('button', { name: 'Niklas', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });

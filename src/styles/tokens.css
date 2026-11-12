@@ -1,34 +1,4 @@
-/*
- * Brett-Themes und Übergangsnamen. Die eigentlichen Farben (shadcn-Variablen, Klubhaus) stehen in src/index.css.
- */
-:root {
-  /* Übergang: alte Namen zeigen auf die shadcn-Variablen (src/index.css) */
-  --bg: var(--background);
-  --surface: var(--card);
-  --surface-2: var(--muted);
-  --line: var(--border);
-  --line-strong: var(--input);
-  --text: var(--foreground);
-  --text-muted: var(--muted-foreground);
-  --accent-text: var(--primary-foreground);
-  --accent-soft: color-mix(in srgb, var(--primary) 14%, transparent);
-  --gold: var(--brass);
-  --gold-ink: var(--brass-foreground);
-  --hero-ink: var(--hero-foreground);
-  --danger: var(--destructive);
-  --arrow-bad: #e53935;
-  --arrow-good: #1f9d55;
-  --chart-line: var(--chart-1);
-  --chart-area: color-mix(in srgb, var(--chart-1) 16%, transparent);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.12);
-  --shadow-board: 0 2px 0 rgba(0, 0, 0, 0.25), 0 18px 40px rgba(0, 0, 0, 0.35);
-  --font-serif: var(--app-font-heading);
-  --radius-lg: calc(var(--radius) * 1.4);
-  --radius-sm: calc(var(--radius) * 0.7);
-  --gap: 16px;
-  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-
+/* Brett-Themes (Einstellungen). Alle übrigen Farben sind shadcn-Variablen in src/index.css. */
 /* Brett-Themes (Einstellungen) – letzter Zug deutlich: Farbe plus Rahmen */
 :root,
 :root[data-board='walnuss'] {

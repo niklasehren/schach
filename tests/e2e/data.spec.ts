@@ -48,8 +48,8 @@ test('App-Partie wird bei Matt gespeichert und ist nach Neuladen in der Liste', 
 
 test('Aufgabe gegen Computer wird als Niederlage gespeichert', async ({ page }) => {
   await page.goto('/#/spielen');
-  await page.getByRole('radio', { name: 'Gegen Computer' }).click();
-  await page.getByRole('radio', { name: 'Weiß' }).click();
+  await page.getByRole('button', { name: 'Gegen Computer', exact: true }).click();
+  await page.getByRole('button', { name: 'Weiß', exact: true }).click();
   await page.getByRole('button', { name: 'Partie starten' }).click();
   await move(page, 'e2', 'e4');
   await expect(page.locator('.movelist-move')).toHaveCount(2, { timeout: 15000 });
@@ -76,9 +76,9 @@ test('Chess.com-Import mit nachgestellter API, erneuter Import holt nur Neues', 
 
   await page.getByRole('link', { name: 'Zur Partienliste' }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(6);
-  await page.getByRole('radio', { name: 'App' }).click();
+  await page.getByRole('button', { name: 'App', exact: true }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(0);
-  await page.getByRole('radio', { name: 'Chess.com' }).click();
+  await page.getByRole('button', { name: 'Chess.com', exact: true }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(6);
   await shot(page, 'partien-chesscom');
 
@@ -102,7 +102,7 @@ test('Chess.com-Import mit nachgestellter API, erneuter Import holt nur Neues', 
   await page.reload();
   await page.getByRole('link', { name: 'Import' }).click();
   await expect(page.getByLabel('Chess.com-Benutzername')).toHaveValue('TestSpieler');
-  await page.getByRole('radio', { name: 'Alle' }).click();
+  await page.getByRole('button', { name: 'Alle', exact: true }).click();
   await page.getByRole('button', { name: 'Partien importieren' }).click();
   await expect(page.getByTestId('import-result')).toContainText('Keine neuen Partien');
   await expect(page.getByTestId('import-result')).toContainText('6 schon vorhanden');

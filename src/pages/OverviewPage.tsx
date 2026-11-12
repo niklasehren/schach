@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { BookOpen, Download, Info, Swords, Target } from 'lucide-react';
 import { db, type GameRecord } from '../db/schema';
 import { useLive } from '../db/useLive';
@@ -11,12 +11,13 @@ import { todaysQueue } from '../training/leitner';
 import { formatDate } from '../chess/format';
 import { GameRow } from '../components/GameRow';
 import { MIN_GAMES, RANGE_LABELS, RANGE_PHRASE, ratingSeries, segments, type RatingPoint, type RatingRange } from '../stats/rating';
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 const tcLabels: Record<string, string> = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', daily: 'Täglich' };
@@ -176,6 +177,27 @@ export function OverviewPage() {
 
 const chartConfig = { rating: { label: 'Wertung', color: 'var(--chart-1)' } } satisfies ChartConfig;
 
+type ChartRow = { x: number; rating: number | null; games: number; isolated: boolean };
+
+/** Tooltip: Datum (bzw. Woche), Wertung, Anzahl Partien */
+function RatingTooltip({ active, payload, unit, name }: { active?: boolean; payload?: { payload: ChartRow }[]; unit: 'day' | 'week'; name: string }) {
+  const row = payload?.[0]?.payload;
+  if (!active || !row || row.rating === null) return null;
+  return (
+    <div className="grid min-w-36 gap-1 rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-lg">
+      <span className="font-semibold">{unit === 'day' ? formatDate(row.x) : `Woche ab ${formatDate(row.x)}`}</span>
+      <span className="flex justify-between gap-4">
+        <span className="text-muted-foreground">{name}-Wertung</span>
+        <b className="tabular-nums">{row.rating}</b>
+      </span>
+      <span className="flex justify-between gap-4">
+        <span className="text-muted-foreground">Partien</span>
+        <b className="tabular-nums">{row.games}</b>
+      </span>
+    </div>
+  );
+}
+
 /** Rating-Verlauf aus den importierten Chess.com-Partien: echte Zeitachse, Zeitraum wählbar, Lücken bei Pausen */
 function RatingCard({ games }: { games: GameRecord[] }) {
   const series = useMemo(() => {
@@ -209,8 +231,9 @@ function RatingCard({ games }: { games: GameRecord[] }) {
   const name = tcLabels[tc];
   const current = all[all.length - 1].rating;
   const enough = s.games >= MIN_GAMES;
-  const data = s.buckets.map((b, i) => ({ i, x: b.start, rating: b.rating }));
-  const isolated = new Set(segments(s.buckets).filter((seg) => seg.length === 1).map((seg) => seg[0].index));
+  const segs = segments(s.buckets);
+  const isolated = new Set(segs.filter((seg) => seg.length === 1).map((seg) => seg[0].index));
+  const data: ChartRow[] = s.buckets.map((b, i) => ({ x: b.start, rating: b.rating, games: b.games, isolated: isolated.has(i) }));
 
   return (
     <Card data-testid="rating-card">
@@ -237,21 +260,34 @@ function RatingCard({ games }: { games: GameRecord[] }) {
           </CardAction>
         )}
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-baseline gap-3.5">
+      <CardContent className="flex flex-col gap-4">
+        {/* Zeitklasse als Tabs beim Titel */}
+        {classes.length > 1 && (
+          <Tabs value={tc} onValueChange={(v) => setPick(String(v))}>
+            <TabsList aria-label="Zeitklasse" className="w-full sm:w-fit">
+              {classes.map((c) => (
+                <TabsTrigger key={c} value={c} className="px-3">
+                  {tcLabels[c]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        )}
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <span className="font-heading text-6xl leading-none" data-testid="rating-now">
             {current}
           </span>
-          {enough && s.best !== null && (
-            <span className="text-sm text-muted-foreground" data-testid="rating-stats">
-              Bestwert {s.best} · {s.games} {name}-Partien
+          <span className="flex flex-col text-sm text-muted-foreground">
+            {s.bestOverall !== null && <span data-testid="rating-best">Bestwert {s.bestOverall} (gesamt)</span>}
+            <span data-testid="rating-stats">
+              {s.games} {name}-{s.games === 1 ? 'Partie' : 'Partien'} in diesem Zeitraum
             </span>
-          )}
+          </span>
         </div>
         {enough ? (
-          <div data-testid="rating-chart" data-segments={segments(s.buckets).length}>
+          <div data-testid="rating-chart" data-segments={segs.length}>
             <ChartContainer config={chartConfig} className="aspect-auto h-44 w-full">
-              <AreaChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+              <LineChart data={data} margin={{ left: 0, right: 10, top: 10, bottom: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis
                   dataKey="x"
@@ -265,68 +301,52 @@ function RatingCard({ games }: { games: GameRecord[] }) {
                   tickFormatter={(v: number) => formatDate(v).slice(0, 6)}
                 />
                 <YAxis width={40} tickLine={false} axisLine={false} domain={['dataMin - 15', 'dataMax + 15']} allowDecimals={false} />
-                <ChartTooltip
-                  cursor={false}
-                  content={
-                    <ChartTooltipContent
-                      labelFormatter={(_, p) => {
-                        const x = p?.[0]?.payload?.x as number | undefined;
-                        return x ? (s.unit === 'day' ? formatDate(x) : `Woche ab ${formatDate(x)}`) : '';
-                      }}
-                    />
-                  }
-                />
-                <Area
+                <ChartTooltip cursor={{ strokeDasharray: '3 3' }} content={<RatingTooltip unit={s.unit} name={name} />} />
+                <Line
                   dataKey="rating"
                   type="linear"
                   connectNulls={false}
                   stroke="var(--color-rating)"
                   strokeWidth={2.5}
-                  fill="var(--color-rating)"
-                  fillOpacity={0.15}
                   isAnimationActive={false}
-                  dot={(props: { cx?: number; cy?: number; index?: number }) =>
-                    props.index !== undefined && isolated.has(props.index) && props.cx !== undefined && props.cy !== undefined ? (
-                      <circle key={props.index} cx={props.cx} cy={props.cy} r={4} fill="var(--color-rating)" />
+                  dot={(props: { cx?: number; cy?: number; index?: number; payload?: ChartRow }) =>
+                    props.payload?.rating !== null && props.payload && props.cx !== undefined && props.cy !== undefined ? (
+                      <circle
+                        key={props.index}
+                        cx={props.cx}
+                        cy={props.cy}
+                        r={props.payload.isolated ? 5.5 : 3}
+                        fill="var(--color-rating)"
+                        stroke="var(--card)"
+                        strokeWidth={props.payload.isolated ? 2 : 1}
+                      />
                     ) : (
                       <g key={props.index} />
                     )
                   }
+                  activeDot={{ r: 6, stroke: 'var(--card)', strokeWidth: 2 }}
                 />
-              </AreaChart>
+              </LineChart>
             </ChartContainer>
-            <p className="mt-1 text-center text-xs text-muted-foreground">{s.unit === 'day' ? 'ein Punkt pro Tag' : 'ein Punkt pro Woche'}</p>
+            <p className="mt-1 text-center text-xs text-muted-foreground">{s.unit === 'day' ? 'ein Punkt pro Tag' : 'ein Punkt pro Woche (Wertung am Wochenende)'}</p>
           </div>
         ) : (
           <p className="grid min-h-40 place-items-center rounded-xl border-[1.5px] border-dashed p-3 text-center text-muted-foreground" data-testid="rating-few">
             Zu wenige Partien in diesem Zeitraum ({s.games} {name}-{s.games === 1 ? 'Partie' : 'Partien'}).
           </p>
         )}
-      </CardContent>
-      <CardFooter className="flex flex-wrap justify-between gap-2 border-t">
-        <ToggleGroup
-          variant="outline"
-          size="sm"
-          value={[range]}
-          onValueChange={(v: string[]) => v[0] && setRange(v[0] as RatingRange)}
-          aria-label="Zeitraum"
-        >
-          {(Object.keys(RANGE_LABELS) as RatingRange[]).map((r) => (
-            <ToggleGroupItem key={r} value={r}>
-              {RANGE_LABELS[r]}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        {classes.length > 1 && (
-          <ToggleGroup variant="outline" size="sm" value={[tc]} onValueChange={(v: string[]) => v[0] && setPick(v[0])} aria-label="Zeitklasse">
-            {classes.map((c) => (
-              <ToggleGroupItem key={c} value={c}>
-                {tcLabels[c]}
+        {/* Zeitraum unter der Grafik */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">Zeitraum</span>
+          <ToggleGroup variant="outline" size="sm" value={[range]} onValueChange={(v: string[]) => v[0] && setRange(v[0] as RatingRange)} aria-label="Zeitraum">
+            {(Object.keys(RANGE_LABELS) as RatingRange[]).map((r) => (
+              <ToggleGroupItem key={r} value={r} className="px-2.5">
+                {RANGE_LABELS[r]}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-        )}
-      </CardFooter>
+        </div>
+      </CardContent>
     </Card>
   );
 }
