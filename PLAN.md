@@ -149,19 +149,21 @@ Ansicht: Brett + Zugliste zum Durchklicken (auch per Pfeiltasten / Wischen), Bew
 - **Bedienung wie bei „Meine Fehler“:** zwei Versuche, Pfeile (rot: mein erster falscher Zug, grün: Lösung), „Lösung zeigen“ zum Durchklicken. Richtig ist nur der Lösungszug – oder jeder Zug, der matt setzt (wie bei Lichess); keine Engine-Prüfung. Statt Partie-Link: Thema mit Erklärung. Link „Puzzles: Lichess, CC0“ unter dem Puzzle und auf der Trainingsseite.
 - **Puzzle-Rating (vereinfachtes Elo):** erwartete Lösungschance E = 1 / (1 + 10^((Puzzle − ich)/400)); neues Rating = alt + K · (Ergebnis − E). Ergebnis: im ersten Versuch gelöst 1, im zweiten 0,5, nicht gelöst 0. K = 40 für die ersten 15 Puzzles, danach 20. Untergrenze 100. **Startwert:** letzte Chess.com-Wertung (Rapid, sonst Blitz, Bullet, Täglich) **+ 400**, begrenzt auf 600–1800; ohne Chess.com-Partien 1000. Begründung: Puzzle-Ratings liegen im Anfängerbereich deutlich über Partie-Ratings; das Rating findet in den ersten Puzzles schnell zum eigenen Niveau. Gespeichert in `settings` (Schlüssel `puzzleRating`), Versuche in `attempts` mit `lichess:<ID>` – beides im Backup, kein neues Datenbankschema.
 - **Auswahl passend zum Rating:** zufällig unter den noch nie gespielten Puzzles im Fenster ±100 um mein Rating; ist dort nichts, wird das Fenster verdoppelt. Sind alle gespielt, darf eines wiederkommen.
-- **„Passend zu meinen Schwächen“:** Pro Puzzle wird ein Thema nach Gewicht gezogen. 80 % der Gewichte kommen aus meinen Fehlerarten (aus der Analyse; die Anzahl einer Fehlerart wird gleichmäßig auf ihre Themen verteilt), 20 % gleichmäßig auf alle 14 Themen (je ca. 1,4 %), damit keines ganz verschwindet. Ohne passende Fehler: alle gleich.
-- **Regel für die Zuordnung (überarbeitet 12.11.2026):** Ein Thema bekommt nur Gewicht, wenn sein Muster direkt zur **erkannten** Fehlerart passt. Fesselung, Spieß, Abzugsangriff, Gefangene Figur, Hinlenkung und Umwandlung erkennt die Analyse (noch) nicht als eigene Fehlerart – sie kommen nur über den Grundanteil dran. Vorher landeten z. B. „Gefangene Figur“ und „Fesselung“ über „Drohung übersehen“ bzw. „Material eingestellt“ ohne echten Bezug in den Schwerpunkten. Beispiel mit 42× „Matt zugelassen“: gut drei Viertel der Puzzles sind dann Matt in 1, Matt in 2, Grundreihenmatt und Verteidigen (Test in `tests/unit/lichess.test.ts`).
+- **„Passend zu meinen Schwächen“:** Pro Puzzle wird ein Thema nach Gewicht gezogen. 80 % der Gewichte kommen aus meinen Fehlerarten (aus der Analyse), 20 % gleichmäßig auf alle 14 Themen (je ca. 1,4 %), damit keines ganz verschwindet. Ohne passende Fehler: alle gleich.
+- **Zuordnung mit Anteilen (überarbeitet 12.11.2026):** Jede Fehlerart verteilt ihre Anzahl nach festen Anteilen auf passende Themen. So folgt das Training ungefähr dem Anteil meiner Fehlerarten. Themen ohne klaren Bezug zu einer erkannten Fehlerart (Fesselung, Spieß, Gefangene Figur, Ablenkung, Hinlenkung, Umwandlung) bekommen nur den Grundanteil.
 
-| Fehlerart (Analyse) | Themen | Warum |
+| Fehlerart (Analyse) | Themen (Anteil) | Warum |
 |---|---|---|
-| Matt zugelassen | Matt in 1, Matt in 2, Grundreihenmatt, Verteidigen | Mattmuster kennen, um sie beim Gegner zu sehen, und rechtzeitig abwehren |
-| Matt übersehen | Matt in 1, Matt in 2, Grundreihenmatt | eigene Matts finden |
-| Drohung übersehen | Verteidigen | Drohung erkennen und abwehren |
-| Figur oder Bauer ungedeckt gelassen | Hängende Figur, Verteidigen | Ungedecktes sehen – eigenes und fremdes |
-| Gabel übersehen | Gabel | gleiches Muster |
-| Material eingestellt | Hängende Figur | Figuren, die einfach geschlagen werden können |
-| Schach oder Schlagzug ohne Wirkung | Ruhiger Zug | der stärkste Zug ist oft kein Schach/Schlagzug |
+| Material eingestellt | Hängende Figur 50 %, Gabel 25 %, Abzugsangriff 25 % | Material geht meist durch eine hängende Figur verloren, sonst durch einen Doppelangriff |
+| Figur oder Bauer ungedeckt gelassen | Hängende Figur 50 %, Verteidigen 50 % | Ungedecktes sehen und rechtzeitig decken |
+| Drohung übersehen | Verteidigen 50 %, Gabel 25 %, Abzugsangriff 25 % | Drohungen abwehren; die häufigsten Drohungen sind Doppelangriffe |
+| Matt zugelassen | Matt in 1, Matt in 2, Grundreihenmatt, Verteidigen je 25 % | Mattmuster kennen, um sie beim Gegner zu sehen, und rechtzeitig abwehren |
+| Matt übersehen | Matt in 1 40 %, Matt in 2 40 %, Grundreihenmatt 20 % | eigene Matts finden |
+| Gabel übersehen | Gabel 100 % | gleiches Muster |
+| Schach oder Schlagzug ohne Wirkung | Ruhiger Zug 100 % | der stärkste Zug ist oft kein Schach/Schlagzug |
 | Stellungsfehler (ohne klare Taktik) | – | kein Taktik-Thema |
+
+**Beispiel – mein Fehlerprofil** (Material eingestellt 95, ungedeckt 70, Drohung übersehen 51, Matt zugelassen 42; zusammen 258 = 37 % / 27 % / 20 % / 16 %): Hängende Figur **27 %**, Verteidigen **23 %**, Gabel **13 %**, Abzugsangriff **13 %**, Matt-Themen zusammen **14 %** (je ca. 4,7 %), die übrigen 7 Themen zusammen **10 %** (je 1,4 %). Geprüft in `tests/unit/lichess.test.ts`.
 
 - **Adressen:** `#/training` (Übersicht beider Arten), `#/training/fehler` (Tagesziel), `#/training/mehr` (Weiter üben), `#/training/allgemein/schwaechen` bzw. `#/training/allgemein/<Thema>`.
 

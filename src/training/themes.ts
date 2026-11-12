@@ -21,22 +21,25 @@ export const THEME_KEYS = THEMES.map((t) => t.key) as ThemeKey[];
 export const themeOf = (key: string) => THEMES.find((t) => t.key === key);
 
 /**
- * Welche Themen helfen gegen welche meiner Fehlerarten (aus der Analyse, siehe errorTypes.ts).
- * Regel: Ein Thema bekommt nur Gewicht, wenn sein Muster direkt zur erkannten Fehlerart passt.
- * Fesselung, Spieß, Abzugsangriff, Gefangene Figur, Hinlenkung und Umwandlung erkennt die Analyse
- * (noch) nicht als eigene Fehlerart – sie kommen nur über den Grundanteil dran.
- * Die Anzahl einer Fehlerart wird gleichmäßig auf ihre Themen verteilt.
+ * Welche Themen helfen gegen welche meiner Fehlerarten (aus der Analyse, siehe errorTypes.ts) – mit Anteilen (Summe 1).
+ * Jede Fehlerart verteilt ihre Anzahl nach diesen Anteilen auf ihre Themen. Dadurch entspricht das Training
+ * ungefähr dem Anteil meiner Fehlerarten: Wer meist Material einstellt, bekommt meist Material-Taktik.
+ * Fesselung, Spieß, Gefangene Figur, Hinlenkung, Ablenkung und Umwandlung haben keinen klaren Bezug zu einer
+ * erkannten Fehlerart – sie kommen nur über den Grundanteil dran.
  * „Stellungsfehler ohne klare Taktik“ (other) hat kein passendes Taktik-Thema.
  */
-export const ERROR_THEMES: Record<string, ThemeKey[]> = {
-  // Matt zugelassen: Mattmuster kennen (sie dann auch beim Gegner sehen) und rechtzeitig verteidigen
-  mateAllowed: ['mateIn1', 'mateIn2', 'backRankMate', 'defensiveMove'],
-  mateMissed: ['mateIn1', 'mateIn2', 'backRankMate'],
-  threatMissed: ['defensiveMove'],
-  undefended: ['hangingPiece', 'defensiveMove'],
-  fork: ['fork'],
-  pieceTaken: ['hangingPiece'],
-  forcingUseless: ['quietMove'],
+export const ERROR_THEMES: Record<string, Partial<Record<ThemeKey, number>>> = {
+  // Material eingestellt: meist eine hängende Figur, sonst ein Doppelangriff (Gabel, Abzug)
+  pieceTaken: { hangingPiece: 0.5, fork: 0.25, discoveredAttack: 0.25 },
+  // Figur oder Bauer ungedeckt gelassen: Ungedecktes sehen und rechtzeitig decken
+  undefended: { hangingPiece: 0.5, defensiveMove: 0.5 },
+  // Drohung übersehen: Drohungen abwehren; die häufigsten Drohungen sind Doppelangriffe
+  threatMissed: { defensiveMove: 0.5, fork: 0.25, discoveredAttack: 0.25 },
+  // Matt zugelassen: Mattmuster kennen (um sie beim Gegner zu sehen) und rechtzeitig verteidigen
+  mateAllowed: { mateIn1: 0.25, mateIn2: 0.25, backRankMate: 0.25, defensiveMove: 0.25 },
+  mateMissed: { mateIn1: 0.4, mateIn2: 0.4, backRankMate: 0.2 },
+  fork: { fork: 1 },
+  forcingUseless: { quietMove: 1 },
 };
 
 /** Anteil, der unabhängig von meinen Fehlern gleichmäßig auf alle Themen geht (damit nichts ganz verschwindet) */
@@ -49,9 +52,9 @@ export const BASE_SHARE = 0.2;
 export function themeWeights(errorCounts: { type: string; count: number }[]): Map<ThemeKey, number> {
   const mapped = new Map<ThemeKey, number>(THEME_KEYS.map((k) => [k, 0]));
   for (const { type, count } of errorCounts) {
-    const themes = ERROR_THEMES[type];
-    if (!themes || count <= 0) continue;
-    for (const t of themes) mapped.set(t, mapped.get(t)! + count / themes.length);
+    const shares = ERROR_THEMES[type];
+    if (!shares || count <= 0) continue;
+    for (const [t, share] of Object.entries(shares) as [ThemeKey, number][]) mapped.set(t, mapped.get(t)! + count * share);
   }
   const total = [...mapped.values()].reduce((a, b) => a + b, 0);
   const n = THEME_KEYS.length;

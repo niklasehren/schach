@@ -173,25 +173,37 @@ describe('Themen-Gewichtung nach meinen Schwächen', () => {
     expect(top).toBe('fork');
   });
 
-  it('„Matt zugelassen“ 42×: Matt-Muster und Verteidigen vorn, Gefangene Figur nur mit Grundanteil', () => {
+  it('mein Fehlerprofil (Material 95, ungedeckt 70, Drohung 51, Matt zugelassen 42): Training folgt den Anteilen', () => {
     const w = themeWeights([
+      { type: 'pieceTaken', count: 95 },
+      { type: 'undefended', count: 70 },
+      { type: 'threatMissed', count: 51 },
       { type: 'mateAllowed', count: 42 },
-      { type: 'pieceTaken', count: 5 },
-      { type: 'undefended', count: 4 },
-      { type: 'threatMissed', count: 2 },
       { type: 'other', count: 14 },
     ]);
-    const top4 = [...w.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k]) => k);
-    expect(top4.sort()).toEqual(['backRankMate', 'defensiveMove', 'mateIn1', 'mateIn2']);
+    const pct = (...keys: string[]) => Math.round(keys.reduce((sum, k) => sum + w.get(k as never)!, 0) * 1000) / 10;
+    // Erwartete Verteilung in Prozent (80 % nach Fehlerarten, 20 % gleichmäßig auf alle 14 Themen)
+    expect(pct('hangingPiece')).toBe(27);
+    expect(pct('defensiveMove')).toBe(23.4);
+    expect(pct('fork')).toBe(12.7);
+    expect(pct('discoveredAttack')).toBe(12.7);
+    expect(pct('mateIn1', 'mateIn2', 'backRankMate')).toBe(14.1);
+    // Matt-Themen ungefähr so häufig wie der Anteil von „Matt zugelassen“ an meinen Fehlern (42 von 258 = 16 %)
+    expect(pct('mateIn1', 'mateIn2', 'backRankMate')).toBeLessThan(20);
+    // Themen ohne Bezug zu meinen Fehlern: nur Grundanteil
     const base = BASE_SHARE / THEMES.length;
-    for (const t of ['trappedPiece', 'pin', 'skewer', 'discoveredAttack', 'attraction', 'promotion'] as const) expect(w.get(t)).toBeCloseTo(base);
-    // gut drei Viertel des Trainings sind Matt-Muster und Verteidigen
-    const mate = ['mateIn1', 'mateIn2', 'backRankMate', 'defensiveMove'].reduce((sum, k) => sum + w.get(k as never)!, 0);
-    expect(mate).toBeGreaterThan(0.75);
+    for (const t of ['trappedPiece', 'pin', 'skewer', 'attraction', 'deflection', 'promotion', 'quietMove'] as const) expect(w.get(t)).toBeCloseTo(base);
+    const top3 = [...w.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
+    expect(top3[0]).toBe('hangingPiece');
+    expect(top3[1]).toBe('defensiveMove');
   });
 
   it('jede Fehlerart verweist nur auf vorhandene Themen; Ziehen nach Gewicht', () => {
-    for (const themes of Object.values(ERROR_THEMES)) for (const t of themes) expect(THEME_KEYS).toContain(t);
+    for (const shares of Object.values(ERROR_THEMES)) {
+      for (const t of Object.keys(shares)) expect(THEME_KEYS).toContain(t);
+      // Anteile je Fehlerart ergeben zusammen 1
+      expect(Object.values(shares).reduce((a, b) => a + b!, 0)).toBeCloseTo(1);
+    }
     const w = themeWeights([{ type: 'fork', count: 1 }]);
     // kumulativ: die ersten Themen haben nur den Grundanteil, „fork“ (2. Stelle) den großen Rest
     expect(pickTheme(w, 0)).toBe('hangingPiece');
