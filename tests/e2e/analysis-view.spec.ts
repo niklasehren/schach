@@ -1,0 +1,99 @@
+import { readFileSync } from 'node:fs';
+import { expect, test, type Page } from '@playwright/test';
+
+const shot = (page: Page, name: string) => page.screenshot({ path: `test-results/${name}-${test.info().project.name}.png`, fullPage: true });
+const visible = (page: Page, selector: string) => page.locator(selector).filter({ visible: true });
+
+/** Chess.com liefert genau die Partie vom 12.11. (1. d4 d5 2. Sc3 Sf6 3. e4 dxe4 4. f3 exf3 5. Dxf3 Sc6 6. Lb5 Lg4 7. Df1?? …) */
+async function importZwischenzug(page: Page) {
+  const month = readFileSync(new URL('../fixtures/chesscom-zwischenzug.json', import.meta.url), 'utf8');
+  await page.route('https://api.chess.com/**', (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const body = path.endsWith('/archives') ? JSON.stringify({ archives: ['https://api.chess.com/pub/player/testspieler/games/2026/11'] }) : month;
+    return route.fulfill({ status: 200, contentType: 'application/json', body, headers: { 'access-control-allow-origin': '*' } });
+  });
+  await page.goto('/#/import');
+  await page.getByLabel('Chess.com-Benutzername').fill('testspieler');
+  await page.getByRole('button', { name: 'Partien importieren' }).click();
+  await expect(page.getByTestId('import-result')).toContainText('1 neue Partie');
+  await page.getByRole('link', { name: 'Partien', exact: true }).click();
+  // Echte Analyse mit Standardtiefe 16
+  await expect(page.getByTestId('analysis-count')).toHaveText('Analyse: 1 von 1 Partien', { timeout: 90000 });
+  await page.getByTestId('game-row').click();
+  await expect(page.getByTestId('analysis-summary')).toBeVisible();
+}
+
+test('Zwischenzug 7. Lxc6+: Pfeile, Erklärung mit Schach, Variante zum Durchklicken', async ({ page }) => {
+  test.setTimeout(150000);
+  await importZwischenzug(page);
+
+  // Stellung nach 6...Lg4 (Halbzug 12) über die Zugliste
+  await visible(page, '.movelist-move').filter({ hasText: /^Lg4/ }).click();
+  const board = page.getByTestId('board').filter({ visible: true });
+  await expect(board).toHaveAttribute('data-arrows', /good:b5c6/);
+  await expect(board).toHaveAttribute('data-arrows', /bad:f3f1/);
+  // Pfeile sind wirklich gezeichnet (SVG-Linien von chessground)
+  await expect(board.locator('svg.cg-shapes line, svg.cg-shapes path').first()).toBeAttached();
+
+  const card = page.getByTestId('error-card');
+  await expect(card).toContainText('7. Df1??');
+  await expect(card).toContainText('Patzer');
+  await expect(card).toContainText('besser Lxc6+');
+  await expect(page.getByTestId('explain-better')).toContainText('Schach');
+  await expect(page.getByTestId('explain-better')).toContainText('Zwischenzug');
+  await expect(page.getByTestId('explain-better')).toContainText('deine Dame nicht mehr angegriffen');
+  await expect(page.getByTestId('explain-played')).toContainText('Dxd4');
+  await expect(page.getByTestId('eval-readout')).toContainText('Bewertung');
+  await page.waitForTimeout(400);
+  await shot(page, 'fehler-pfeile');
+
+  // Beste Fortsetzung: beginnt mit Lxc6+, als Variante gekennzeichnet
+  await page.getByTestId('show-line').click();
+  const line = page.getByTestId('variation');
+  await expect(line).toContainText('Variante (Engine)');
+  await expect(line).toContainText('nicht gespielt');
+  await expect(page.getByTestId('variation-move').first()).toHaveText('Lxc6+');
+  expect(await page.getByTestId('variation-move').count()).toBeGreaterThanOrEqual(4);
+  await expect(page.locator('.variation-badge').filter({ visible: true })).toBeVisible();
+  await expect(page.locator('.variation-card .movelist-move.is-current')).toHaveText('Lxc6+');
+  // nächster Zug der Variante als Pfeil: bxc6
+  await expect(board).toHaveAttribute('data-arrows', 'good:b7c6');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.variation-card .movelist-move.is-current')).toHaveText('bxc6');
+  await page.getByRole('button', { name: 'Variante vor' }).click();
+  await expect(page.locator('.variation-card .movelist-move.is-current')).toHaveText('Dxc6+');
+  await expect(board).toHaveAttribute('data-arrows', 'good:g4d7');
+  await page.waitForTimeout(400);
+  await shot(page, 'variante');
+  await page.getByTestId('close-line').click();
+  await expect(line).toHaveCount(0);
+  await expect(visible(page, '.movelist-move.is-current')).toHaveText(/^Lg4/);
+  await expect(board).toHaveAttribute('data-arrows', /good:b5c6/);
+});
+
+test('Bewertungsbalken, Kurve mit Fehlerpunkten, Nächster Fehler', async ({ page }) => {
+  test.setTimeout(150000);
+  await importZwischenzug(page);
+  await expect(page.getByTestId('evalbar').filter({ visible: true })).toBeVisible();
+  const chart = page.getByTestId('evalchart');
+  await expect(chart).toBeVisible();
+  expect(await chart.locator('circle.evalchart-dot').count()).toBeGreaterThan(0);
+
+  // Klick auf einen Fehlerpunkt springt zu diesem Zug
+  const dot = chart.locator('circle.evalchart-dot').first();
+  const ply = Number(await dot.getAttribute('data-ply'));
+  await dot.click();
+  await expect(chart).toHaveAttribute('aria-valuenow', String(ply));
+  await expect(visible(page, '.movelist-move.is-current')).toHaveAttribute('data-mark', /.+/);
+
+  // Zum ersten Fehler, dann Nächster Fehler: jeweils Stellung vor einem Fehler/Patzer
+  await page.getByTestId('first-error').click();
+  const first = Number(await chart.getAttribute('aria-valuenow'));
+  await expect(page.getByTestId('error-card')).toBeVisible();
+  await page.getByTestId('next-error').click();
+  await expect(chart).not.toHaveAttribute('aria-valuenow', String(first));
+  const second = Number(await chart.getAttribute('aria-valuenow'));
+  expect(second).toBeGreaterThan(first);
+  await expect(page.getByTestId('error-card')).toContainText(/Patzer|Fehler/);
+  await shot(page, 'kurve');
+});

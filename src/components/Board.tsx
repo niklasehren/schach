@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Chessground } from '@lichess-org/chessground';
 import type { Api } from '@lichess-org/chessground/api';
 import type { Config } from '@lichess-org/chessground/config';
+import type { DrawBrushes } from '@lichess-org/chessground/draw';
 import type { Key } from '@lichess-org/chessground/types';
 
 type Props = {
@@ -28,6 +29,15 @@ export function Board({ config, onMove }: Props) {
       premovable: { enabled: false },
       draggable: { showGhost: true },
       coordinates: true,
+      // Pfeile für die Analyse: kräftig und gut sichtbar, auch am Handy
+      drawable: {
+        brushes: {
+          bad: { key: 'xr', color: '#c62828', opacity: 0.85, lineWidth: 15 },
+          good: { key: 'xg', color: '#15803d', opacity: 0.9, lineWidth: 15 },
+          next: { key: 'xb', color: '#2563c9', opacity: 0.8, lineWidth: 13 },
+          // chessground ergänzt diese Pinsel zu den eingebauten (green, red, …)
+        } as unknown as DrawBrushes,
+      },
     });
     // set() führt verschachtelte Einstellungen zusammen, statt sie zu ersetzen (wichtig für movable.events)
     // Erste Stellung ohne Animation setzen (sonst „fliegen“ die Figuren beim Öffnen einer Partie aus der Grundstellung)
@@ -53,9 +63,11 @@ export function Board({ config, onMove }: Props) {
     api.current?.set(config);
   }, [config]);
 
+  // Pfeile zusätzlich als Attribut, damit Tests und Screenreader-Hilfen sie lesen können
+  const arrows = (config.drawable?.autoShapes ?? []).map((sh) => `${sh.brush}:${sh.orig}${sh.dest ?? ''}`).join(',');
   return (
     <div className="board-frame">
-      <div ref={el} className="board" data-testid="board" />
+      <div ref={el} className="board" data-testid="board" data-arrows={arrows || undefined} />
     </div>
   );
 }

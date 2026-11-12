@@ -36,7 +36,7 @@ test('Schäfermatt wird analysiert: Markierungen, Zusammenfassung, Zum ersten Fe
   await expect(moves(page).filter({ hasText: 'Dxf7#' })).not.toHaveAttribute('data-mark');
 
   await page.getByTestId('first-error').click();
-  await expect(page.getByTestId('move-note')).toContainText('Hier folgt');
+  await expect(page.getByTestId('error-card')).toBeVisible();
   await page.keyboard.press('ArrowRight');
   await expect(current(page)).toHaveAttribute('data-mark', /mistake|blunder/);
   await expect(page.getByTestId('move-note')).toContainText(/Patzer|Fehler/);

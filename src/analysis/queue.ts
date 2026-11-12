@@ -111,6 +111,32 @@ export class AnalysisQueue {
     this.wake();
   }
 
+  /**
+   * Hauptvariante für einzelne Stellungen nachrechnen, falls sie fehlt oder zu kurz ist (z. B. für „Beste Fortsetzung“).
+   * Rechnet nur diese Stellungen, nicht die ganze Partie; das Ergebnis wird in der Analyse gespeichert.
+   */
+  async ensurePv(gameId: string, fens: Record<number, string>, minLength = 4): Promise<void> {
+    const analysis = await db.analyses.get(gameId);
+    if (!analysis || analysis.status !== 'done') return;
+    const todo = Object.keys(fens)
+      .map(Number)
+      .filter((i) => {
+        const ev = analysis.evals[i];
+        if (!ev || ev.depth === 0) return false;
+        // Kurzes Matt hat zwangsläufig eine kurze Variante
+        if (ev.mate !== undefined && Math.abs(ev.mate) * 2 <= (ev.pv?.length ?? 0) + 1) return false;
+        return (ev.pv?.length ?? 0) < minLength;
+      });
+    if (todo.length === 0) return;
+    this.engine ??= this.makeEngine();
+    const evals = [...analysis.evals];
+    for (const i of todo) {
+      const fresh = await this.engine.evaluate(fens[i], analysis.limit);
+      if ((fresh.pv?.length ?? 0) > (evals[i]?.pv?.length ?? 0)) evals[i] = { ...evals[i]!, pv: fresh.pv, best: evals[i]!.best ?? fresh.best };
+    }
+    await db.analyses.update(gameId, { evals, updatedAt: Date.now() });
+  }
+
   private shouldStop = () => this.paused || this.yielding;
 
   private wake() {

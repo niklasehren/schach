@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 12. November 2026 · Status: Blöcke 0–2, 4 (mit Chess.com-Import) und 5 fertig, als Nächstes Block 6
+Stand: 12. November 2026 · Status: Blöcke 0–2, 4 (mit Chess.com-Import), 5 und 6 fertig, als Nächstes Block 7
 
 ## 1. Idee in einem Satz
 
@@ -92,6 +92,17 @@ Nach der Partie läuft Stockfish im Hintergrund über jede Stellung (Ziel: Tiefe
 - Warteschlange: eine Partie gleichzeitig, neueste zuerst, neue Partien automatisch, Pause/Weiter (bleibt nach Neuladen), pausiert automatisch während einer Partie gegen den Computer. Läuft nur bei geöffneter App.
 - Gegen Freund: beide Seiten werden markiert, da keine eigene Farbe bekannt ist.
 
+### Umsetzung Block 6 (Stand 12.11.2026)
+
+Ziel: Fehler am Brett verständlich machen, nicht nur als Text. Anlass: 7. Df1?? (besser 7. Lxc6+ – Zwischenzug mit Schach, danach 8. Dxc6+; ohne Folgezüge nicht zu verstehen).
+
+- **Pfeile:** In der Stellung **vor** einem markierten Zug: rot = gespielt, grün = besser (kräftige Pinsel, auch am Handy gut sichtbar). Die Stellung nach dem Zug verweist darauf zurück.
+- **Beste Fortsetzung:** Engine-Hauptvariante (bis 6 Halbzüge) am Brett, Schritt für Schritt (‹ ›, Pfeiltasten, Esc), der nächste Zug als Pfeil; gestrichelter Rahmen, Hinweis „Variante (Engine) – nicht gespielt“, Knopf „Zurück zur Partie“. Die Variante war seit Block 5 gespeichert; ist sie kürzer als 4 Halbzüge, werden nur die Fehlerstellungen nachgerechnet und gespeichert.
+- **Erklärungen** (`src/analysis/explain.ts`, regelbasiert, nur nachprüfbare Aussagen): Schach; Zwischenzug (eigene bedrohte Figur ist nach meinem nächsten Variantenzug nicht mehr angegriffen – per chess.js geprüft); Schlagen; Materialbilanz der Variante („gewonnen“/„zurück“); beste Antwort des Gegners schlägt eine Figur (+ „ungedeckt“, wenn wirklich ungedeckt); Gabel (nur echte Bedrohungen: König, ungedeckt oder wertvoller als der Angreifer); hängende Figuren; Matt zugelassen/übersehen mit Zuganzahl. Passt keine Regel: nur Variante und Gewinnchance.
+- **Bewertungsbalken** links am Brett, **Bewertungskurve** unter der Zugliste (Gewinnchance Weiß, Fehler als Punkte, Tooltip, Klick springt zum Zug), Bewertungszahl darüber.
+- **Zum ersten Fehler / Nächster Fehler** (Fehler und Patzer, ohne Ungenauigkeiten).
+- Markierungsfarben mit dem Paletten-Prüfer abgestimmt: Patzer rot, Fehler orange, Ungenauigkeit **blau** (gelb/orange waren bei Rot-Grün-Schwäche kaum zu unterscheiden); zusätzlich immer ??/?/?!.
+
 Ansicht: Brett + Zugliste zum Durchklicken (auch per Pfeiltasten / Wischen), Bewertungskurve, farbige Markierung der Fehler, Pfeil für den besten Zug, kurze Zusammenfassung oben („2 Patzer, 1 Figur eingestellt, 3 von 4 Fehlern in Zeitnot“).
 
 ## 4. Puzzles aus eigenen Fehlern
@@ -182,7 +193,7 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 | **2 Gegen Stockfish** ✅ | Engine im Worker, Start-Bildschirm: Farbe, Stärke (Elo/Skill) · zweiter Modus „Gegen Freund (am selben Gerät)“ mit Namen · Aufgeben · Materialvorteil und geschlagene Figuren · Zurückblättern (Pfeiltasten, Knöpfe, Zugliste) · größere Koordinaten | Partie gegen den Computer oder einen Freund |
 | **4 Speichern + Chess.com-Import** ✅ | IndexedDB (alle Tabellen aus Abschnitt 5), App-Partien automatisch speichern, Partienliste mit Filter, Partie ansehen, PGN-Export, Datensicherung · Chess.com-Import über die öffentliche API (geprüft: funktioniert direkt aus dem Browser, CORS erlaubt), nur normales Schach, keine Doppelten, Fortschrittsanzeige | Partien bleiben nach Neuladen erhalten; eigene Chess.com-Partien in der Liste |
 | **5 Analyse-Rechnung** ✅ | Hintergrund-Analyse, Gewinnchance, Klassen, Phase, Figur eingestellt, Matt übersehen, Zeitnot (aus `%clk` der Chess.com-Partien) | Analyse läuft für App- und Chess.com-Partien |
-| **6 Analyse-Ansicht** | Durchklicken, Bewertungskurve, bester Zug als Pfeil, Zusammenfassung | Eigene Partie Zug für Zug nachvollziehen |
+| **6 Analyse-Ansicht** ✅ | Durchklicken, Bewertungskurve, bester Zug als Pfeil, Zusammenfassung | Eigene Partie Zug für Zug nachvollziehen |
 | **7 Puzzles** | Puzzles aus Fehlern, Lösen am Brett, Leitner-Wiederholung, „Heute fällig“ | Eigene Fehler als Training |
 | **9 Statistik** | (siehe unten, vorgezogen) | Wo/wie ich verliere |
 | **3 Uhr & Partieende** | Schachuhr mit Inkrement (Standard 15+10, wählbar), Partieende durch Zeit, keine Zugrücknahme, keine Hinweise | Vollständige Partie mit Uhr |

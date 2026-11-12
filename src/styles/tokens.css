@@ -8,9 +8,11 @@
   --accent: #2f4a3f;
   --accent-text: #f6f3ea;
   --danger: #a5402d;
-  --mark-blunder: #b23a2a;
-  --mark-mistake: #c46a1c;
-  --mark-inaccuracy: #9a7d12;
+  --mark-blunder: #b3261e;
+  --mark-mistake: #c97a14;
+  --mark-inaccuracy: #3a78b5;
+  --arrow-bad: #c62828;
+  --arrow-good: #15803d;
 
   --sq-light: #e9e2d0;
   --sq-dark: #8b9c88;
@@ -41,9 +43,9 @@
     --accent: #9fbfae;
     --accent-text: #14181c;
     --danger: #e08a74;
-    --mark-blunder: #ec8571;
-    --mark-mistake: #e5a15e;
-    --mark-inaccuracy: #d6bd5a;
+    --mark-blunder: #d9483b;
+    --mark-mistake: #c08a1e;
+    --mark-inaccuracy: #4c8fd0;
 
     --sq-light: #c9c3b3;
     --sq-dark: #6f7f6e;

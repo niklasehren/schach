@@ -1023,6 +1023,319 @@ input[type='range'] {
   background: var(--mark-inaccuracy);
 }
 
+/* Analyse-Ansicht: Bewertungsbalken, Pfeile, Variante, Kurve */
+.play.has-evalbar {
+  --evalbar: 14px;
+  grid-template-columns: calc(var(--board-size) + var(--evalbar) + 6px) 340px;
+}
+
+.has-evalbar .play-board > .player {
+  padding-left: calc(var(--evalbar) + 8px);
+}
+
+.board-with-bar {
+  display: flex;
+  gap: 6px;
+}
+
+.evalbar {
+  position: relative;
+  flex: none;
+  width: var(--evalbar);
+  border-radius: 3px;
+  overflow: hidden;
+  background: #3a3f45;
+  border: 1px solid color-mix(in srgb, var(--text) 45%, transparent);
+}
+
+.evalbar-white {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: #fdfcf8;
+  transition: height 200ms ease;
+}
+
+.evalbar-mid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: color-mix(in srgb, #888 70%, transparent);
+}
+
+
+.board-with-bar .board-frame {
+  flex: none;
+}
+
+.board-with-bar {
+  position: relative;
+}
+
+.in-variation .board-frame {
+  outline: 3px dashed var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.eval-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+  margin-bottom: -6px;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.eval-readout strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.variation-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.play-side.is-analysis {
+  max-height: none;
+}
+
+.play-side.is-analysis .movelist {
+  flex: none;
+  max-height: 220px;
+}
+
+.error-card,
+.variation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+}
+
+.error-card.note-blunder {
+  border-left-color: var(--mark-blunder);
+}
+
+.error-card.note-mistake {
+  border-left-color: var(--mark-mistake);
+}
+
+.error-card.note-inaccuracy {
+  border-left-color: var(--mark-inaccuracy);
+}
+
+.variation-card {
+  border: 2px dashed var(--accent);
+}
+
+.error-head,
+.variation-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.error-tags {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.error-win,
+.variation-head span {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.arrow-legend {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 14px;
+}
+
+.arrow-key {
+  display: inline-block;
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+  margin-left: 4px;
+}
+
+.arrow-key:first-child {
+  margin-left: 0;
+}
+
+.key-bad {
+  background: var(--arrow-bad);
+}
+
+.key-good {
+  background: var(--arrow-good);
+}
+
+.error-why {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.error-why-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.error-why ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.variation-moves {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.variation-moves li {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.variation-moves .movelist-move {
+  margin-left: 0;
+}
+
+.nav-controls-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.nav-controls-2 .icon-btn {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.evalchart {
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  touch-action: pan-y;
+}
+
+.evalchart:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.evalchart svg {
+  display: block;
+}
+
+.evalchart-mid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.evalchart-area {
+  fill: color-mix(in srgb, var(--text) 9%, transparent);
+}
+
+.evalchart-line {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.evalchart-current {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.evalchart-hover {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.evalchart-dot {
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.dot-blunder {
+  fill: var(--mark-blunder);
+}
+
+.dot-mistake {
+  fill: var(--mark-mistake);
+}
+
+.dot-inaccuracy {
+  fill: var(--mark-inaccuracy);
+}
+
+.evalchart-tip {
+  position: absolute;
+  top: -30px;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Handy und schmale Fenster: alles untereinander, Brett bildschirmbreit */
 @media (max-width: 760px) {
   .topbar {
@@ -1096,5 +1409,31 @@ input[type='range'] {
 
   .card {
     padding: 16px 14px;
+  }
+
+  .play.has-evalbar {
+    --evalbar: 10px;
+    --board-size: round(down, calc(100vw - var(--evalbar) - 6px), 8px);
+    grid-template-columns: 1fr;
+  }
+
+  .has-evalbar .play-board > .player {
+    padding-left: calc(var(--evalbar) + 18px);
+  }
+
+  .in-variation .board-frame {
+    outline-width: 2px;
+    outline-offset: 0;
+  }
+
+  /* Erklärung bzw. Variante direkt unter dem Brett, damit beides zusammen sichtbar ist */
+  .is-analysis > .error-card,
+  .is-analysis > .variation-card,
+  .is-analysis > .move-note {
+    order: -1;
+  }
+
+  .play-side.is-analysis .movelist {
+    max-height: 30dvh;
   }
 }
