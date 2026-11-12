@@ -131,7 +131,7 @@
 }
 
 .promotion-choice:hover {
-  border-color: var(--accent);
+  border-color: var(--primary);
 }
 
 .promotion-choice piece {

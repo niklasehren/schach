@@ -1,92 +1,32 @@
 /*
- * Gestaltungs-Grundwerte „Klubhaus“: Waldgrün, Messing, warmes Papier bzw. tiefes Anthrazit.
- * Standard ist dunkel; hell über <html data-theme="light"> (Schalter in den Einstellungen).
- * Alle Text-Farbpaare erfüllen WCAG AA (≥ 4,5:1), geprüft am 12.11.2026.
+ * Brett-Themes und Übergangsnamen. Die eigentlichen Farben (shadcn-Variablen, Klubhaus) stehen in src/index.css.
  */
 :root {
-  /* Flächen */
-  --bg: #121519;
-  --surface: #1b1f24;
-  --surface-2: #22272e;
-  --line: #2f353d;
-  --line-strong: #444c56;
-  /* Schrift */
-  --text: #efe9dc;
-  --text-muted: #b9b2a3;
-  /* Akzent und Messing */
-  --accent: #6cc79f;
-  --accent-text: #0f1a15;
-  --accent-soft: rgba(108, 199, 159, 0.14);
-  --gold: #e0b24f;
-  --gold-ink: #1c1f1b;
-  --hero: #183d30;
-  --hero-ink: #f4ecda;
-  --hero-muted: #c9d8cc;
-  --danger: #ff8a78;
-  /* Ergebnisse */
-  --win: #7fdcaa;
-  --win-bg: #1d3a2c;
-  --loss: #ff9b8c;
-  --loss-bg: #432420;
-  --draw: #c6cbd3;
-  --draw-bg: #2c3138;
-  /* Fehlerklassen (Text, Punkte) */
-  --mark-blunder: #ff7b6b;
-  --mark-mistake: #f0a347;
-  --mark-inaccuracy: #7fb4ee;
+  /* Übergang: alte Namen zeigen auf die shadcn-Variablen (src/index.css) */
+  --bg: var(--background);
+  --surface: var(--card);
+  --surface-2: var(--muted);
+  --line: var(--border);
+  --line-strong: var(--input);
+  --text: var(--foreground);
+  --text-muted: var(--muted-foreground);
+  --accent-text: var(--primary-foreground);
+  --accent-soft: color-mix(in srgb, var(--primary) 14%, transparent);
+  --gold: var(--brass);
+  --gold-ink: var(--brass-foreground);
+  --hero-ink: var(--hero-foreground);
+  --danger: var(--destructive);
   --arrow-bad: #e53935;
   --arrow-good: #1f9d55;
-  /* Diagramme */
-  --chart-line: #9fe0c2;
-  --chart-area: rgba(108, 199, 159, 0.15);
-  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.25);
-  --shadow-board: 0 2px 0 rgba(0, 0, 0, 0.3), 0 18px 40px rgba(0, 0, 0, 0.45);
-
-  --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
-
-  --radius-lg: 18px;
-  --radius: 12px;
-  --radius-sm: 8px;
+  --chart-line: var(--chart-1);
+  --chart-area: color-mix(in srgb, var(--chart-1) 16%, transparent);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-board: 0 2px 0 rgba(0, 0, 0, 0.25), 0 18px 40px rgba(0, 0, 0, 0.35);
+  --font-serif: var(--app-font-heading);
+  --radius-lg: calc(var(--radius) * 1.4);
+  --radius-sm: calc(var(--radius) * 0.7);
   --gap: 16px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-
-  color-scheme: dark;
-}
-
-:root[data-theme='light'] {
-  --bg: #f2ede3;
-  --surface: #fffcf6;
-  --surface-2: #f7f1e6;
-  --line: #e2d9c8;
-  --line-strong: #cdbfa6;
-  --text: #1c1f1b;
-  --text-muted: #4a5048;
-  --accent: #1d5a43;
-  --accent-text: #fbf6ea;
-  --accent-soft: rgba(29, 90, 67, 0.1);
-  --gold: #c99a3a;
-  --gold-ink: #1c1f1b;
-  --hero: #1d5a43;
-  --hero-ink: #fbf6ea;
-  --hero-muted: #d5e3d9;
-  --danger: #a3241a;
-  --win: #17663f;
-  --win-bg: #d9eedf;
-  --loss: #a3241a;
-  --loss-bg: #f6dcd7;
-  --draw: #4b5360;
-  --draw-bg: #e4e6ea;
-  --mark-blunder: #b3261e;
-  --mark-mistake: #9a5a06;
-  --mark-inaccuracy: #2f6aa8;
-  --arrow-bad: #c62828;
-  --arrow-good: #15803d;
-  --chart-line: #1d5a43;
-  --chart-area: rgba(29, 90, 67, 0.12);
-  --shadow: 0 1px 2px rgba(60, 40, 10, 0.06), 0 8px 24px rgba(60, 40, 10, 0.07);
-  --shadow-board: 0 2px 0 rgba(0, 0, 0, 0.08), 0 14px 30px rgba(60, 40, 10, 0.2);
-  color-scheme: light;
 }
 
 /* Brett-Themes (Einstellungen) – letzter Zug deutlich: Farbe plus Rahmen */

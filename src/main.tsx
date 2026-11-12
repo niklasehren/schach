@@ -4,9 +4,7 @@ import '@fontsource-variable/instrument-sans';
 import '@fontsource/instrument-serif';
 import '@lichess-org/chessground/assets/chessground.base.css';
 import '@lichess-org/chessground/assets/chessground.cburnett.css';
-import './styles/tokens.css';
-import './styles/app.css';
-import './styles/board.css';
+import './index.css';
 import { App } from './app/App';
 import { applyTheme } from './app/theme';
 
