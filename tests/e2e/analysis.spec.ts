@@ -26,20 +26,23 @@ test('Schäfermatt wird analysiert: Markierungen, Zusammenfassung, Zum ersten Fe
   await expect(page.getByTestId('badge-done')).toBeVisible();
 
   await page.getByTestId('game-row').click();
-  // Ansicht startet bei der Grundstellung
-  await expect(current(page)).toHaveCount(0);
-  // Gegen Freund: beide Seiten werden bewertet
+  // Gegen Freund: beide Seiten werden bewertet (Zusammenfassung im Reiter „Fehler“)
   await expect(page.getByTestId('analysis-summary')).toContainText('Ben:');
   await expect(page.getByTestId('analysis-summary')).toContainText('1 Patzer');
   await expect(page.getByTestId('analysis-summary')).toContainText('Matt zugelassen');
+  // Ansicht startet bei der Grundstellung; Markierungen in der Zugliste
+  await page.getByTestId('tab-zuege').click();
+  await expect(current(page)).toHaveCount(0);
   await expect(moves(page).filter({ hasText: 'Sf6' })).toHaveAttribute('data-mark', 'blunder');
   await expect(moves(page).filter({ hasText: 'Dxf7#' })).not.toHaveAttribute('data-mark');
 
+  await page.getByTestId('tab-fehler').click();
   await page.getByTestId('first-error').click();
   await expect(page.getByTestId('error-card')).toBeVisible();
   await page.keyboard.press('ArrowRight');
-  await expect(current(page)).toHaveAttribute('data-mark', /mistake|blunder/);
   await expect(page.getByTestId('move-note')).toContainText(/Patzer|Fehler/);
+  await page.getByTestId('tab-zuege').click();
+  await expect(current(page)).toHaveAttribute('data-mark', /mistake|blunder/);
   await shot(page, 'analyse-schaefermatt');
 });
 
@@ -74,6 +77,7 @@ test('Chess.com-Partien: Fortschritt bleibt nach Neuladen, Pause bleibt Pause, W
   await page.getByTestId('game-row').filter({ hasText: 'Gegner1' }).click();
   await expect(page.getByTestId('analysis-summary')).toContainText('Deine Fehler:');
   await expect(page.getByTestId('analysis-summary')).toContainText('Patzer');
+  await page.getByTestId('tab-zuege').click();
   const marked = page.locator('.movelist-move[data-mark]').filter({ visible: true });
   expect(await marked.count()).toBeGreaterThan(0);
   for (const el of await marked.all()) {
@@ -82,8 +86,10 @@ test('Chess.com-Partien: Fortschritt bleibt nach Neuladen, Pause bleibt Pause, W
     expect(await el.evaluate((n) => Array.from(n.parentElement!.children).indexOf(n))).toBe(2);
     await expect(box).toHaveClass(/movelist-row/);
   }
+  await page.getByTestId('tab-fehler').click();
   await page.getByTestId('first-error').click();
   await page.keyboard.press('ArrowRight');
+  await page.getByTestId('tab-zuege').click();
   await expect(current(page)).toHaveAttribute('data-mark', /mistake|blunder/);
   await shot(page, 'analyse-partie');
 });

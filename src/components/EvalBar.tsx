@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { Color } from '@lichess-org/chessground/types';
 
 type Props = {
@@ -8,14 +9,24 @@ type Props = {
   orientation: Color;
 };
 
-/** Senkrechter Bewertungsbalken neben dem Brett: Weiß-Anteil wächst von der weißen Seite her */
+/**
+ * Bewertungsbalken: am Mac senkrecht neben dem Brett (Weiß wächst von der weißen Seite her),
+ * am Handy waagerecht über dem Brett. Die Zahl steht auf der Seite, die vorn liegt.
+ */
 export function EvalBar({ white, label, orientation }: Props) {
-  const pct = white === null ? 50 : Math.max(2, Math.min(98, white));
-  const whiteAtBottom = orientation === 'white';
+  const pct = white === null ? 50 : Math.max(3, Math.min(97, white));
+  const whiteAhead = (white ?? 50) >= 50;
   return (
-    <div className="evalbar" data-testid="evalbar" aria-label={label ? `Bewertung ${label}` : 'Bewertung unbekannt'} role="img">
-      <div className="evalbar-white" style={{ height: `${pct}%`, [whiteAtBottom ? 'bottom' : 'top']: 0 }} />
+    <div
+      className={`evalbar ${orientation === 'black' ? 'is-flipped' : ''}`}
+      data-testid="evalbar"
+      style={{ '--pct': pct } as CSSProperties}
+      role="img"
+      aria-label={label ? `Bewertung ${label}` : 'Bewertung unbekannt'}
+    >
+      <div className="evalbar-white" />
       <div className="evalbar-mid" />
+      {label && <span className={`evalbar-label ${whiteAhead ? 'on-white' : 'on-black'}`}>{label}</span>}
     </div>
   );
 }

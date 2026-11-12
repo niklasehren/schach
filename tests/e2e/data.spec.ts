@@ -25,17 +25,20 @@ test('App-Partie wird bei Matt gespeichert und ist nach Neuladen in der Liste', 
   await row.click();
   await expect(page.getByTestId('game-header')).toContainText('Anna gewinnt');
   await expect(page.getByTestId('game-header')).toContainText('durch Schachmatt');
-  // Ansicht startet bei der Grundstellung (vor Zug 1)
-  await expect(page.locator('.movelist-move.is-current')).toHaveCount(0);
+  // Ansicht startet bei der Grundstellung (vor Zug 1); Zugliste im Reiter „Züge“
+  await page.getByTestId('tab-zuege').click();
+  await expect(page.locator('.movelist-move.is-current').filter({ visible: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Zum Anfang' })).toBeDisabled();
   // Nur ansehen: Durchblättern geht
   await page.keyboard.press('End');
-  await expect(page.locator('.movelist-move.is-current')).toHaveText(/^Dxf7#/);
+  await expect(page.locator('.movelist-move.is-current').filter({ visible: true })).toHaveText(/^Dxf7#/);
   await page.keyboard.press('ArrowLeft');
-  await expect(page.locator('.movelist-move.is-current')).toHaveText(/^Sf6/);
+  await expect(page.locator('.movelist-move.is-current').filter({ visible: true })).toHaveText(/^Sf6/);
 
+  // Nebenaktionen im „…“-Menü
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PGN exportieren' }).click();
+  await page.getByTestId('more-menu').click();
+  await page.getByRole('menuitem', { name: 'PGN exportieren' }).click();
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/^Anna-Ben-\d{4}-\d{2}-\d{2}\.pgn$/);
   const pgn = readFileSync((await file.path())!, 'utf8');
@@ -44,7 +47,7 @@ test('App-Partie wird bei Matt gespeichert und ist nach Neuladen in der Liste', 
 });
 
 test('Aufgabe gegen Computer wird als Niederlage gespeichert', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/#/spielen');
   await page.getByRole('radio', { name: 'Gegen Computer' }).click();
   await page.getByRole('radio', { name: 'Weiß' }).click();
   await page.getByRole('button', { name: 'Partie starten' }).click();
@@ -58,7 +61,7 @@ test('Aufgabe gegen Computer wird als Niederlage gespeichert', async ({ page }) 
   await expect(page.getByTestId('game-header')).toContainText('durch Aufgabe');
   await page.getByRole('link', { name: 'Partien', exact: true }).click();
   await expect(page.getByTestId('game-row')).toContainText('Niederlage');
-  await expect(page.getByTestId('game-row')).toContainText('gegen Stockfish');
+  await expect(page.getByTestId('game-row')).toContainText('Stockfish');
 });
 
 test('Chess.com-Import mit nachgestellter API, erneuter Import holt nur Neues', async ({ page }) => {

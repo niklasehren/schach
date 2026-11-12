@@ -1,0 +1,167 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../node_modules/@fontsource-variable/instrument-sans/index.css"><link rel="stylesheet" href="../node_modules/@fontsource/instrument-serif/index.css">
+  <link rel="stylesheet" href="../node_modules/@lichess-org/chessground/assets/chessground.cburnett.css"><style>*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans Variable',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+.ic{flex:none}
+.cg-wrap piece{display:block;position:absolute;inset:0;background-size:cover}
+.board{position:relative;display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border-radius:6px;overflow:hidden}
+.sq{position:relative}
+.sq.l{background:var(--sq-l)}.sq.d{background:var(--sq-d)}
+.sq.lm::after{content:'';position:absolute;inset:0;background:var(--sq-last);box-shadow:inset 0 0 0 3px var(--sq-last-edge)}
+.sq piece{z-index:1}
+.co{position:absolute;font-size:11px;font-weight:700;z-index:2;opacity:.85}
+.co-r{top:3px;left:4px}.co-f{bottom:2px;right:5px}
+.sq.l .co{color:var(--sq-d)}.sq.d .co{color:var(--sq-l)}
+.arrows{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
+.arrows line{stroke-width:.2;stroke-linecap:round}
+.arrows .bad{stroke:var(--arrow-bad);opacity:.88}.arrows .good{stroke:var(--arrow-good);opacity:.92}
+.bad-h{fill:var(--arrow-bad)}.good-h{fill:var(--arrow-good)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;box-shadow:inset 0 0 0 1.5px var(--ink)}
+.sw.white{background:#fff}.sw.black{background:#1d1f22}
+.res{display:inline-flex;align-items:center;justify-content:center;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap}
+.res.win{background:var(--win-bg);color:var(--win)}.res.loss{background:var(--loss-bg);color:var(--loss)}.res.draw{background:var(--draw-bg);color:var(--draw)}
+.pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.pill.blunder{background:var(--blunder);color:#fff}
+.mv.blunder{color:var(--blunder);font-weight:700}.mv.mistake{color:var(--mistake);font-weight:700}.mv.inaccuracy{color:var(--inacc);font-weight:600}
+.mv b{margin-left:2px}
+.dot{stroke:var(--surface);stroke-width:2}.dot.blunder{fill:var(--blunder)}.dot.mistake{fill:var(--mistake)}.dot.inaccuracy{fill:var(--inacc)}
+.side-moves{display:none}
+.tabbar{display:none}
+.legend{display:flex;gap:14px;font-size:14px}.legend span{display:flex;align-items:center;gap:6px}
+.k{display:inline-block;width:22px;height:6px;border-radius:3px}.k.bad{background:var(--arrow-bad)}.k.good{background:var(--arrow-good)}
+u{text-decoration:underline dotted 2px;text-underline-offset:3px;font-weight:700}
+.evalchart{width:100%;display:block}
+.evalchart .grid{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.evalchart .area{fill:var(--chart-area)}.evalchart .line{fill:none;stroke:var(--chart-line);stroke-width:2.5;vector-effect:non-scaling-stroke}
+.evalchart .cur{stroke:var(--accent);stroke-width:2;vector-effect:non-scaling-stroke}
+.ratingchart{width:100%;height:150px;display:block}
+.rline{fill:none;stroke:var(--accent);stroke-width:3;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.rarea{fill:var(--rating-area)}.rdot{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.bar{display:block;height:8px;border-radius:4px;background:var(--line);margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--bar)}
+.pbar{height:10px;border-radius:5px;background:var(--line);overflow:hidden}.pbar i{display:block;height:100%;background:var(--accent)}
+
+:root{--bg:#f2ede3;--surface:#fffcf6;--surface-2:#f7f1e6;--ink:#1c1f1b;--muted:#4a5048;--line:#e2d9c8;--accent:#1d5a43;--accent-ink:#fbf6ea;--gold:#c99a3a;--gold-ink:#1c1f1b;
+--win:#17663f;--win-bg:#d9eedf;--loss:#a3241a;--loss-bg:#f6dcd7;--draw:#4b5360;--draw-bg:#e4e6ea;--blunder:#b3261e;--mistake:#b46a10;--inacc:#2f6aa8;
+--sq-l:#f1dfbf;--sq-d:#a8774d;--sq-last:rgba(232,187,60,.5);--sq-last-edge:rgba(160,110,10,.75);--arrow-bad:#c62828;--arrow-good:#15803d;
+--chart-area:rgba(29,90,67,.12);--chart-line:#1d5a43;--rating-area:rgba(29,90,67,.10);--bar:#1d5a43;--hero:#1d5a43;--hero-ink:#f7f0df;--shadow:0 1px 2px rgba(60,40,10,.06),0 8px 24px rgba(60,40,10,.06)}
+@media (prefers-color-scheme:dark){:root{--bg:#121519;--surface:#1b1f24;--surface-2:#20252b;--ink:#efe9dc;--muted:#c0b9aa;--line:#2f353d;--accent:#6cc79f;--accent-ink:#0f1a15;--gold:#e0b24f;
+--win:#7fdcaa;--win-bg:#1d3a2c;--loss:#ff9b8c;--loss-bg:#432420;--draw:#c6cbd3;--draw-bg:#2c3138;--blunder:#ff7d6b;--mistake:#f0a347;--inacc:#7fb4ee;
+--sq-l:#d9c29a;--sq-d:#8e623d;--chart-area:rgba(108,199,159,.15);--chart-line:#9fe0c2;--rating-area:rgba(108,199,159,.12);--bar:#6cc79f;--hero:#183d30;--hero-ink:#f4ecda;--shadow:none}}
+body{font-size:16px;line-height:1.45}
+.top{display:flex;align-items:center;gap:28px;padding:14px 32px;border-bottom:1px solid var(--line);background:var(--surface)}
+.brand{font-family:'Instrument Serif',serif;font-size:30px}
+.nav{display:flex;gap:4px}.nav a{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;font-weight:600;color:var(--muted)}
+.nav a.on{background:var(--accent);color:var(--accent-ink)}
+.user{margin-left:auto;color:var(--muted);font-size:15px}.user b{color:var(--ink)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 24px;box-shadow:var(--shadow)}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.hint,.more{font-size:14px;color:var(--muted)}.more{color:var(--accent);font-weight:600}
+.ov{display:grid;grid-template-columns:5fr 7fr;gap:20px;padding:28px 32px;max-width:1240px;margin:0 auto}
+.hero{background:var(--hero);color:var(--hero-ink);border:0;display:flex;flex-direction:column;gap:10px;padding:30px}
+.hero .eyebrow{color:color-mix(in srgb,var(--hero-ink) 80%,transparent)}
+.big{display:flex;align-items:baseline;gap:12px;font-size:22px}
+.num-xl{font-family:'Instrument Serif',serif;font-size:120px;line-height:.9}
+.num-l{font-family:'Instrument Serif',serif;font-size:64px;line-height:1}
+.sub{font-size:15px;opacity:.9}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:12px;padding:12px 18px;font-weight:700}
+.cta{margin-top:auto;background:var(--gold);color:var(--gold-ink);font-size:18px;padding:16px 22px}
+.rating .delta{font-weight:700;color:var(--win)}
+.axis{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.mk{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.mk:first-of-type{border-top:0}
+.mk-n{font-family:'Instrument Serif',serif;font-size:30px;color:var(--gold);text-align:center}
+.mk-t{font-weight:600}.mk-c{font-size:24px;font-weight:700}.mk-c small{font-size:14px;color:var(--muted)}
+.grow{display:grid;grid-template-columns:104px 26px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.grow:first-of-type{border-top:0}
+.grow .res{width:100%}
+.tc{color:var(--muted)}.gmain{display:flex;flex-direction:column;min-width:0}
+.opp{display:flex;align-items:center;gap:8px;font-weight:700}.meta{font-size:14px;color:var(--muted)}
+.bl{font-weight:700;color:var(--blunder);text-align:right}.bl small{color:var(--muted);font-weight:500}
+.progress{grid-column:1/-1;display:grid;grid-template-columns:auto auto 1fr auto;gap:18px;align-items:center;padding:16px 24px}
+.progress .card-h{margin:0;gap:10px}.prog-n{font-size:15px}.prog-n b{font-size:22px}
+.progress .sub{color:var(--muted)}
+/* Analyse */
+.an{display:grid;grid-template-columns:auto 420px;gap:28px;padding:22px 32px;justify-content:center;align-items:start}
+.boardcol{display:flex;flex-direction:column;gap:8px}
+.boardwrap{display:flex;gap:10px}
+.board{width:620px;box-shadow:0 2px 0 rgba(0,0,0,.08),0 14px 30px rgba(60,40,10,.18)}
+.evalbar{position:relative;width:26px;border-radius:6px;background:#2b2a27;overflow:hidden}
+.evalbar i{position:absolute;left:0;right:0;bottom:0;background:#fbf7ee}
+.evalbar span{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:11px;font-weight:800;color:#1c1f1b;writing-mode:horizontal-tb}
+.pbar-row{display:flex;align-items:center;gap:10px;padding-left:36px;font-size:16px}
+.pbar-row .rt{color:var(--muted)}.clock{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;background:var(--surface);border:1px solid var(--line);padding:3px 10px;border-radius:8px}
+.controls{display:grid;grid-template-columns:repeat(4,56px) 1fr;gap:8px;padding-left:36px;margin-top:4px}
+.ib{display:grid;place-items:center;height:48px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.next-err{background:var(--accent);color:var(--accent-ink);font-size:16px}
+.side{height:756px;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.side-h{display:flex;align-items:center;gap:10px;padding:16px 18px 10px}
+.game-t{display:flex;gap:12px;align-items:center}.game-t div{display:flex;flex-direction:column}
+.side-h .more{margin-left:auto;width:40px;height:40px}
+.tabs{display:flex;gap:4px;padding:0 18px;border-bottom:1px solid var(--line)}
+.tabs a{padding:10px 12px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs a.on{color:var(--ink);border-color:var(--accent)}
+.cnt{display:inline-block;min-width:22px;padding:0 6px;border-radius:999px;background:var(--blunder);color:#fff;font-size:12px;text-align:center}
+.tabbody{flex:1;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px;font-size:15.5px}
+.tabbody p{margin:0}.tabbody h4{margin:6px 0 0;font-size:15px}
+.err-head{display:flex;align-items:center;gap:10px;font-size:20px}
+.verdict .pct{color:var(--muted);font-variant-numeric:tabular-nums;margin-left:4px}
+.merke{background:color-mix(in srgb,var(--gold) 18%,var(--surface));border-left:4px solid var(--gold);padding:10px 12px;border-radius:8px}
+.primary{background:var(--accent);color:var(--accent-ink)}.wide{width:100%}
+.minichart{border-top:1px solid var(--line);padding:10px 18px 12px}.mc-h{display:flex;justify-content:space-between;font-size:14px;color:var(--muted)}.mc-h b{color:var(--ink);font-size:16px}
+.minichart .evalchart{height:90px}
+@media (max-width:760px){
+ .top{padding:10px 16px;gap:12px}.top .nav,.user{display:none}.brand{font-size:26px}
+ .tabbar{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:9;background:var(--surface);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+ .tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:var(--muted);padding:6px 0}
+ .tabbar a.on{color:var(--accent)}
+ .app{padding-bottom:76px}
+ .ov{grid-template-columns:1fr;padding:16px;gap:14px}
+ .num-xl{font-size:96px}.hero{padding:22px}
+ .grow{grid-template-columns:auto 1fr auto;gap:10px}.grow .tc{display:none}.grow .res{width:auto}
+ .progress{grid-template-columns:1fr;gap:8px}
+ .an{grid-template-columns:1fr;padding:0;gap:12px}
+ .boardwrap{flex-direction:column;gap:0}.board{width:100vw;border-radius:0}
+ .evalbar{width:100%;height:14px;border-radius:0}.evalbar i{top:0;bottom:0;left:0;height:auto!important;width:50.3%}.evalbar span{display:none}
+ .pbar-row{padding:0 14px}.controls{padding:0 12px;grid-template-columns:repeat(4,1fr);}.controls .next-err{grid-column:1/-1;height:52px}
+ .ib{height:52px}
+ .side{height:auto;margin:0 12px;border-radius:16px}
+}
+</style></head><body class="dir-a page-uebersicht"><div class="app"><header class="top"><span class="brand">Schach</span><nav class="nav"><a class="on"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Übersicht</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM4 12h16M12 4v16"/></svg><span>Spielen</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Partien</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01"/></svg><span>Training</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg><span>Import</span></a></nav><span class="user">niklasehren · <b>351</b></span></header><main class="ov">
+      <section class="card hero"><span class="eyebrow">Heute fällig</span><div class="big"><span class="num-xl">10</span><span>Puzzles</span></div><span class="sub">8 neue aus deinen Fehlern · 2 Wiederholungen</span><button class="btn cta"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01"/></svg>Training starten</button></section>
+      <section class="card rating"><div class="card-h"><span class="eyebrow">Chess.com Rapid</span><span class="delta up">+251 seit Februar</span></div><div class="big"><span class="num-l">351</span></div><svg class="ratingchart" viewBox="0 0 560 150" preserveAspectRatio="none"><path class="rarea" d="M8.0,134.9L15.3,71.2L22.5,104.5L29.8,103.1L37.0,103.1L44.3,84.5L51.5,67.7L58.8,64.5L66.0,64.5L73.3,64.5L80.5,64.5L87.8,64.5L95.0,50.5L102.3,61.6L109.5,49.5L116.8,60.2L124.1,50.9L131.3,59.8L138.6,52.0L145.8,44.4L153.1,51.6L160.3,58.7L167.6,50.9L174.8,44.4L182.1,50.9L189.3,57.3L196.6,50.9L203.8,50.9L211.1,63.7L218.3,75.5L225.6,75.5L232.9,65.5L240.1,57.0L247.4,56.6L254.6,64.5L261.9,57.0L269.1,57.0L276.4,50.2L283.6,48.0L290.9,41.6L298.1,37.3L305.4,31.6L312.6,37.3L319.9,32.7L327.1,27.7L334.4,27.7L341.7,27.7L348.9,23.0L356.2,27.7L363.4,31.9L370.7,27.3L377.9,23.4L385.2,19.4L392.4,15.1L399.7,19.1L406.9,15.1L414.2,18.7L421.4,22.3L428.7,18.7L435.9,22.3L443.2,25.9L450.5,25.9L457.7,30.5L465.0,34.8L472.2,38.4L479.5,38.4L486.7,38.4L494.0,41.2L501.2,44.1L508.5,44.1L515.7,46.9L523.0,46.9L530.2,46.9L537.5,49.1L544.7,45.2L552.0,45.2L552,150L8,150Z"/><path class="rline" d="M8.0,134.9L15.3,71.2L22.5,104.5L29.8,103.1L37.0,103.1L44.3,84.5L51.5,67.7L58.8,64.5L66.0,64.5L73.3,64.5L80.5,64.5L87.8,64.5L95.0,50.5L102.3,61.6L109.5,49.5L116.8,60.2L124.1,50.9L131.3,59.8L138.6,52.0L145.8,44.4L153.1,51.6L160.3,58.7L167.6,50.9L174.8,44.4L182.1,50.9L189.3,57.3L196.6,50.9L203.8,50.9L211.1,63.7L218.3,75.5L225.6,75.5L232.9,65.5L240.1,57.0L247.4,56.6L254.6,64.5L261.9,57.0L269.1,57.0L276.4,50.2L283.6,48.0L290.9,41.6L298.1,37.3L305.4,31.6L312.6,37.3L319.9,32.7L327.1,27.7L334.4,27.7L341.7,27.7L348.9,23.0L356.2,27.7L363.4,31.9L370.7,27.3L377.9,23.4L385.2,19.4L392.4,15.1L399.7,19.1L406.9,15.1L414.2,18.7L421.4,22.3L428.7,18.7L435.9,22.3L443.2,25.9L450.5,25.9L457.7,30.5L465.0,34.8L472.2,38.4L479.5,38.4L486.7,38.4L494.0,41.2L501.2,44.1L508.5,44.1L515.7,46.9L523.0,46.9L530.2,46.9L537.5,49.1L544.7,45.2L552.0,45.2"/><circle class="rdot" cx="552" cy="45.16266666666667" r="4.5"/></svg><div class="axis"><span>19.02.</span><span>12.11.</span></div></section>
+      <section class="card mistakes"><div class="card-h"><span class="eyebrow">Deine häufigsten Fehler</span><span class="hint">aus 495 Fehlern</span></div><div class="mk"><span class="mk-n">1</span><span class="mk-t">Figur oder Bauer ungedeckt gelassen<span class="bar"><i style="width:100%"></i></span></span><span class="mk-c">93<small>×</small></span></div><div class="mk"><span class="mk-n">2</span><span class="mk-t">Drohung übersehen<span class="bar"><i style="width:54.83870967741935%"></i></span></span><span class="mk-c">51<small>×</small></span></div><div class="mk"><span class="mk-n">3</span><span class="mk-t">Matt zugelassen<span class="bar"><i style="width:45.16129032258064%"></i></span></span><span class="mk-c">42<small>×</small></span></div></section>
+      <section class="card games"><div class="card-h"><span class="eyebrow">Letzte Partien</span><a class="more">Alle →</a></div>
+  <div class="grow">
+    <span class="res loss">Niederlage</span>
+    <span class="tc" title="Bullet"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c3 2 5 6 5 10l-2 3H9l-2-3c0-4 2-8 5-10zM9 15l-2 4M15 15l2 4"/></svg></span>
+    <span class="gmain"><span class="opp"><i class="sw white"></i>Schlauernicounddunicht</span><span class="meta">12.11. · Bullet 1 min · 488 (+217)</span></span>
+    <span class="bl">2 <small>Patzer</small></span>
+  </div>
+  <div class="grow">
+    <span class="res loss">Niederlage</span>
+    <span class="tc" title="Rapid"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg></span>
+    <span class="gmain"><span class="opp"><i class="sw black"></i>Schlauernicounddunicht</span><span class="meta">12.11. · Rapid 10 min · 616 (+265)</span></span>
+    <span class="bl">2 <small>Patzer</small></span>
+  </div>
+  <div class="grow">
+    <span class="res win">Sieg</span>
+    <span class="tc" title="Rapid"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg></span>
+    <span class="gmain"><span class="opp"><i class="sw white"></i>laugrix</span><span class="meta">12.11. · Rapid 10 min · 448 (+97)</span></span>
+    <span class="bl">1 <small>Patzer</small></span>
+  </div>
+  <div class="grow">
+    <span class="res loss">Niederlage</span>
+    <span class="tc" title="Rapid"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg></span>
+    <span class="gmain"><span class="opp"><i class="sw black"></i>laugrix</span><span class="meta">12.11. · Rapid 10 min · 474 (+134)</span></span>
+    <span class="bl">2 <small>Patzer</small></span>
+  </div>
+  <div class="grow">
+    <span class="res loss">Niederlage</span>
+    <span class="tc" title="Rapid"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg></span>
+    <span class="gmain"><span class="opp"><i class="sw white"></i>laugrix</span><span class="meta">12.11. · Rapid 10 min · 461 (+115)</span></span>
+    <span class="bl">2 <small>Patzer</small></span>
+  </div></section>
+      <section class="card progress"><div class="card-h"><span class="eyebrow">Analyse</span><span class="hint">läuft</span></div><div class="prog-n"><b>73</b> von 101 Partien</div><div class="pbar"><i style="width:72%"></i></div><span class="sub">noch etwa 4 Minuten · läuft, solange die App offen ist</span></section>
+    </main><nav class="tabbar"><a class="on"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Übersicht</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM4 12h16M12 4v16"/></svg><span>Spielen</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Partien</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01"/></svg><span>Training</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg><span>Import</span></a></nav></div></body></html>

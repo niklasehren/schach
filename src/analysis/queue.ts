@@ -4,6 +4,7 @@ import { db, type AnalysisRecord, type GameRecord } from '../db/schema';
 import { getSetting, setSetting } from '../db/games';
 import { analyseGame, DEFAULT_LIMIT } from './analyze';
 import { syncPuzzlesForGame } from '../training/store';
+import { withErrorTypes } from './errorTypes';
 
 export type QueueState = {
   /** running = rechnet, paused = vom Nutzer angehalten, yielding = wartet, weil gerade gegen den Computer gespielt wird */
@@ -227,7 +228,7 @@ export class AnalysisQueue {
         },
       });
       if (record) {
-        await db.analyses.put(record);
+        await db.analyses.put(withErrorTypes(game, record));
         // Aus den Fehlern dieser Partie gleich Puzzles machen
         await syncPuzzlesForGame(game.id).catch((e) => console.warn('Puzzles nicht erzeugt', e));
       }

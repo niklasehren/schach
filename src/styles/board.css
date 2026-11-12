@@ -1,10 +1,11 @@
 /* Brett: eigenes, ruhiges Farbschema über den Grundstil von chessground */
 .board-frame {
+  scroll-margin-top: 80px;
   width: var(--board-size);
   aspect-ratio: 1;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 8px 28px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-board);
 }
 
 .board {
@@ -19,6 +20,7 @@
 
 .board cg-board square.last-move {
   background-color: var(--sq-last);
+  box-shadow: inset 0 0 0 3px var(--sq-last-edge);
 }
 
 .board cg-board square.selected {

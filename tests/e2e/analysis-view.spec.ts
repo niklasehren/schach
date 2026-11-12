@@ -27,8 +27,10 @@ test('Zwischenzug 7. Lxc6+: Pfeile, Erklärung mit Schach, Variante zum Durchkli
   test.setTimeout(150000);
   await importZwischenzug(page);
 
-  // Stellung nach 6...Lg4 (Halbzug 12) über die Zugliste
+  // Stellung nach 6...Lg4 (Halbzug 12) über die Zugliste (Reiter „Züge“), Erklärung im Reiter „Fehler“
+  await page.getByTestId('tab-zuege').click();
   await visible(page, '.movelist-move').filter({ hasText: /^Lg4/ }).click();
+  await page.getByTestId('tab-fehler').click();
   const board = page.getByTestId('board').filter({ visible: true });
   await expect(board).toHaveAttribute('data-arrows', /good:b5c6/);
   await expect(board).toHaveAttribute('data-arrows', /bad:f3f1/);
@@ -57,7 +59,6 @@ test('Zwischenzug 7. Lxc6+: Pfeile, Erklärung mit Schach, Variante zum Durchkli
   await shot(page, 'begriff');
   await (touch ? term.tap() : term.click());
   await expect(better.getByTestId('term-def')).toHaveCount(0);
-  await expect(page.getByTestId('eval-readout')).toContainText('Bewertung');
   await page.waitForTimeout(400);
   await shot(page, 'fehler-pfeile');
 
@@ -81,12 +82,14 @@ test('Zwischenzug 7. Lxc6+: Pfeile, Erklärung mit Schach, Variante zum Durchkli
   await shot(page, 'variante');
   await page.getByTestId('close-line').click();
   await expect(line).toHaveCount(0);
-  await expect(visible(page, '.movelist-move.is-current')).toHaveText(/^Lg4/);
   await expect(board).toHaveAttribute('data-arrows', /good:b5c6/);
+  await page.getByTestId('tab-zuege').click();
+  await expect(visible(page, '.movelist-move.is-current')).toHaveText(/^Lg4/);
 
   // 14. Se5?? nach 13...h6: zuerst die übersehene Drohung, dann „Le3 rettet und deckt d4“
   await visible(page, '.movelist-row').nth(12).locator('.movelist-move').nth(1).click();
   await expect(visible(page, '.movelist-move.is-current')).toHaveText(/^h6/);
+  await page.getByTestId('tab-fehler').click();
   await expect(page.getByTestId('error-card')).toContainText('14. Se5');
   await expect(page.getByTestId('explain-played').locator('li').first()).toContainText('Der Bauer auf h6 greift deinen Läufer auf g5 an');
   await expect(page.getByTestId('explain-better')).toContainText('löst zwei Probleme auf einmal: Dein Läufer ist in Sicherheit, und er deckt jetzt den Bauern auf d4');
@@ -95,8 +98,10 @@ test('Zwischenzug 7. Lxc6+: Pfeile, Erklärung mit Schach, Variante zum Durchkli
   await shot(page, 'drohung');
 
   // 15. Dxc6+?? nach 14...Dd8: das Schach bringt nichts – Merksatz passt zum gespielten Zug
+  await page.getByTestId('tab-zuege').click();
   await visible(page, '.movelist-row').nth(13).locator('.movelist-move').nth(1).click();
   await expect(visible(page, '.movelist-move.is-current')).toHaveText(/^Dd8/);
+  await page.getByTestId('tab-fehler').click();
   await expect(page.getByTestId('error-card')).toContainText('15. Dxc6+');
   await expect(page.getByTestId('explain-played').locator('li').first()).toContainText('Dein Schach hilft hier nicht: Schwarz stellt den Läufer dazwischen (Ld7) und greift damit deine Dame an');
   await expect(page.getByTestId('merke')).toHaveText('Merke: Ein Schach ist nur gut, wenn danach etwas für dich herausspringt. Prüfe vorher, wie der Gegner antworten kann.');
@@ -108,6 +113,7 @@ test('Bewertungsbalken, Kurve mit Fehlerpunkten, Nächster Fehler', async ({ pag
   test.setTimeout(150000);
   await importZwischenzug(page);
   await expect(page.getByTestId('evalbar').filter({ visible: true })).toBeVisible();
+  await page.getByTestId('tab-verlauf').click();
   const chart = page.getByTestId('evalchart');
   await expect(chart).toBeVisible();
   expect(await chart.locator('circle.evalchart-dot').count()).toBeGreaterThan(0);
@@ -117,16 +123,25 @@ test('Bewertungsbalken, Kurve mit Fehlerpunkten, Nächster Fehler', async ({ pag
   const ply = Number(await dot.getAttribute('data-ply'));
   await dot.click();
   await expect(chart).toHaveAttribute('aria-valuenow', String(ply));
+  await page.waitForTimeout(300);
+  await shot(page, 'verlauf');
+  await page.getByTestId('tab-zuege').click();
   await expect(visible(page, '.movelist-move.is-current')).toHaveAttribute('data-mark', /.+/);
 
-  // Zum ersten Fehler, dann Nächster Fehler: jeweils Stellung vor einem Fehler/Patzer
+  // Zum ersten Fehler, dann Nächster Fehler (unter dem Brett): jeweils Stellung vor einem Fehler/Patzer
+  await page.getByTestId('tab-fehler').click();
   await page.getByTestId('first-error').click();
-  const first = Number(await chart.getAttribute('aria-valuenow'));
   await expect(page.getByTestId('error-card')).toBeVisible();
+  await page.getByTestId('tab-verlauf').click();
+  const first = Number(await chart.getAttribute('aria-valuenow'));
   await page.getByTestId('next-error').click();
+  // „Nächster Fehler“ springt in den Reiter „Fehler“; Kurve wieder öffnen
+  await expect(page.getByTestId('error-card')).toBeVisible();
+  await page.getByTestId('tab-verlauf').click();
   await expect(chart).not.toHaveAttribute('aria-valuenow', String(first));
   const second = Number(await chart.getAttribute('aria-valuenow'));
   expect(second).toBeGreaterThan(first);
+  await page.getByTestId('tab-fehler').click();
   await expect(page.getByTestId('error-card')).toContainText(/Patzer|Fehler/);
   await shot(page, 'kurve');
 });

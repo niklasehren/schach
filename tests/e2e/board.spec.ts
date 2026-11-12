@@ -55,7 +55,7 @@ test('Züge durchblättern mit Pfeiltasten und Knöpfen', async ({ page }) => {
 });
 
 test('Gegen Stockfish als Schwarz: Computer eröffnet und antwortet', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/#/spielen');
   await page.getByRole('radio', { name: 'Gegen Computer' }).click();
   await page.getByRole('radio', { name: 'Schwarz' }).click();
   await page.getByLabel('Spielstärke').fill('0');
@@ -80,7 +80,7 @@ test('Gegen Stockfish als Schwarz: Computer eröffnet und antwortet', async ({ p
 });
 
 test('Startbildschirm', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/#/spielen');
   await expect(page.getByRole('heading', { name: 'Neue Partie' })).toBeVisible();
   await page.screenshot({ path: `test-results/start-${test.info().project.name}.png` });
 });

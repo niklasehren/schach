@@ -5,6 +5,8 @@ import { expect, type Page } from '@playwright/test';
 export async function clickSquare(page: Page, square: string) {
   // nur das sichtbare Brett (die Spielseite bleibt im Hintergrund erhalten)
   const board = page.getByTestId('board').filter({ visible: true });
+  // Brett mittig ins Bild holen (die feste Kopf- und Fußleiste dürfen nichts verdecken)
+  await board.evaluate((el) => el.scrollIntoView({ block: 'center' }));
   const box = (await board.boundingBox())!;
   const black = (await board.getAttribute('class'))!.includes('orientation-black');
   const size = box.width / 8;
@@ -28,7 +30,7 @@ export async function move(page: Page, from: string, to: string) {
 }
 
 export async function startFriendGame(page: Page, white = 'Anna', black = 'Ben') {
-  await page.goto('/');
+  await page.goto('/#/spielen');
   await page.getByRole('radio', { name: 'Gegen Freund' }).click();
   await page.getByLabel('Name Weiß').fill(white);
   await page.getByLabel('Name Schwarz').fill(black);

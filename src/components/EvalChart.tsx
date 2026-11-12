@@ -12,9 +12,9 @@ type Props = {
   onSelect: (ply: number) => void;
 };
 
-const HEIGHT = 84;
+const HEIGHT = 170;
 const PAD_X = 8;
-const PAD_Y = 8;
+const PAD_Y = 12;
 const markText: Record<MoveClass, string> = { blunder: 'Patzer', mistake: 'Fehler', inaccuracy: 'Ungenauigkeit' };
 
 /** Bewertungskurve: eine Linie (Weiß-Gewinnchance), Fehler als Punkte; Klick springt zum Zug */

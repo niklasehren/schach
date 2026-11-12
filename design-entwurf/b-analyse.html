@@ -1,0 +1,152 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../node_modules/@fontsource-variable/instrument-sans/index.css"><link rel="stylesheet" href="../node_modules/@fontsource/instrument-serif/index.css">
+  <link rel="stylesheet" href="../node_modules/@lichess-org/chessground/assets/chessground.cburnett.css"><style>*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans Variable',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+.ic{flex:none}
+.cg-wrap piece{display:block;position:absolute;inset:0;background-size:cover}
+.board{position:relative;display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border-radius:6px;overflow:hidden}
+.sq{position:relative}
+.sq.l{background:var(--sq-l)}.sq.d{background:var(--sq-d)}
+.sq.lm::after{content:'';position:absolute;inset:0;background:var(--sq-last);box-shadow:inset 0 0 0 3px var(--sq-last-edge)}
+.sq piece{z-index:1}
+.co{position:absolute;font-size:11px;font-weight:700;z-index:2;opacity:.85}
+.co-r{top:3px;left:4px}.co-f{bottom:2px;right:5px}
+.sq.l .co{color:var(--sq-d)}.sq.d .co{color:var(--sq-l)}
+.arrows{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
+.arrows line{stroke-width:.2;stroke-linecap:round}
+.arrows .bad{stroke:var(--arrow-bad);opacity:.88}.arrows .good{stroke:var(--arrow-good);opacity:.92}
+.bad-h{fill:var(--arrow-bad)}.good-h{fill:var(--arrow-good)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;box-shadow:inset 0 0 0 1.5px var(--ink)}
+.sw.white{background:#fff}.sw.black{background:#1d1f22}
+.res{display:inline-flex;align-items:center;justify-content:center;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap}
+.res.win{background:var(--win-bg);color:var(--win)}.res.loss{background:var(--loss-bg);color:var(--loss)}.res.draw{background:var(--draw-bg);color:var(--draw)}
+.pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.pill.blunder{background:var(--blunder);color:#fff}
+.mv.blunder{color:var(--blunder);font-weight:700}.mv.mistake{color:var(--mistake);font-weight:700}.mv.inaccuracy{color:var(--inacc);font-weight:600}
+.mv b{margin-left:2px}
+.dot{stroke:var(--surface);stroke-width:2}.dot.blunder{fill:var(--blunder)}.dot.mistake{fill:var(--mistake)}.dot.inaccuracy{fill:var(--inacc)}
+.side-moves{display:none}
+.tabbar{display:none}
+.legend{display:flex;gap:14px;font-size:14px}.legend span{display:flex;align-items:center;gap:6px}
+.k{display:inline-block;width:22px;height:6px;border-radius:3px}.k.bad{background:var(--arrow-bad)}.k.good{background:var(--arrow-good)}
+u{text-decoration:underline dotted 2px;text-underline-offset:3px;font-weight:700}
+.evalchart{width:100%;display:block}
+.evalchart .grid{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.evalchart .area{fill:var(--chart-area)}.evalchart .line{fill:none;stroke:var(--chart-line);stroke-width:2.5;vector-effect:non-scaling-stroke}
+.evalchart .cur{stroke:var(--accent);stroke-width:2;vector-effect:non-scaling-stroke}
+.ratingchart{width:100%;height:150px;display:block}
+.rline{fill:none;stroke:var(--accent);stroke-width:3;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.rarea{fill:var(--rating-area)}.rdot{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.bar{display:block;height:8px;border-radius:4px;background:var(--line);margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--bar)}
+.pbar{height:10px;border-radius:5px;background:var(--line);overflow:hidden}.pbar i{display:block;height:100%;background:var(--accent)}
+
+:root{--bg:#eef1f7;--surface:#ffffff;--surface-2:#f6f8fc;--ink:#0d1324;--muted:#46506a;--line:#dde3ee;--accent:#4338ca;--accent-ink:#ffffff;--teal:#0e8c7e;
+--win:#11703a;--win-bg:#dcf3e4;--loss:#b91c1c;--loss-bg:#fde2e2;--draw:#47536b;--draw-bg:#e6eaf2;--blunder:#d42a2a;--mistake:#c26a00;--inacc:#2563eb;
+--sq-l:#e3eaf3;--sq-d:#7690b4;--sq-last:rgba(99,102,241,.38);--sq-last-edge:rgba(67,56,202,.85);--arrow-bad:#e11d48;--arrow-good:#059669;
+--chart-area:rgba(67,56,202,.10);--chart-line:#4338ca;--rating-area:rgba(14,140,126,.12);--bar:#0e8c7e;--side:#0d1324;--side-ink:#c9d1e6;--shadow:0 1px 3px rgba(13,19,36,.06),0 10px 30px rgba(13,19,36,.07)}
+@media (prefers-color-scheme:dark){:root{--bg:#090e1b;--surface:#121a2d;--surface-2:#172038;--ink:#e8ecf5;--muted:#a4afc7;--line:#24304a;--accent:#8b93ff;--accent-ink:#0b1022;--teal:#3fd0bd;
+--win:#6ee7a0;--win-bg:#123a26;--loss:#ff8a8a;--loss-bg:#3f1518;--draw:#c3cbdb;--draw-bg:#232d45;--blunder:#ff6b6b;--mistake:#ffa94d;--inacc:#7aa7ff;
+--sq-l:#c9d4e3;--sq-d:#5b7499;--chart-area:rgba(139,147,255,.14);--chart-line:#a5abff;--rating-area:rgba(63,208,189,.14);--bar:#3fd0bd;--side:#060a14;--shadow:none}}
+body{font-size:16px;line-height:1.45;letter-spacing:-.005em}
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+.top{grid-row:1/3;background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;gap:6px;padding:22px 14px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;color:#fff;padding:0 10px 18px}
+.logo{width:28px;height:28px;border-radius:8px;background:conic-gradient(var(--accent) 0 25%,#fff 0 50%,var(--accent) 0 75%,#fff 0)}
+.nav{display:flex;flex-direction:column;gap:2px}.nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;font-weight:600}
+.nav a.on{background:rgba(255,255,255,.1);color:#fff;box-shadow:inset 3px 0 0 #8b93ff}
+.user{margin-top:auto;padding:12px;border-radius:10px;background:rgba(255,255,255,.06);font-size:14px}.user b{color:#fff}
+.card{background:var(--surface);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);border:1px solid var(--line)}
+.eyebrow{font-size:13px;font-weight:700;color:var(--muted)}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.hint{font-size:13px;color:var(--muted)}.more{font-size:14px;color:var(--accent);font-weight:700}
+.ov{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;padding:30px 34px;align-content:start;max-width:1280px}
+.hero{grid-column:span 4;background:var(--accent);color:#fff;border:0;display:flex;flex-direction:column;gap:6px}
+.hero .eyebrow{color:rgba(255,255,255,.85)}
+.big{display:flex;align-items:baseline;gap:10px;font-weight:700;font-size:18px}
+.num-xl{font-size:92px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.num-l{font-size:56px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.sub{font-size:14px;opacity:.92}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:12px;padding:12px 18px;font-weight:700}
+.cta{margin-top:auto;background:#fff;color:var(--accent);font-size:17px;padding:15px 20px}
+.rating{grid-column:span 5}.rating .delta{font-weight:800;color:var(--teal);background:color-mix(in srgb,var(--teal) 12%,transparent);padding:2px 8px;border-radius:999px;font-size:13px}
+.hero{order:0}.rating{order:1}.progress{order:2}.mistakes{order:3}.games{order:4}
+.progress{grid-column:span 3;display:flex;flex-direction:column;gap:10px}.prog-n{font-size:15px;color:var(--muted)}.prog-n b{display:block;font-size:48px;font-weight:800;color:var(--ink);letter-spacing:-.03em;line-height:1}
+.progress .sub{color:var(--muted)}
+.axis{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.mistakes{grid-column:span 5}.games{grid-column:span 7}
+.mk{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center;padding:10px 0}
+.mk-n{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--teal) 14%,transparent);color:var(--teal);font-weight:800}
+.mk-t{font-weight:600}.mk-c{font-size:26px;font-weight:800;letter-spacing:-.02em}.mk-c small{font-size:14px;color:var(--muted)}
+.grow{display:grid;grid-template-columns:100px 36px 1fr auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.grow:first-of-type{border-top:0}.grow .res{width:100%}
+.tc{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--surface-2);color:var(--accent)}
+.gmain{display:flex;flex-direction:column;min-width:0}.opp{display:flex;align-items:center;gap:8px;font-weight:700}.meta{font-size:13.5px;color:var(--muted)}
+.bl{font-weight:800;color:var(--blunder);text-align:right}.bl small{color:var(--muted);font-weight:600}
+/* Analyse */
+.an{display:grid;grid-template-columns:auto 400px;gap:24px;padding:20px 30px;align-items:start}
+.boardcol{display:flex;flex-direction:column;gap:8px}
+.boardwrap{display:flex;gap:8px}
+.board{width:620px;border-radius:12px;box-shadow:0 18px 40px rgba(13,19,36,.22)}
+.evalbar{position:relative;width:30px;border-radius:10px;background:#1b2236;overflow:hidden}
+.evalbar i{position:absolute;left:0;right:0;bottom:0;background:#f4f6fb}
+.evalbar span{position:absolute;top:8px;left:0;right:0;text-align:center;font-size:11px;font-weight:800;color:#fff}
+.pbar-row{display:flex;align-items:center;gap:10px;padding-left:38px}.pbar-row .rt{color:var(--muted)}
+.clock{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:800;background:var(--side);color:#fff;padding:3px 10px;border-radius:8px}
+.controls{display:flex;gap:6px;padding-left:38px;margin-top:4px}
+.ib{display:grid;place-items:center;width:56px;height:48px;border:0;border-radius:12px;background:var(--surface);box-shadow:var(--shadow)}
+.next-err{margin-left:auto;background:var(--accent);color:#fff;padding:0 22px}
+.side{height:722px;display:flex;flex-direction:column;gap:12px}
+.side-h{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow)}
+.game-t{display:flex;gap:12px;align-items:center}.game-t div{display:flex;flex-direction:column}
+.side-h .more{margin-left:auto;width:40px;height:40px;box-shadow:none;background:var(--surface-2)}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:12px;background:color-mix(in srgb,var(--line) 70%,transparent)}
+.tabs a{padding:9px;text-align:center;border-radius:9px;font-weight:700;color:var(--muted)}
+.tabs a.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.cnt{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:999px;background:var(--blunder);color:#fff;font-size:12px}
+.tabbody{flex:1;overflow:auto;background:var(--surface);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;font-size:15.5px;border-top:4px solid var(--blunder)}
+.tabbody p{margin:0}.tabbody h4{margin:6px 0 0;font-size:14px;color:var(--accent)}
+.err-head{display:flex;align-items:center;gap:10px;font-size:20px}
+.verdict .pct{color:var(--muted);margin-left:4px}
+.merke{background:color-mix(in srgb,var(--teal) 12%,var(--surface));padding:10px 12px;border-radius:10px}
+.primary{background:var(--accent);color:#fff}.wide{width:100%}
+.minichart{background:var(--surface);border-radius:16px;padding:10px 16px;box-shadow:var(--shadow)}.mc-h{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}.mc-h b{color:var(--ink)}
+.minichart .evalchart{height:80px}
+@media (max-width:760px){
+ .app{grid-template-columns:1fr;padding-bottom:78px}
+ .top{grid-row:auto;flex-direction:row;align-items:center;padding:10px 16px}.top .nav,.user{display:none}.brand{padding:0;font-size:18px}
+ .tabbar{display:flex;position:fixed;bottom:12px;left:12px;right:12px;z-index:9;background:var(--side);border-radius:20px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+ .tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:#aab3cc;padding:7px 0;border-radius:14px}
+ .tabbar a.on{background:var(--accent);color:#fff}
+ .ov{grid-template-columns:1fr;padding:16px;gap:14px}.hero,.rating,.progress,.mistakes,.games{grid-column:auto}
+ .grow{grid-template-columns:auto 1fr auto;gap:10px}.grow .tc{display:none}.grow .res{width:auto}
+ .an{grid-template-columns:1fr;padding:0 0 10px;gap:10px}
+ .boardwrap{flex-direction:column-reverse;gap:0}.board{width:100vw;border-radius:0}
+ .evalbar{width:100%;height:16px;border-radius:0}.evalbar i{top:0;bottom:0;height:auto!important;width:50.3%}.evalbar span{display:none}
+ .pbar-row{padding:0 14px}.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 12px}.ib{width:auto;height:52px}.next-err{grid-column:1/-1;margin:0;height:52px}
+ .side{height:auto;margin:0 12px}
+}
+</style></head><body class="dir-b page-analyse"><div class="app"><header class="top"><span class="brand"><i class="logo"></i>Schachberater</span><nav class="nav"><a class=""><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Übersicht</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM4 12h16M12 4v16"/></svg><span>Spielen</span></a><a class="on"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Partien</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01"/></svg><span>Training</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg><span>Import</span></a></nav><span class="user">niklasehren · <b>351</b></span></header><main class="an">
+      <section class="boardcol">
+        <div class="pbar-row top-p"><i class="sw black"></i><b>Gegner7</b><span class="rt">448</span><span class="clock">9:32</span></div>
+        <div class="boardwrap"><div class="evalbar"><i style="height:50.3%"></i><span>+0,1</span></div><div class="board cg-wrap"><div class="sq l "><span class="co co-r">8</span><piece class="rook black"></piece></div><div class="sq d "></div><div class="sq l lm"></div><div class="sq d "><piece class="queen black"></piece></div><div class="sq l "><piece class="king black"></piece></div><div class="sq d "><piece class="bishop black"></piece></div><div class="sq l "></div><div class="sq d "><piece class="rook black"></piece></div><div class="sq d "><span class="co co-r">7</span><piece class="pawn black"></piece></div><div class="sq l "><piece class="pawn black"></piece></div><div class="sq d "><piece class="pawn black"></piece></div><div class="sq l "></div><div class="sq d "><piece class="pawn black"></piece></div><div class="sq l "><piece class="pawn black"></piece></div><div class="sq d "><piece class="pawn black"></piece></div><div class="sq l "><piece class="pawn black"></piece></div><div class="sq l "><span class="co co-r">6</span></div><div class="sq d "></div><div class="sq l "><piece class="knight black"></piece></div><div class="sq d "></div><div class="sq l "></div><div class="sq d "><piece class="knight black"></piece></div><div class="sq l "></div><div class="sq d "></div><div class="sq d "><span class="co co-r">5</span></div><div class="sq l "><piece class="bishop white"></piece></div><div class="sq d "></div><div class="sq l "></div><div class="sq d "></div><div class="sq l "></div><div class="sq d "></div><div class="sq l "></div><div class="sq l "><span class="co co-r">4</span></div><div class="sq d "></div><div class="sq l "></div><div class="sq d "><piece class="pawn white"></piece></div><div class="sq l "></div><div class="sq d "></div><div class="sq l lm"><piece class="bishop black"></piece></div><div class="sq d "></div><div class="sq d "><span class="co co-r">3</span></div><div class="sq l "></div><div class="sq d "><piece class="knight white"></piece></div><div class="sq l "></div><div class="sq d "></div><div class="sq l "><piece class="queen white"></piece></div><div class="sq d "></div><div class="sq l "></div><div class="sq l "><span class="co co-r">2</span><piece class="pawn white"></piece></div><div class="sq d "><piece class="pawn white"></piece></div><div class="sq l "><piece class="pawn white"></piece></div><div class="sq d "></div><div class="sq l "></div><div class="sq d "></div><div class="sq l "><piece class="pawn white"></piece></div><div class="sq d "><piece class="pawn white"></piece></div><div class="sq d "><span class="co co-r">1</span><span class="co co-f">a</span><piece class="rook white"></piece></div><div class="sq l "><span class="co co-f">b</span></div><div class="sq d "><span class="co co-f">c</span><piece class="bishop white"></piece></div><div class="sq l "><span class="co co-f">d</span></div><div class="sq d "><span class="co co-f">e</span><piece class="king white"></piece></div><div class="sq l "><span class="co co-f">f</span></div><div class="sq d "><span class="co co-f">g</span><piece class="knight white"></piece></div><div class="sq l "><span class="co co-f">h</span><piece class="rook white"></piece></div><svg class="arrows" viewBox="0 0 8 8"><defs><marker id="h-bad" markerWidth="3" markerHeight="3" refX="1.4" refY="1.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L3,1.5 L0,3z" class="bad-h"/></marker><marker id="h-good" markerWidth="3" markerHeight="3" refX="1.4" refY="1.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L3,1.5 L0,3z" class="good-h"/></marker></defs><line class="bad" x1="5.5" y1="5.5" x2="5.5" y2="7.08" marker-end="url(#h-bad)"/><line class="good" x1="1.5" y1="3.5" x2="2.20301515190165" y2="2.79698484809835" marker-end="url(#h-good)"/></svg></div></div>
+        <div class="pbar-row"><i class="sw white"></i><b>niklasehren</b><span class="rt">351</span><span class="clock">9:32</span></div>
+        <div class="controls"><button class="ib"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 6v12M18 6l-7 6 7 6"/></svg></button><button class="ib"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><button class="ib"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button><button class="ib"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 6v12M6 6l7 6-7 6"/></svg></button><button class="btn next-err"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4h11l-2 4 2 4H5"/></svg>Nächster Fehler</button></div>
+      </section>
+      <section class="side">
+        <div class="side-h"><div class="game-t"><span class="res win">Sieg</span><div><b>gegen Gegner7</b><span class="meta">12.11. · Rapid 10 min · D00 Blackmar-Diemer</span></div></div><button class="ib more"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg></button></div>
+        <div class="tabs"><a class="on">Fehler <span class="cnt">8</span></a><a>Züge</a><a>Verlauf</a></div>
+        <div class="tabbody">
+  <div class="err-head"><span class="pill blunder">Patzer</span><strong>7. Df1??</strong></div>
+  <p class="verdict">Vorher <b>ausgeglichen</b>, danach <b>klar schlechter</b> für dich <span class="pct">51 % → 29 %</span></p>
+  <div class="legend"><span><i class="k bad"></i>dein Zug Df1</span><span><i class="k good"></i>besser Lxc6+</span></div>
+  <h4>Warum Df1 schlecht ist</h4>
+  <p>Deine Dame bringt sich zwar in Sicherheit, aber dein Bauer auf d4 bleibt <u>ungedeckt</u> (keine deiner Figuren schützt ihn). Die schwarze Dame kann ihn einfach schlagen (Dxd4).</p>
+  <h4>Warum Lxc6+ besser ist</h4>
+  <p>Statt die Dame wegzuziehen, schlägt dein Läufer den Springer auf c6 (Lxc6+), und zwar mit Schach. Das ist ein <u>Zwischenzug</u>: Er hat keine Zeit, deine Dame zu schlagen.</p>
+  <p class="merke"><b>Merke:</b> Wird eine deiner Figuren angegriffen, schau zuerst, ob du Schach geben oder etwas schlagen kannst.</p>
+  <button class="btn primary wide">Beste Fortsetzung zeigen</button></div>
+        <div class="minichart"><div class="mc-h"><span>Bewertung</span><b>+0,1</b></div><svg class="evalchart" viewBox="0 0 400 90" preserveAspectRatio="none"><line class="grid" x1="6" x2="394" y1="64.5" y2="64.5"/><line class="grid" x1="6" x2="394" y1="45" y2="45"/><line class="grid" x1="6" x2="394" y1="25.5" y2="25.5"/><path class="area" d="M6.0,43.2L11.5,43.4L16.9,43.1L22.4,45.4L27.9,45.2L33.3,49.2L38.8,48.7L44.3,48.4L49.7,48.9L55.2,56.4L60.6,52.6L66.1,52.4L71.6,44.6L77.0,61.3L82.5,49.7L88.0,50.5L93.4,49.2L98.9,53.1L104.4,54.0L109.8,58.3L115.3,56.9L120.8,54.4L126.2,46.4L131.7,46.0L137.2,43.7L142.6,44.5L148.1,44.3L153.5,60.1L159.0,27.4L164.5,40.9L169.9,41.3L175.4,70.0L180.9,70.3L186.3,76.9L191.8,73.3L197.3,75.3L202.7,70.7L208.2,70.7L213.7,71.1L219.1,70.5L224.6,70.5L230.1,73.5L235.5,63.6L241.0,69.7L246.5,64.0L251.9,68.9L257.4,59.8L262.8,71.8L268.3,70.1L273.8,76.3L279.2,76.6L284.7,78.6L290.2,76.4L295.6,76.1L301.1,74.4L306.6,75.8L312.0,75.8L317.5,80.4L323.0,73.6L328.4,76.3L333.9,70.3L339.4,72.5L344.8,30.8L350.3,29.9L355.7,29.1L361.2,73.9L366.7,49.2L372.1,81.5L377.6,6.1L383.1,76.7L388.5,6.1L394.0,6.0L394,45L6,45Z"/><path class="line" d="M6.0,43.2L11.5,43.4L16.9,43.1L22.4,45.4L27.9,45.2L33.3,49.2L38.8,48.7L44.3,48.4L49.7,48.9L55.2,56.4L60.6,52.6L66.1,52.4L71.6,44.6L77.0,61.3L82.5,49.7L88.0,50.5L93.4,49.2L98.9,53.1L104.4,54.0L109.8,58.3L115.3,56.9L120.8,54.4L126.2,46.4L131.7,46.0L137.2,43.7L142.6,44.5L148.1,44.3L153.5,60.1L159.0,27.4L164.5,40.9L169.9,41.3L175.4,70.0L180.9,70.3L186.3,76.9L191.8,73.3L197.3,75.3L202.7,70.7L208.2,70.7L213.7,71.1L219.1,70.5L224.6,70.5L230.1,73.5L235.5,63.6L241.0,69.7L246.5,64.0L251.9,68.9L257.4,59.8L262.8,71.8L268.3,70.1L273.8,76.3L279.2,76.6L284.7,78.6L290.2,76.4L295.6,76.1L301.1,74.4L306.6,75.8L312.0,75.8L317.5,80.4L323.0,73.6L328.4,76.3L333.9,70.3L339.4,72.5L344.8,30.8L350.3,29.9L355.7,29.1L361.2,73.9L366.7,49.2L372.1,81.5L377.6,6.1L383.1,76.7L388.5,6.1L394.0,6.0"/><line class="cur" x1="71.5774647887324" x2="71.5774647887324" y1="0" y2="90"/><circle class="dot inaccuracy" cx="33.32394366197183" cy="49.212" r="4.5"/><circle class="dot inaccuracy" cx="55.183098591549296" cy="56.388" r="4.5"/><circle class="dot blunder" cx="77.04225352112677" cy="61.302" r="6"/><circle class="dot inaccuracy" cx="98.90140845070422" cy="53.112" r="4.5"/><circle class="dot inaccuracy" cx="109.83098591549295" cy="58.25999999999999" r="4.5"/><circle class="dot blunder" cx="153.54929577464787" cy="60.132" r="6"/><circle class="dot blunder" cx="164.47887323943664" cy="40.943999999999996" r="6"/><circle class="dot blunder" cx="175.40845070422534" cy="70.038" r="6"/><circle class="dot inaccuracy" cx="186.33802816901408" cy="76.902" r="4.5"/><circle class="dot inaccuracy" cx="240.98591549295773" cy="69.726" r="4.5"/><circle class="dot inaccuracy" cx="251.9154929577465" cy="68.868" r="4.5"/><circle class="dot blunder" cx="262.84507042253523" cy="71.75399999999999" r="6"/><circle class="dot inaccuracy" cx="273.7746478873239" cy="76.278" r="4.5"/><circle class="dot inaccuracy" cx="317.4929577464789" cy="80.41199999999999" r="4.5"/><circle class="dot blunder" cx="361.2112676056338" cy="73.86" r="6"/><circle class="dot blunder" cx="372.14084507042253" cy="81.50399999999999" r="6"/><circle class="dot blunder" cx="383.07042253521126" cy="76.74600000000001" r="6"/></svg></div>
+      </section>
+      <section class="side-moves"><div class="tabs"><a>Fehler</a><a class="on">Züge</a><a>Verlauf</a></div><div class="moves"><div class="mrow"><span class="num">1.</span><span class="mv  ">d4</span><span class="mv  ">d5</span></div><div class="mrow"><span class="num">2.</span><span class="mv  ">Sc3</span><span class="mv  ">Sf6</span></div><div class="mrow"><span class="num">3.</span><span class="mv inaccuracy ">e4<b>?!</b></span><span class="mv  ">dxe4</span></div><div class="mrow"><span class="num">4.</span><span class="mv  ">f3</span><span class="mv  ">exf3</span></div><div class="mrow"><span class="num">5.</span><span class="mv inaccuracy ">Dxf3<b>?!</b></span><span class="mv  ">Sc6</span></div><div class="mrow"><span class="num">6.</span><span class="mv  ">Lb5</span><span class="mv  cur">Lg4</span></div><div class="mrow"><span class="num">7.</span><span class="mv blunder ">Df1<b>??</b></span><span class="mv  ">a6</span></div><div class="mrow"><span class="num">8.</span><span class="mv  ">Lxc6+</span><span class="mv  ">bxc6</span></div><div class="mrow"><span class="num">9.</span><span class="mv inaccuracy ">Dc4<b>?!</b></span><span class="mv  ">Dd7</span></div><div class="mrow"><span class="num">10.</span><span class="mv inaccuracy ">Lg5<b>?!</b></span><span class="mv  ">Le6</span></div><div class="mrow"><span class="num">11.</span><span class="mv  ">Db4</span><span class="mv  ">a5</span></div></div></section>
+    </main><nav class="tabbar"><a class=""><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Übersicht</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM4 12h16M12 4v16"/></svg><span>Spielen</span></a><a class="on"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Partien</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01"/></svg><span>Training</span></a><a class=""><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg><span>Import</span></a></nav></div></body></html>

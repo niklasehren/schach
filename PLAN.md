@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 12. November 2026 · Status: Blöcke 0–2, 4 (mit Chess.com-Import), 5, 6 und 7 fertig, als Nächstes Block 9 (Statistik)
+Stand: 12. November 2026 · Status: Blöcke 0–2, 4–7 fertig, Design „Klubhaus“ umgesetzt; als Nächstes: Trainingsarten (Meine Fehler / Allgemeines Training), dann Block 9 (Statistik)
 
 ## 1. Idee in einem Satz
 
@@ -187,16 +187,20 @@ Tests: **Vitest** = prüft einzelne Rechenregeln (z. B. „ist das ein Patzer?�
 
 ---
 
-## 7. Design-Richtung
+## 7. Design-Richtung „Klubhaus“ (neu, 12.11.2026)
 
-- Ruhig und hochwertig: warmes, gedecktes Off-White (hell) bzw. tiefes Graublau (dunkel, automatisch nach System), **eine** Akzentfarbe sparsam eingesetzt.
-- Brett ist das größte Element; am Handy bildschirmbreit, Uhr direkt darüber/darunter, große Zahlen.
-- Klare Schrift mit gleich breiten Ziffern für die Uhr, lokal eingebunden (keine externen Dienste).
-- Keine bunten Verläufe, keine Karten-Flut, keine Emoji-Icons; schlichte Linien-Icons.
-- Brett-Farben: gedämpfte, klassische Töne (wählbar). Figurensatz: „cburnett“ (frei lizenziert, Standard bei Lichess) – Alternative später wählbar.
-- Ganze Oberfläche auf Deutsch, Schachbegriffe deutsch (Patzer, Ungenauigkeit, Remis, Aufgabe).
+Gewählt aus zwei Entwürfen (`design-entwurf/`: A „Klubhaus“, B „Studio“) → **A „Klubhaus“**, dunkle Variante als Standard.
 
----
+- **Farben:** tiefes Anthrazit (dunkel, Standard) bzw. warmes Papier (hell, Schalter in den Einstellungen). Akzent **Waldgrün**, zweiter Akzent **Messing** für das Wichtigste (Startknopf, Ränge, aktive Reiter). Eigene Farben für **Sieg / Niederlage / Remis** und für Patzer (rot) / Fehler (orange) / Ungenauigkeit (blau). Alle Text-Farbpaare WCAG AA (≥ 4,5:1), die meisten AAA – nachgerechnet.
+- **Schrift:** Instrument Serif für große Zahlen und Überschriften (z. B. „10 Puzzles“, Rating), Instrument Sans für alles andere; beide lokal eingebunden.
+- **Karten mit unterschiedlichem Gewicht:** eine gefüllte Hauptkarte (grün) pro Seite, sonst ruhige Flächen.
+- **Navigation:** Linien-Symbole; am Mac oben, am Handy als Leiste unten (Daumen). Einstellungen über das Zahnrad.
+- **Übersicht** (Startseite): Heute fällig + großer Startknopf, Platz für die Trainingsarten „Meine Fehler“ und „Allgemeines Training“ (nächster Block; dann entfällt das Tageslimit), Chess.com-Rating-Verlauf je Zeitklasse, 3 häufigste Fehlerarten, letzte 5 Partien, Analyse-Fortschritt.
+- **Analyse:** am Mac kein Scrollen – rechte Spalte so hoch wie das Brett mit Reitern „Fehler / Züge / Verlauf“; Navigation und „Nächster Fehler“ direkt unter dem Brett; Nebenaktionen im „…“-Menü. Dicker Bewertungsbalken mit Zahl (am Handy waagerecht über dem Brett), große Bewertungskurve. Letzter Zug mit Farbe **und** Rahmen markiert.
+- **Partienliste:** Ergebnis-Abzeichen, Zeitklassen-Symbol, Rating-Unterschied, Patzer-Zahl, Analyse-Status; Filter nach Quelle, Zeitklasse, Ergebnis.
+- **Brett-Themes:** Walnuss (Standard), Schiefer, Turniergrün – in den Einstellungen.
+- **Bewegung:** kurze, dezente Übergänge (Einblenden, Reiter, Knopfdruck); bei „Bewegung reduzieren“ im System abgeschaltet.
+- **Handy:** Brett bildschirmbreit, Bedienknöpfe groß und unten, keine abgeschnittenen Texte (Filter wischbar).
 
 ## 8. Reihenfolge der Schritte
 

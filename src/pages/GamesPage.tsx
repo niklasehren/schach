@@ -1,145 +1,139 @@
-import { useState } from 'react';
-import { countGames, listGames, type SourceFilter } from '../db/games';
-import { db, type AnalysisRecord, type GameRecord } from '../db/schema';
-import { AnalysisPanel } from '../components/AnalysisPanel';
-import { useQueueState } from '../analysis/useQueue';
+import { useMemo, useState } from 'react';
+import { db, type GameRecord } from '../db/schema';
 import { useLive } from '../db/useLive';
-import { formatDate, formatTimeControl, myResultText, scoreText, sourceText } from '../chess/format';
 import { href } from '../app/router';
+import { AnalysisPanel } from '../components/AnalysisPanel';
+import { GameRow } from '../components/GameRow';
+import { useQueueState } from '../analysis/useQueue';
 
 const PAGE = 50;
 
-const filters: { value: SourceFilter; label: string }[] = [
-  { value: 'all', label: 'Alle' },
-  { value: 'app', label: 'App' },
-  { value: 'chesscom', label: 'Chess.com' },
-];
+type SourceF = 'all' | GameRecord['source'];
+type TimeF = 'all' | 'bullet' | 'blitz' | 'rapid' | 'daily';
+type ResultF = 'all' | 'win' | 'loss' | 'draw';
+
+function Chips<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) {
+  return (
+    <div className="chips" role="radiogroup" aria-label={label}>
+      {options.map(([v, text]) => (
+        <button key={v} type="button" role="radio" aria-checked={value === v} className="chip" onClick={() => onChange(v)}>
+          {text}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function GamesPage() {
-  const [filter, setFilter] = useState<SourceFilter>('all');
+  const [source, setSource] = useState<SourceF>('all');
+  const [time, setTime] = useState<TimeF>('all');
+  const [result, setResult] = useState<ResultF>('all');
   const [limit, setLimit] = useState(PAGE);
-  const games = useLive(() => listGames(filter, limit), [filter, limit]);
-  const total = useLive(() => countGames(filter), [filter]);
-  const ids = games?.map((g) => g.id) ?? [];
+  const all = useLive(() => db.games.orderBy('date').reverse().toArray(), []);
+  const filtered = useMemo(
+    () =>
+      (all ?? []).filter(
+        (g) => (source === 'all' || g.source === source) && (time === 'all' || g.timeClass === time) && (result === 'all' || g.myResult === result),
+      ),
+    [all, source, time, result],
+  );
+  const shown = filtered.slice(0, limit);
+  const ids = shown.map((g) => g.id);
   const analyses = useLive(
     () => db.analyses.where('gameId').anyOf(ids).toArray().then((rows) => new Map(rows.map((a) => [a.gameId, a]))),
     [ids.join(',')],
   );
   const queue = useQueueState();
+  const reset = () => setLimit(PAGE);
 
   return (
     <div className="page">
       <div className="page-head">
         <h1 className="page-title">Partien</h1>
-        {total !== undefined && <span className="page-count">{total === 1 ? '1 Partie' : `${total} Partien`}</span>}
+        {all && <span className="page-count">{filtered.length === 1 ? '1 Partie' : `${filtered.length} Partien`}</span>}
       </div>
 
       <AnalysisPanel />
 
-      <div className="segmented segmented-3" role="radiogroup" aria-label="Quelle">
-        {filters.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            role="radio"
-            aria-checked={filter === f.value}
-            onClick={() => {
-              setFilter(f.value);
-              setLimit(PAGE);
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="filters">
+        <div className="segmented segmented-3" role="radiogroup" aria-label="Quelle">
+          {(
+            [
+              ['all', 'Alle'],
+              ['app', 'App'],
+              ['chesscom', 'Chess.com'],
+            ] as [SourceF, string][]
+          ).map(([v, t]) => (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={source === v}
+              onClick={() => {
+                setSource(v);
+                reset();
+              }}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <Chips
+          label="Zeitklasse"
+          value={time}
+          onChange={(v) => {
+            setTime(v);
+            reset();
+          }}
+          options={[
+            ['all', 'Alle Zeiten'],
+            ['bullet', 'Bullet'],
+            ['blitz', 'Blitz'],
+            ['rapid', 'Rapid'],
+            ['daily', 'Täglich'],
+          ]}
+        />
+        <Chips
+          label="Ergebnis"
+          value={result}
+          onChange={(v) => {
+            setResult(v);
+            reset();
+          }}
+          options={[
+            ['all', 'Alle Ergebnisse'],
+            ['win', 'Siege'],
+            ['loss', 'Niederlagen'],
+            ['draw', 'Remis'],
+          ]}
+        />
       </div>
 
-      {games && games.length === 0 && (
+      {all && filtered.length === 0 && (
         <div className="empty">
-          <p>Noch keine Partien{filter !== 'all' ? ` aus dieser Quelle` : ''}.</p>
-          <p>
-            Spiel eine Partie unter <a href={href({ page: 'spielen' })}>Spielen</a> oder hol dir deine Partien über{' '}
-            <a href={href({ page: 'import' })}>Import</a> von Chess.com.
-          </p>
+          <p>{all.length === 0 ? 'Noch keine Partien.' : 'Keine Partien für diese Filter.'}</p>
+          {all.length === 0 && (
+            <p>
+              Spiel eine Partie unter <a href={href({ page: 'spielen' })}>Spielen</a> oder hol dir deine Partien über{' '}
+              <a href={href({ page: 'import' })}>Import</a> von Chess.com.
+            </p>
+          )}
         </div>
       )}
 
-      {games && games.length > 0 && (
-        <ul className="game-list" data-testid="game-list">
-          {games.map((g) => (
-            <li key={g.id}>
-              <GameRow game={g} analysis={analyses?.get(g.id)} analysing={queue.current?.gameId === g.id} />
-            </li>
+      {shown.length > 0 && (
+        <div className="game-list card-list" data-testid="game-list">
+          {shown.map((g) => (
+            <GameRow key={g.id} game={g} analysis={analyses?.get(g.id)} analysing={queue.current?.gameId === g.id} />
           ))}
-        </ul>
+        </div>
       )}
 
-      {games && total !== undefined && games.length < total && (
+      {filtered.length > shown.length && (
         <button className="btn btn-inline" onClick={() => setLimit((l) => l + PAGE)}>
-          Weitere anzeigen ({total - games.length})
+          Weitere anzeigen ({filtered.length - shown.length})
         </button>
       )}
     </div>
-  );
-}
-
-function opponentOf(g: GameRecord): { name: string; rating?: number; color?: 'white' | 'black' } {
-  if (!g.myColor) return { name: `${g.white.name} – ${g.black.name}` };
-  const opp = g.myColor === 'white' ? g.black : g.white;
-  return { name: opp.isEngine && opp.detail ? `${opp.name} · ${opp.detail}` : opp.name, rating: opp.rating };
-}
-
-function AnalysisBadge({ game, analysis, analysing }: { game: GameRecord; analysis?: AnalysisRecord; analysing: boolean }) {
-  if (analysis?.status === 'done') {
-    const side = analysis.summary?.[game.myColor ?? 'white'];
-    const blunders = game.myColor && side ? side.blunders : 0;
-    return (
-      <span className="badge is-done" data-testid="badge-done">
-        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M5 12.5l4.5 4.5L19 7.5" />
-        </svg>
-        analysiert{blunders > 0 && ` · ${blunders} Patzer`}
-      </span>
-    );
-  }
-  if (analysis?.status === 'failed') return <span className="badge">nicht lesbar</span>;
-  if (analysing) return <span className="badge is-running">wird analysiert</span>;
-  return <span className="badge is-open">offen</span>;
-}
-
-function GameRow({ game: g, analysis, analysing }: { game: GameRecord; analysis?: AnalysisRecord; analysing: boolean }) {
-  const opp = opponentOf(g);
-  const myRating = g.myColor ? g[g.myColor].rating : undefined;
-  const outcome = g.myResult ?? 'neutral';
-  return (
-    <a className="game-row" href={href({ page: 'partie', id: g.id })} data-testid="game-row">
-      <span className={`game-outcome outcome-${outcome}`}>
-        {g.myResult && <span className="game-outcome-label">{myResultText[g.myResult]}</span>}
-        <span className="game-score">{scoreText(g.result)}</span>
-      </span>
-      <span className="game-main">
-        <span className="game-opponent">
-          {g.myColor && (
-            <span
-              className={`color-swatch swatch-${g.myColor}`}
-              title={g.myColor === 'white' ? 'Ich hatte Weiß' : 'Ich hatte Schwarz'}
-              aria-label={g.myColor === 'white' ? 'mit Weiß' : 'mit Schwarz'}
-            />
-          )}
-          <span className="game-opponent-name">{g.myColor ? `gegen ${opp.name}` : opp.name}</span>
-          {opp.rating !== undefined && <span className="game-rating">{opp.rating}</span>}
-        </span>
-        <span className="game-badges">
-          <AnalysisBadge game={g} analysis={analysis} analysing={analysing} />
-        </span>
-        <span className="game-meta">
-          {formatDate(g.date)} · <span className={`source source-${g.source}`}>{sourceText[g.source]}</span>
-          {g.timeControl && <> · {formatTimeControl(g.timeControl)}</>}
-          {myRating !== undefined && <> · ich {myRating}</>}
-        </span>
-      </span>
-      <span className="game-chevron" aria-hidden>
-        ›
-      </span>
-    </a>
   );
 }

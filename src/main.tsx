@@ -8,6 +8,10 @@ import './styles/tokens.css';
 import './styles/app.css';
 import './styles/board.css';
 import { App } from './app/App';
+import { applyTheme } from './app/theme';
+
+// Darstellung vor dem ersten Zeichnen setzen (kein Aufblitzen)
+applyTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

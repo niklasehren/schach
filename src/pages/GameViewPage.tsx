@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Icon, type IconName } from '../components/Icons';
 import { Chess, type Move } from 'chess.js';
 import type { Config } from '@lichess-org/chessground/config';
 import type { Color, Key } from '@lichess-org/chessground/types';
@@ -98,6 +99,7 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
   const firstError = errors[0];
   const nextError = errors.find((m) => m.ply - 1 > ply);
   const [orientation, setOrientation] = useState<Color>(game.myColor ?? 'white');
+  const [tab, setTab] = useState<Tab>('fehler');
 
   /** Markierter Zug, dessen Stellung davor gerade gezeigt wird (dort stehen Pfeile und Erklärung) */
   const upcoming = markedMoves.find((m) => m.ply === ply + 1 && m.class);
@@ -227,9 +229,12 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
     }
   }
 
+  const errorCount = errors.length;
+  const pickTab = (t: Tab) => setTab(t);
+
   return (
-    <div className={`play has-evalbar ${variation ? 'in-variation' : ''}`}>
-      <section className="play-board">
+    <div className={`analysis-layout ${variation ? 'in-variation' : ''}`}>
+      <section className="board-col">
         {bar(other(orientation))}
         <div className="board-area board-with-bar">
           <EvalBar
@@ -241,90 +246,197 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
           {variation && <span className="variation-badge">Variante</span>}
         </div>
         {bar(orientation)}
-      </section>
-
-      <aside className="play-side is-analysis">
-        <a className="back-link" href={href({ page: 'partien' })}>
-          ← Alle Partien
-        </a>
-        <div className={`result result-${game.myResult ?? 'neutral'}`} data-testid="game-header">
-          <span className="result-score">{scoreText(game.result)}</span>
-          <span className="result-headline">{headline}</span>
-          <span className="result-detail">durch {terminationText[game.termination]}</span>
-          <span className="result-meta">{meta}</span>
-          {(game.opening || game.eco) && (
-            <span className="result-meta">{[game.eco, game.opening].filter(Boolean).join(' · ')}</span>
+        <div className="board-controls">
+          <NavControls ply={ply} last={total} onGo={goTo} />
+          {done && (
+            <button
+              className="btn btn-primary next-error"
+              onClick={() => {
+                if (nextError) {
+                  goTo(nextError.ply - 1);
+                  pickTab('fehler');
+                }
+              }}
+              disabled={!nextError}
+              data-testid="next-error"
+            >
+              <Icon name="flag" size={18} />
+              {nextError ? 'Nächster Fehler' : errorCount ? 'Kein weiterer Fehler' : 'Keine Fehler'}
+            </button>
           )}
         </div>
+      </section>
 
-        <AnalysisBox game={game} analysis={analysis} />
+      <aside className="side-panel" aria-label="Analyse">
+        <header className="side-head">
+          <a className="icon-link back" href={href({ page: 'partien' })} aria-label="Alle Partien" title="Alle Partien">
+            <Icon name="prev" size={20} />
+          </a>
+          <div className="side-title" data-testid="game-header">
+            <span className={`res-badge res-${game.myResult ?? 'neutral'}`}>{headline}</span>
+            <div>
+              <strong>
+                {scoreText(game.result)} · durch {terminationText[game.termination]}
+              </strong>
+              <span className="side-meta">{meta}</span>
+              {(game.opening || game.eco) && <span className="side-meta">{[game.eco, game.opening].filter(Boolean).join(' · ')}</span>}
+            </div>
+          </div>
+          <MoreMenu
+            items={[
+              { label: 'Brett drehen', icon: 'flip', onClick: () => setOrientation(other) },
+              { label: 'PGN exportieren', icon: 'download', onClick: exportPgn },
+              ...(game.source === 'chesscom' && game.externalId ? [{ label: 'Auf Chess.com öffnen', icon: 'external' as const, href: game.externalId }] : []),
+            ]}
+          />
+        </header>
 
-        {done && variation && (
-          <VariationCard
-            fen={fens[variation.base]}
-            moves={variation.moves}
-            step={variation.step}
-            onStep={stepVariation}
-            onClose={() => setVariation(null)}
-          />
-        )}
-        {done && !variation && upcoming && (
-          <ErrorCard
-            move={upcoming}
-            moveLabel={labels[upcoming.ply - 1]}
-            explanation={explainMove(upcoming, fens, done, parsed.moves[upcoming.ply - 2])}
-            canShowLine={!!(done.evals[upcoming.ply - 1]?.pv?.length || upcoming.best)}
-            onShowLine={() => showVariation(upcoming)}
-          />
-        )}
-        {done && !variation && !upcoming && justPlayed && (
-          <p className={`move-note note-${justPlayed.class}`} data-testid="move-note">
-            <strong>
-              {labels[justPlayed.ply - 1]} {classText[justPlayed.class!]}
-            </strong>
-            <button className="link-btn" onClick={() => goTo(justPlayed.ply - 1)}>
-              Stellung davor mit Pfeilen und Erklärung
+        <div className="tabs" role="tablist" aria-label="Ansicht">
+          {(
+            [
+              ['fehler', 'Fehler'],
+              ['zuege', 'Züge'],
+              ['verlauf', 'Verlauf'],
+            ] as [Tab, string][]
+          ).map(([t, label]) => (
+            <button key={t} role="tab" aria-selected={tab === t} className="tab" onClick={() => pickTab(t)} data-testid={`tab-${t}`}>
+              {label}
+              {t === 'fehler' && errorCount > 0 && <span className="tab-count">{errorCount}</span>}
             </button>
-          </p>
-        )}
+          ))}
+        </div>
 
-        <MoveList moves={parsed.moves.map((m) => m.san)} currentPly={ply} onSelect={goTo} marks={marks} />
-        <NavControls ply={ply} last={total} onGo={goTo} />
-        {done && (
-          <>
-            <div className="actions">
-              <button className="btn" onClick={() => firstError && goTo(firstError.ply - 1)} disabled={!firstError} data-testid="first-error">
-                {firstError ? 'Zum ersten Fehler' : 'Keine Fehler gefunden'}
-              </button>
-              {firstError && (
-                <button className="btn" onClick={() => nextError && goTo(nextError.ply - 1)} disabled={!nextError} data-testid="next-error">
-                  Nächster Fehler
+        <div className="tab-body" role="tabpanel">
+          {tab === 'fehler' && (
+            <>
+              {!done && <AnalysisBox game={game} analysis={analysis} />}
+              {done && variation && (
+                <VariationCard fen={fens[variation.base]} moves={variation.moves} step={variation.step} onStep={stepVariation} onClose={() => setVariation(null)} />
+              )}
+              {done && !variation && upcoming && (
+                <ErrorCard
+                  move={upcoming}
+                  moveLabel={labels[upcoming.ply - 1]}
+                  explanation={explainMove(upcoming, fens, done, parsed.moves[upcoming.ply - 2])}
+                  canShowLine={!!(done.evals[upcoming.ply - 1]?.pv?.length || upcoming.best)}
+                  onShowLine={() => showVariation(upcoming)}
+                />
+              )}
+              {done && !variation && !upcoming && justPlayed && (
+                <p className={`move-note note-${justPlayed.class}`} data-testid="move-note">
+                  <strong>
+                    {labels[justPlayed.ply - 1]} {classText[justPlayed.class!]}
+                  </strong>
+                  <button className="link-btn" onClick={() => goTo(justPlayed.ply - 1)}>
+                    Stellung davor mit Pfeilen und Erklärung
+                  </button>
+                </p>
+              )}
+              {done && !variation && !upcoming && (
+                <>
+                  {!justPlayed && <AnalysisBox game={game} analysis={analysis} />}
+                  <ErrorList moves={errors} labels={labels} current={ply} onPick={(m) => goTo(m.ply - 1)} />
+                </>
+              )}
+              {done && (
+                <button className="btn btn-small first-error" onClick={() => firstError && goTo(firstError.ply - 1)} disabled={!firstError} data-testid="first-error">
+                  {firstError ? 'Zum ersten Fehler' : 'Keine Fehler gefunden'}
                 </button>
               )}
+            </>
+          )}
+          {tab === 'zuege' && <MoveList moves={parsed.moves.map((m) => m.san)} currentPly={ply} onSelect={goTo} marks={marks} />}
+          {tab === 'verlauf' && (
+            <div className="history-tab">
+              {done ? (
+                <>
+                  <div className="eval-readout" data-testid="eval-readout">
+                    <span>{variation ? 'Bewertung vor der Variante' : 'Bewertung'}</span>
+                    <strong>{done.evals[evalIndex] ? evalLabel(done.evals[evalIndex]!, fens[evalIndex]) : '–'}</strong>
+                    {whiteValues[evalIndex] !== null && <span>· Gewinnchance Weiß {Math.round(whiteValues[evalIndex]!)} %</span>}
+                  </div>
+                  <EvalChart values={whiteValues} marks={marks} labels={labels} current={evalIndex} onSelect={goTo} />
+                  <AnalysisBox game={game} analysis={analysis} />
+                </>
+              ) : (
+                <AnalysisBox game={game} analysis={analysis} />
+              )}
             </div>
-            <div className="eval-readout" data-testid="eval-readout">
-              <span>{variation ? 'Bewertung vor der Variante' : 'Bewertung'}</span>
-              <strong>{done.evals[evalIndex] ? evalLabel(done.evals[evalIndex]!, fens[evalIndex]) : '–'}</strong>
-              {whiteValues[evalIndex] !== null && <span>· Gewinnchance Weiß {Math.round(whiteValues[evalIndex]!)} %</span>}
-            </div>
-            <EvalChart values={whiteValues} marks={marks} labels={labels} current={evalIndex} onSelect={goTo} />
-          </>
-        )}
-
-        <div className="actions">
-          <button className="btn" onClick={() => setOrientation(other)}>
-            Brett drehen
-          </button>
-          <button className="btn" onClick={exportPgn}>
-            PGN exportieren
-          </button>
+          )}
         </div>
-        {game.source === 'chesscom' && game.externalId && (
-          <a className="text-link" href={game.externalId} target="_blank" rel="noreferrer">
-            Auf Chess.com öffnen
-          </a>
-        )}
       </aside>
+    </div>
+  );
+}
+
+type Tab = 'fehler' | 'zuege' | 'verlauf';
+
+/** Liste meiner Fehler und Patzer zum Anspringen */
+function ErrorList({ moves, labels, current, onPick }: { moves: MoveAnalysis[]; labels: string[]; current: number; onPick: (m: MoveAnalysis) => void }) {
+  if (moves.length === 0) return null;
+  return (
+    <ol className="error-list" data-testid="error-list">
+      {moves.map((m) => (
+        <li key={m.ply}>
+          <button className={`error-item note-${m.class} ${current === m.ply - 1 ? 'is-current' : ''}`} onClick={() => onPick(m)}>
+            <span className={`class-dot dot-${m.class}`} aria-hidden />
+            <strong>{labels[m.ply - 1]}</strong>
+            <span>{classText[m.class!]}</span>
+            {m.hanging && <span className="error-tag">Figur eingestellt</span>}
+            {m.allowedMate && <span className="error-tag">Matt zugelassen</span>}
+            {m.timeTrouble && <span className="error-tag">Zeitnot</span>}
+          </button>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** „…“-Menü für Nebenaktionen */
+function MoreMenu({ items }: { items: { label: string; icon: IconName; onClick?: () => void; href?: string }[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+  return (
+    <div className="more-menu" ref={ref}>
+      <button className="icon-link" aria-label="Weitere Aktionen" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} data-testid="more-menu">
+        <Icon name="more" size={22} />
+      </button>
+      {open && (
+        <div className="menu" role="menu">
+          {items.map((it) =>
+            it.href ? (
+              <a key={it.label} role="menuitem" className="menu-item" href={it.href} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
+                <Icon name={it.icon} size={18} /> {it.label}
+              </a>
+            ) : (
+              <button
+                key={it.label}
+                role="menuitem"
+                className="menu-item"
+                onClick={() => {
+                  it.onClick?.();
+                  setOpen(false);
+                }}
+              >
+                <Icon name={it.icon} size={18} /> {it.label}
+              </button>
+            ),
+          )}
+        </div>
+      )}
     </div>
   );
 }

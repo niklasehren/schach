@@ -91,6 +91,8 @@ export type MoveAnalysis = {
   clock: number | null;
   /** Restzeit < 10 % der Grundzeit; null = nicht bestimmbar (ohne Uhr, Fernschach) */
   timeTrouble: boolean | null;
+  /** Fehlerart (nur meine Fehler und Patzer), aus den Erklärungsregeln */
+  errorType?: string;
 };
 
 export type SideSummary = {
@@ -130,6 +132,8 @@ export type AnalysisRecord = {
   summary?: { white: SideSummary; black: SideSummary };
   /** Reine Rechenzeit in Millisekunden */
   ms: number;
+  /** Version der gespeicherten Fehlerarten (zum Nachtragen) */
+  errorTypesVersion?: number;
 };
 
 /** Puzzle aus einem eigenen Fehler (Block 7) */

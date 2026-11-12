@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 
 export type Route =
+  | { page: 'uebersicht' }
+  | { page: 'einstellungen' }
   | { page: 'spielen' }
   | { page: 'partien' }
   | { page: 'partie'; id: string; ply?: number }
@@ -12,9 +14,11 @@ export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
   if (parts[0] === 'partien' && parts[1]) return { page: 'partie', id: parts[1], ply: parts[2] !== undefined && /^\d+$/.test(parts[2]) ? Number(parts[2]) : undefined };
   if (parts[0] === 'training') return { page: 'training' };
+  if (parts[0] === 'spielen') return { page: 'spielen' };
+  if (parts[0] === 'einstellungen') return { page: 'einstellungen' };
   if (parts[0] === 'partien') return { page: 'partien' };
   if (parts[0] === 'import') return { page: 'import' };
-  return { page: 'spielen' };
+  return { page: 'uebersicht' };
 }
 
 export function href(route: Route): string {

@@ -6,7 +6,7 @@ const dueCount = async (page: Page) => Number((await page.getByTestId('due-count
 
 async function openTraining(page: Page) {
   await importZwischenzug(page);
-  await page.getByRole('link', { name: 'Training' }).click();
+  await page.getByRole('link', { name: 'Training', exact: true }).click();
   await expect(page.getByTestId('due-count')).toContainText(/Heute fällig: [1-9]/);
   const before = await dueCount(page);
   await page.getByTestId('start-training').click();
@@ -66,7 +66,7 @@ test('Puzzle falsch lösen: zweiter Versuch, dann Lösung; morgen wieder fällig
 });
 
 test('Gegen Freund: Frage „Wer bist du?“', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/#/spielen');
   await page.getByRole('radio', { name: 'Gegen Freund' }).click();
   await page.getByLabel('Name Weiß').fill('Anna');
   await page.getByLabel('Name Schwarz').fill('Niklas');

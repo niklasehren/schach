@@ -1,59 +1,139 @@
-/* Gestaltungs-Grundwerte: Farben, Schrift, Abstände. Hell und dunkel folgen der Systemeinstellung. */
+/*
+ * Gestaltungs-Grundwerte „Klubhaus“: Waldgrün, Messing, warmes Papier bzw. tiefes Anthrazit.
+ * Standard ist dunkel; hell über <html data-theme="light"> (Schalter in den Einstellungen).
+ * Alle Text-Farbpaare erfüllen WCAG AA (≥ 4,5:1), geprüft am 12.11.2026.
+ */
 :root {
-  --bg: #f4f1ea;
-  --surface: #fbfaf6;
-  --line: #e2ddd1;
-  --text: #1d211f;
-  --text-muted: #6d716b;
-  --accent: #2f4a3f;
-  --accent-text: #f6f3ea;
-  --danger: #a5402d;
-  --mark-blunder: #b3261e;
-  --mark-mistake: #c97a14;
-  --mark-inaccuracy: #3a78b5;
-  --arrow-bad: #c62828;
-  --arrow-good: #15803d;
-
-  --sq-light: #e9e2d0;
-  --sq-dark: #8b9c88;
-  --sq-last: rgba(214, 178, 74, 0.42);
-  --sq-selected: rgba(47, 74, 63, 0.35);
-  --sq-dest: rgba(29, 33, 31, 0.22);
-  --sq-check: rgba(186, 52, 36, 0.75);
-  --coord-on-light: #4a5a48;
-  --coord-on-dark: #f7f3e8;
+  /* Flächen */
+  --bg: #121519;
+  --surface: #1b1f24;
+  --surface-2: #22272e;
+  --line: #2f353d;
+  --line-strong: #444c56;
+  /* Schrift */
+  --text: #efe9dc;
+  --text-muted: #b9b2a3;
+  /* Akzent und Messing */
+  --accent: #6cc79f;
+  --accent-text: #0f1a15;
+  --accent-soft: rgba(108, 199, 159, 0.14);
+  --gold: #e0b24f;
+  --gold-ink: #1c1f1b;
+  --hero: #183d30;
+  --hero-ink: #f4ecda;
+  --hero-muted: #c9d8cc;
+  --danger: #ff8a78;
+  /* Ergebnisse */
+  --win: #7fdcaa;
+  --win-bg: #1d3a2c;
+  --loss: #ff9b8c;
+  --loss-bg: #432420;
+  --draw: #c6cbd3;
+  --draw-bg: #2c3138;
+  /* Fehlerklassen (Text, Punkte) */
+  --mark-blunder: #ff7b6b;
+  --mark-mistake: #f0a347;
+  --mark-inaccuracy: #7fb4ee;
+  --arrow-bad: #e53935;
+  --arrow-good: #1f9d55;
+  /* Diagramme */
+  --chart-line: #9fe0c2;
+  --chart-area: rgba(108, 199, 159, 0.15);
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.25);
+  --shadow-board: 0 2px 0 rgba(0, 0, 0, 0.3), 0 18px 40px rgba(0, 0, 0, 0.45);
 
   --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
 
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius-lg: 18px;
+  --radius: 12px;
+  --radius-sm: 8px;
   --gap: 16px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f2ede3;
+  --surface: #fffcf6;
+  --surface-2: #f7f1e6;
+  --line: #e2d9c8;
+  --line-strong: #cdbfa6;
+  --text: #1c1f1b;
+  --text-muted: #4a5048;
+  --accent: #1d5a43;
+  --accent-text: #fbf6ea;
+  --accent-soft: rgba(29, 90, 67, 0.1);
+  --gold: #c99a3a;
+  --gold-ink: #1c1f1b;
+  --hero: #1d5a43;
+  --hero-ink: #fbf6ea;
+  --hero-muted: #d5e3d9;
+  --danger: #a3241a;
+  --win: #17663f;
+  --win-bg: #d9eedf;
+  --loss: #a3241a;
+  --loss-bg: #f6dcd7;
+  --draw: #4b5360;
+  --draw-bg: #e4e6ea;
+  --mark-blunder: #b3261e;
+  --mark-mistake: #9a5a06;
+  --mark-inaccuracy: #2f6aa8;
+  --arrow-bad: #c62828;
+  --arrow-good: #15803d;
+  --chart-line: #1d5a43;
+  --chart-area: rgba(29, 90, 67, 0.12);
+  --shadow: 0 1px 2px rgba(60, 40, 10, 0.06), 0 8px 24px rgba(60, 40, 10, 0.07);
+  --shadow-board: 0 2px 0 rgba(0, 0, 0, 0.08), 0 14px 30px rgba(60, 40, 10, 0.2);
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
+/* Brett-Themes (Einstellungen) – letzter Zug deutlich: Farbe plus Rahmen */
+:root,
+:root[data-board='walnuss'] {
+  --sq-light: #eedcb9;
+  --sq-dark: #a9774c;
+  --sq-last: rgba(236, 190, 60, 0.55);
+  --sq-last-edge: rgba(150, 100, 0, 0.85);
+  --sq-selected: rgba(29, 90, 67, 0.45);
+  --sq-dest: rgba(28, 31, 27, 0.28);
+  --sq-check: rgba(214, 48, 30, 0.85);
+  --coord-on-light: #7a5233;
+  --coord-on-dark: #f6e8cd;
+}
+
+:root[data-board='schiefer'] {
+  --sq-light: #dfe7f1;
+  --sq-dark: #7690b4;
+  --sq-last: rgba(120, 124, 255, 0.45);
+  --sq-last-edge: rgba(67, 56, 202, 0.9);
+  --sq-selected: rgba(67, 56, 202, 0.4);
+  --sq-dest: rgba(13, 19, 36, 0.28);
+  --coord-on-light: #4e6588;
+  --coord-on-dark: #eef2f8;
+}
+
+:root[data-board='gruen'] {
+  --sq-light: #eeeed2;
+  --sq-dark: #6f8f52;
+  --sq-last: rgba(246, 246, 105, 0.6);
+  --sq-last-edge: rgba(150, 140, 0, 0.9);
+  --sq-selected: rgba(20, 85, 30, 0.45);
+  --sq-dest: rgba(20, 30, 10, 0.3);
+  --coord-on-light: #5d7a43;
+  --coord-on-dark: #f3f3dc;
+}
+
+@media (prefers-reduced-motion: reduce) {
   :root {
-    --bg: #161a1f;
-    --surface: #1d2228;
-    --line: #2c333b;
-    --text: #e8e6e0;
-    --text-muted: #8d939a;
-    --accent: #9fbfae;
-    --accent-text: #14181c;
-    --danger: #e08a74;
-    --mark-blunder: #d9483b;
-    --mark-mistake: #c08a1e;
-    --mark-inaccuracy: #4c8fd0;
+    --ease: linear;
+  }
 
-    --sq-light: #c9c3b3;
-    --sq-dark: #6f7f6e;
-    --sq-last: rgba(196, 164, 80, 0.38);
-    --coord-on-light: #44523f;
-    --coord-on-dark: #f1ede2;
-    --sq-selected: rgba(20, 40, 32, 0.45);
-
-    color-scheme: dark;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
