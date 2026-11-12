@@ -195,7 +195,7 @@ Gewählt aus zwei Entwürfen (`design-entwurf/`: A „Klubhaus“, B „Studio�
 - **Schrift:** Instrument Serif für große Zahlen und Überschriften (z. B. „10 Puzzles“, Rating), Instrument Sans für alles andere; beide lokal eingebunden.
 - **Karten mit unterschiedlichem Gewicht:** eine gefüllte Hauptkarte (grün) pro Seite, sonst ruhige Flächen.
 - **Navigation:** Linien-Symbole; am Mac oben, am Handy als Leiste unten (Daumen). Einstellungen über das Zahnrad.
-- **Übersicht** (Startseite): Heute fällig + großer Startknopf, Platz für die Trainingsarten „Meine Fehler“ und „Allgemeines Training“ (nächster Block; dann entfällt das Tageslimit), Chess.com-Rating-Verlauf je Zeitklasse, 3 häufigste Fehlerarten, letzte 5 Partien, Analyse-Fortschritt.
+- **Übersicht** (Startseite): Heute fällig + großer Startknopf, Platz für die Trainingsarten „Meine Fehler“ und „Allgemeines Training“ (nächster Block; dann entfällt das Tageslimit), Chess.com-Wertung je Zeitklasse auf echter Zeitachse (Zeitraum Woche / 4 Wochen [Standard] / 3 Monate / Alles; Tagespunkte bzw. Wochenpunkte mit Wertung am Wochenende; Pausen als Lücke; Veränderung im gewählten Zeitraum; unter 5 Partien Hinweis statt Grafik; Info-Symbol erklärt die Wertung), 3 häufigste **konkrete** Fehlerarten (Fehler ohne klare Taktik als eigene Zeile darunter), letzte 5 Partien, Analyse-Fortschritt.
 - **Analyse:** am Mac kein Scrollen – rechte Spalte so hoch wie das Brett mit Reitern „Fehler / Züge / Verlauf“; Navigation und „Nächster Fehler“ direkt unter dem Brett; Nebenaktionen im „…“-Menü. Dicker Bewertungsbalken mit Zahl (am Handy waagerecht über dem Brett), große Bewertungskurve. Letzter Zug mit Farbe **und** Rahmen markiert.
 - **Partienliste:** Ergebnis-Abzeichen, Zeitklassen-Symbol, Rating-Unterschied, Patzer-Zahl, Analyse-Status; Filter nach Quelle, Zeitklasse, Ergebnis.
 - **Brett-Themes:** Walnuss (Standard), Schiefer, Turniergrün – in den Einstellungen.
@@ -250,4 +250,5 @@ Bewusst **nicht** geplant: Online-Spiel gegeneinander.
 - ~~Puzzles aus „Gegen Freund“-Partien~~ → entschieden (Block 7): „Wer bist du?“ beim Start, Puzzles nur aus eigenen Zügen.
 - Fesselung, Spieß, Abzugsangriff: im Begriffs-Wörterbuch, aber noch ohne Erkennungsregel.
 - Analyse-Dauer: am Mac gemessen (~9 s/Partie bei Tiefe 16, s. Abschnitt 3). Am iPhone noch selbst ablesen (Anzeige in „Partien“).
+- Ladezeit: Das Haupt-Bundle ist ~500 kB (Vite-Hinweis) → in Block 8 aufteilen (z. B. Analyse und Training erst bei Bedarf laden).
 - Schwellen für Spielphase und „Figur eingestellt“ → an echten Partien feinjustieren.

@@ -7,6 +7,8 @@ import { useQueueState } from '../analysis/useQueue';
 import { countErrorTypes } from '../analysis/errorTypes';
 import { todaysQueue } from '../training/leitner';
 import { formatDate } from '../chess/format';
+import { InfoTip } from '../components/InfoTip';
+import { MIN_GAMES, RANGE_LABELS, RANGE_PHRASE, ratingSeries, segments, type RatingPoint, type RatingRange } from '../stats/rating';
 import { GameRow } from '../components/GameRow';
 import { Icon } from '../components/Icons';
 
@@ -42,8 +44,11 @@ export function OverviewPage() {
 
   const today = todaysQueue(puzzles, Date.now());
   const due = today.due.length + today.fresh.length;
-  const errorTypes = countErrorTypes(analyses);
-  const totalErrors = errorTypes.reduce((s, e) => s + e.count, 0);
+  const allTypes = countErrorTypes(analyses);
+  const totalErrors = allTypes.reduce((sum, e) => sum + e.count, 0);
+  // Top 3 nur mit konkreten Fehlerarten; Fehler ohne klare Taktik als eigene Zeile darunter
+  const errorTypes = allTypes.filter((e) => e.type !== 'other');
+  const positional = allTypes.find((e) => e.type === 'other')?.count ?? 0;
   const byId = new Map(analyses.map((a) => [a.gameId, a]));
 
   return (
@@ -90,7 +95,7 @@ export function OverviewPage() {
           {totalErrors > 0 && <span className="card-hint">aus {totalErrors} Fehlern und Patzern</span>}
         </div>
         {errorTypes.length === 0 ? (
-          <p className="card-empty">Erscheint, sobald Partien analysiert sind.</p>
+          <p className="card-empty">{totalErrors ? 'Noch keine Fehler mit klarer Taktik gefunden.' : 'Erscheint, sobald Partien analysiert sind.'}</p>
         ) : (
           <ol className="mistake-list" data-testid="error-types">
             {errorTypes.slice(0, 3).map((e, i) => (
@@ -109,6 +114,11 @@ export function OverviewPage() {
               </li>
             ))}
           </ol>
+        )}
+        {positional > 0 && (
+          <p className="card-hint positional" data-testid="positional-errors">
+            Dazu {positional} {positional === 1 ? 'Fehler' : 'Fehler'} ohne klare Taktik (Stellung, Plan)
+          </p>
         )}
       </section>
 
@@ -151,75 +161,134 @@ export function OverviewPage() {
   );
 }
 
-/** Rating-Verlauf aus den importierten Chess.com-Partien (je Zeitklasse) */
+/** Rating-Verlauf aus den importierten Chess.com-Partien: echte Zeitachse, Zeitraum wählbar, Lücken bei Pausen */
 function RatingCard({ games }: { games: GameRecord[] }) {
   const series = useMemo(() => {
-    const out: Record<string, { date: number; rating: number }[]> = {};
-    for (const g of [...games].reverse()) {
+    const out: Record<string, RatingPoint[]> = {};
+    for (const g of games) {
       if (g.source !== 'chesscom' || !g.myColor || !g.timeClass) continue;
       const r = g[g.myColor].rating;
       if (r === undefined) continue;
       (out[g.timeClass] ??= []).push({ date: g.date, rating: r });
     }
+    for (const k of Object.keys(out)) out[k].sort((a, b) => a.date - b.date);
     return out;
   }, [games]);
-  const classes = Object.keys(series)
-    .filter((k) => series[k].length >= 2)
-    .sort((a, b) => series[b].length - series[a].length);
+  const classes = Object.keys(series).sort((a, b) => series[b].length - series[a].length);
   const [pick, setPick] = useState<string | null>(null);
+  const [range, setRange] = useState<RatingRange>('4w');
   const tc = pick && classes.includes(pick) ? pick : classes[0];
 
   if (!tc) {
     return (
       <section className="card rating-card">
-        <span className="eyebrow">Chess.com-Rating</span>
+        <span className="eyebrow">Chess.com-Wertung</span>
         <p className="card-empty">Erscheint, sobald du Chess.com-Partien importiert hast.</p>
       </section>
     );
   }
-  const pts = series[tc];
-  const now = pts.at(-1)!.rating;
-  const delta = now - pts[0].rating;
-  const lo = Math.min(...pts.map((p) => p.rating));
-  const hi = Math.max(...pts.map((p) => p.rating));
+  const all = series[tc];
+  const now = Date.now();
+  const s = ratingSeries(all, range, now);
+  const name = tcLabels[tc];
+  const current = all[all.length - 1].rating;
+  const enough = s.games >= MIN_GAMES;
+
   const W = 600;
   const H = 160;
-  const x = (i: number) => (i / (pts.length - 1)) * W;
+  const n = s.buckets.length;
+  const ratings = s.buckets.map((b) => b.rating).filter((r): r is number => r !== null);
+  const lo = Math.min(...ratings, current) - 10;
+  const hi = Math.max(...ratings, current) + 10;
+  // Punkt in der Mitte seines Tages bzw. seiner Woche
+  const x = (i: number) => ((i + 0.5) / n) * W;
   const y = (r: number) => 10 + (1 - (r - lo) / Math.max(1, hi - lo)) * (H - 20);
-  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.rating).toFixed(1)}`).join('');
+  const segs = segments(s.buckets);
 
   return (
     <section className="card rating-card" data-testid="rating-card">
       <div className="card-head">
-        <span className="eyebrow">Chess.com {tcLabels[tc]}</span>
-        <span className={`delta ${delta >= 0 ? 'is-up' : 'is-down'}`}>
-          {delta >= 0 ? '+' : '−'}
-          {Math.abs(delta)} seit {formatDate(pts[0].date).slice(0, 6)}
+        <span className="rating-title">
+          <span className="eyebrow">Chess.com</span>
+          <span className="rating-label">
+            {name}-Wertung
+            <InfoTip
+              label="Was ist die Wertung?"
+              text="Deine Chess.com-Wertung (Rating). Sie steigt bei Siegen und sinkt bei Niederlagen. Jede Zeitklasse (Rapid, Blitz, Bullet, Täglich) hat ihre eigene Wertung."
+            />
+          </span>
         </span>
+        {enough && s.delta !== null && (
+          <span className={`delta ${s.delta >= 0 ? 'is-up' : 'is-down'}`} data-testid="rating-delta">
+            {s.delta > 0 ? '+' : s.delta < 0 ? '−' : '±'}
+            {Math.abs(s.delta)} {RANGE_PHRASE[range]}
+          </span>
+        )}
       </div>
       <div className="rating-now">
-        <span className="num-l">{now}</span>
-        <span className="card-hint">
-          höchstes {hi} · {pts.length} Partien
+        <span className="num-l" data-testid="rating-now">
+          {current}
         </span>
+        {enough && s.best !== null && (
+          <span className="card-hint" data-testid="rating-stats">
+            Bestwert {s.best} · {s.games} {name}-Partien
+          </span>
+        )}
       </div>
-      <svg className="rating-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`Rating-Verlauf ${tcLabels[tc]}: von ${pts[0].rating} auf ${now}`}>
-        <path className="rating-area" d={`${line}L${W},${H}L0,${H}Z`} />
-        <path className="rating-line" d={line} />
-      </svg>
-      <div className="chart-axis">
-        <span>{formatDate(pts[0].date)}</span>
-        <span>{formatDate(pts.at(-1)!.date)}</span>
-      </div>
-      {classes.length > 1 && (
-        <div className="chips" role="radiogroup" aria-label="Zeitklasse">
-          {classes.map((c) => (
-            <button key={c} type="button" role="radio" aria-checked={c === tc} className="chip" onClick={() => setPick(c)}>
-              {tcLabels[c]}
+      {enough ? (
+        <>
+          <svg
+            className="rating-chart"
+            viewBox={`0 0 ${W} ${H}`}
+            preserveAspectRatio="none"
+            role="img"
+            aria-label={`${name}-Wertung ${RANGE_PHRASE[range]}: ${s.delta !== null && s.delta >= 0 ? 'plus' : 'minus'} ${Math.abs(s.delta ?? 0)}`}
+            data-testid="rating-chart"
+            data-segments={segs.length}
+          >
+            {segs.map((seg, k) =>
+              seg.length === 1 ? (
+                <circle key={k} className="rating-point" cx={x(seg[0].index)} cy={y(seg[0].rating)} r="4" />
+              ) : (
+                <g key={k}>
+                  <path
+                    className="rating-area"
+                    d={`M${x(seg[0].index)},${H} ${seg.map((p) => `L${x(p.index).toFixed(1)},${y(p.rating).toFixed(1)}`).join(' ')} L${x(seg[seg.length - 1].index)},${H}Z`}
+                  />
+                  <path className="rating-line" d={seg.map((p, i) => `${i ? 'L' : 'M'}${x(p.index).toFixed(1)},${y(p.rating).toFixed(1)}`).join(' ')} />
+                </g>
+              ),
+            )}
+          </svg>
+          <div className="chart-axis">
+            <span>{formatDate(s.from)}</span>
+            <span>{s.unit === 'day' ? 'ein Punkt pro Tag' : 'ein Punkt pro Woche'}</span>
+            <span>heute</span>
+          </div>
+        </>
+      ) : (
+        <p className="card-empty rating-few" data-testid="rating-few">
+          Zu wenige Partien in diesem Zeitraum ({s.games} {name}-{s.games === 1 ? 'Partie' : 'Partien'}).
+        </p>
+      )}
+      <div className="rating-controls">
+        <div className="chips" role="radiogroup" aria-label="Zeitraum">
+          {(Object.keys(RANGE_LABELS) as RatingRange[]).map((r) => (
+            <button key={r} type="button" role="radio" aria-checked={r === range} className="chip" onClick={() => setRange(r)}>
+              {RANGE_LABELS[r]}
             </button>
           ))}
         </div>
-      )}
+        {classes.length > 1 && (
+          <div className="chips" role="radiogroup" aria-label="Zeitklasse">
+            {classes.map((c) => (
+              <button key={c} type="button" role="radio" aria-checked={c === tc} className="chip" onClick={() => setPick(c)}>
+                {tcLabels[c]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

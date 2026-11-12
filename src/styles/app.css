@@ -794,6 +794,77 @@ input[type='range'] {
   gap: 14px;
 }
 
+.rating-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rating-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.info-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.info-btn:hover,
+.info-btn.is-open {
+  color: var(--gold);
+  background: var(--surface-2);
+}
+
+.info-text {
+  flex-basis: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.rating-point {
+  fill: var(--chart-line);
+}
+
+.rating-few {
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius);
+  text-align: center;
+  padding: 12px;
+}
+
+.rating-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.positional {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
 .rating-chart {
   width: 100%;
   height: 150px;
@@ -2533,6 +2604,16 @@ input[type='range'] {
 
   .filters .chip {
     flex: none;
+  }
+
+  .rating-card .card-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .rating-title {
+    width: 100%;
   }
 
   .board-preview {
