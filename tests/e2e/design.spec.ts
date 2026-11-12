@@ -19,12 +19,12 @@ test('Übersicht, Filter der Partienliste, Navigation', async ({ page }) => {
 
   // Filter: Zeitklasse und Ergebnis
   await expect(page.getByTestId('game-row')).toHaveCount(6);
-  await page.getByRole('radiogroup', { name: 'Zeitklasse' }).getByRole('radio', { name: 'Bullet' }).click();
+  await page.getByRole('group', { name: 'Zeitklasse' }).getByRole('button', { name: 'Bullet', exact: true }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(2);
-  await page.getByRole('radiogroup', { name: 'Ergebnis' }).getByRole('radio', { name: 'Niederlagen' }).click();
+  await page.getByRole('group', { name: 'Ergebnis' }).getByRole('button', { name: 'Niederlagen', exact: true }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(0);
   await expect(page.getByText('Keine Partien für diese Filter.')).toBeVisible();
-  await page.getByRole('radiogroup', { name: 'Zeitklasse' }).getByRole('radio', { name: 'Alle Zeiten' }).click();
+  await page.getByRole('group', { name: 'Zeitklasse' }).getByRole('button', { name: 'Alle Zeiten', exact: true }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(1);
   await expect(page.getByTestId('game-row')).toContainText('Niederlage');
 
@@ -100,26 +100,27 @@ test('Rating-Grafik: Zeitachse mit Lücke, Zeitraum-Wechsel, Erklärung der Wert
   await expect(card).toContainText('Rapid-Wertung');
   await expect(page.getByTestId('rating-now')).toHaveText('351');
   // Standard 4 Wochen: ein Punkt pro Tag, Linie an der Pause unterbrochen
-  await expect(card.getByRole('radio', { name: '4 Wochen' })).toHaveAttribute('aria-checked', 'true');
+  await expect(card.getByRole('button', { name: '4 Wochen', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('rating-delta')).toHaveText('+51 in den letzten 4 Wochen');
-  await expect(page.getByTestId('rating-stats')).toHaveText('Bestwert 351 · 9 Rapid-Partien');
+  await expect(page.getByTestId('rating-stats')).toHaveText('9 Rapid-Partien in diesem Zeitraum');
+  await expect(page.getByTestId('rating-best')).toHaveText('Bestwert 351 (gesamt)');
   await expect(page.getByTestId('rating-chart')).toHaveAttribute('data-segments', '2'); // 1.–3.11. | Pause | 9.–12.11.
   await expect(card).toContainText('ein Punkt pro Tag');
   await page.waitForTimeout(300);
   await shot(page, 'rating-4wochen', false);
 
   // Woche: 9.–12.11. hat 6 Partien → Veränderung gegenüber der letzten Partie davor (305)
-  await card.getByRole('radio', { name: 'Woche', exact: true }).click();
+  await card.getByRole('button', { name: 'Woche', exact: true }).click();
   await expect(page.getByTestId('rating-delta')).toHaveText('+46 in der letzten Woche');
   // Alles: Wochenpunkte
-  await card.getByRole('radio', { name: 'Alles' }).click();
+  await card.getByRole('button', { name: 'Alles', exact: true }).click();
   await expect(card).toContainText('ein Punkt pro Woche');
   await expect(page.getByTestId('rating-delta')).toHaveText('+51 insgesamt');
 
   // Erklärung der Wertung per Info-Symbol (auch am Handy)
   const info = card.getByTestId('info-btn');
   await (test.info().project.use.hasTouch ? info.tap() : info.click());
-  await expect(card.getByTestId('info-text')).toContainText('Jede Zeitklasse (Rapid, Blitz, Bullet, Täglich) hat ihre eigene Wertung.');
+  await expect(page.getByTestId('info-text')).toContainText('Jede Zeitklasse (Rapid, Blitz, Bullet, Täglich) hat ihre eigene Wertung.');
 });
 
 test('Rating-Grafik: Hinweis bei weniger als 5 Partien', async ({ page }) => {

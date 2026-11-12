@@ -13,7 +13,7 @@ export const RANGE_PHRASE: Record<RatingRange, string> = {
 export const MIN_GAMES = 5;
 
 export type RatingPoint = { date: number; rating: number };
-export type Bucket = { start: number; end: number; rating: number | null };
+export type Bucket = { start: number; end: number; rating: number | null; games: number };
 export type RatingSeries = {
   /** Tage („week“, „4w“) bzw. Wochen („3m“, „all“) – rating null = keine Partie (Lücke) */
   buckets: Bucket[];
@@ -23,7 +23,8 @@ export type RatingSeries = {
   games: number;
   /** Veränderung im Zeitraum: letzte Wertung minus Wertung zu Beginn (letzte Partie davor, sonst erste im Zeitraum) */
   delta: number | null;
-  best: number | null;
+  /** Bestwert über alle Partien dieser Zeitklasse (nicht nur im Zeitraum) */
+  bestOverall: number | null;
 };
 
 const startOfDay = (t: number) => {
@@ -59,7 +60,7 @@ export function ratingSeries(points: RatingPoint[], range: RatingRange, now = Da
     const e = addDays(s, unit === 'day' ? 1 : 7);
     // Wertung am Ende des Tages bzw. der Woche = letzte Partie darin
     const inside = sorted.filter((p) => p.date >= s && p.date < e);
-    buckets.push({ start: s, end: e, rating: inside.length ? inside[inside.length - 1].rating : null });
+    buckets.push({ start: s, end: e, rating: inside.length ? inside[inside.length - 1].rating : null, games: inside.length });
   }
 
   const inRange = sorted.filter((p) => p.date >= from && p.date < to);
@@ -73,7 +74,7 @@ export function ratingSeries(points: RatingPoint[], range: RatingRange, now = Da
     to,
     games: inRange.length,
     delta,
-    best: inRange.length ? Math.max(...inRange.map((p) => p.rating)) : null,
+    bestOverall: sorted.length ? Math.max(...sorted.map((p) => p.rating)) : null,
   };
 }
 

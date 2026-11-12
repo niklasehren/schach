@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Icon, type IconName } from '../components/Icons';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowUpDown, ChevronLeft, Download, Ellipsis, ExternalLink, Flag } from 'lucide-react';
+import { ResultBadge } from '../components/GameRow';
+import { Badge } from '@/components/ui/badge';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import { Chess, type Move } from 'chess.js';
 import type { Config } from '@lichess-org/chessground/config';
 import type { Color, Key } from '@lichess-org/chessground/types';
@@ -67,12 +74,12 @@ function clockAt(parsed: Parsed, ply: number, color: Color, base: number | null)
 
 export function GameViewPage({ id, ply }: { id: string; ply?: number }) {
   const game = useLive(() => getGame(id).then((g) => g ?? null), [id]);
-  if (game === undefined) return <p className="page-note">Lädt …</p>;
+  if (game === undefined) return <p className="text-muted-foreground">Lädt …</p>;
   if (game === null)
     return (
-      <div className="page">
-        <p className="page-note">Diese Partie gibt es nicht (mehr).</p>
-        <a className="btn btn-inline" href={href({ page: 'partien' })}>
+      <div className="flex flex-col items-start gap-3 px-3.5">
+        <p className="text-muted-foreground">Diese Partie gibt es nicht (mehr).</p>
+        <a className={buttonVariants({ variant: 'outline' })} href={href({ page: 'partien' })}>
           Zur Partienliste
         </a>
       </div>
@@ -134,16 +141,19 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
         else if (e.key in map) stepVariation(map[e.key]);
         else return;
         e.preventDefault();
+        e.stopPropagation();
         return;
       }
       const map: Record<string, number> = { ArrowLeft: ply - 1, ArrowRight: ply + 1, ArrowUp: 0, Home: 0, ArrowDown: total, End: total };
       if (e.key in map) {
         e.preventDefault();
+        // Pfeiltasten blättern immer durch die Züge – auch wenn gerade ein Reiter den Fokus hat
+        e.stopPropagation();
         goTo(map[e.key]);
       }
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [ply, total, goTo, variation]);
 
   const config = useMemo<Config>(() => {
@@ -179,9 +189,9 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
 
   if (!parsed) {
     return (
-      <div className="page">
-        <p className="page-note">Die Partie konnte nicht gelesen werden.</p>
-        <a className="btn btn-inline" href={href({ page: 'partien' })}>
+      <div className="flex flex-col items-start gap-3 px-3.5">
+        <p className="text-muted-foreground">Die Partie konnte nicht gelesen werden.</p>
+        <a className={buttonVariants({ variant: 'outline' })} href={href({ page: 'partien' })}>
           Zur Partienliste
         </a>
       </div>
@@ -233,24 +243,27 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
   const pickTab = (t: Tab) => setTab(t);
 
   return (
-    <div className={`analysis-layout ${variation ? 'in-variation' : ''}`}>
-      <section className="board-col">
-        {bar(other(orientation))}
-        <div className="board-area board-with-bar">
+    <div className={cn('analysis-layout grid w-full animate-in grid-cols-1 items-start gap-3 fade-in-0 md:w-auto md:grid-cols-[auto_420px] md:gap-7', variation && 'in-variation')}>
+      <section className="flex flex-col gap-0.5 md:gap-1.5">
+        <div className="max-md:px-3.5 md:pl-[calc(var(--evalbar)+10px)]">{bar(other(orientation))}</div>
+        <div className="board-area relative flex max-md:flex-col md:gap-2.5">
           <EvalBar
             white={done ? whiteValues[evalIndex] : null}
             label={done?.evals[evalIndex] ? evalLabel(done.evals[evalIndex]!, fens[evalIndex]) : null}
             orientation={orientation}
           />
           <Board config={config} onMove={() => {}} />
-          {variation && <span className="variation-badge">Variante</span>}
+          {variation && (
+            <Badge className="variation-badge pointer-events-none absolute top-2.5 right-2.5 z-10 bg-brass text-brass-foreground max-md:top-8">Variante</Badge>
+          )}
         </div>
-        {bar(orientation)}
-        <div className="board-controls">
-          <NavControls ply={ply} last={total} onGo={goTo} />
+        <div className="max-md:px-3.5 md:pl-[calc(var(--evalbar)+10px)]">{bar(orientation)}</div>
+        <div className="grid grid-cols-4 gap-2 max-md:px-3 max-md:pt-1.5 md:grid-cols-[repeat(4,54px)_1fr] md:pl-[calc(var(--evalbar)+10px)]">
+          <NavControls ply={ply} last={total} onGo={goTo} className="contents" />
           {done && (
-            <button
-              className="btn btn-primary next-error"
+            <Button
+              size="lg"
+              className="h-12 text-[15px] max-md:col-span-4"
               onClick={() => {
                 if (nextError) {
                   goTo(nextError.ply - 1);
@@ -260,111 +273,135 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
               disabled={!nextError}
               data-testid="next-error"
             >
-              <Icon name="flag" size={18} />
+              <Flag data-icon="inline-start" />
               {nextError ? 'Nächster Fehler' : errorCount ? 'Kein weiterer Fehler' : 'Keine Fehler'}
-            </button>
+            </Button>
           )}
         </div>
       </section>
 
-      <aside className="side-panel" aria-label="Analyse">
-        <header className="side-head">
-          <a className="icon-link back" href={href({ page: 'partien' })} aria-label="Alle Partien" title="Alle Partien">
-            <Icon name="prev" size={20} />
+      <Card className="side-panel gap-0 overflow-hidden py-0 max-md:mx-3 md:h-(--side-h) md:min-h-[460px]" aria-label="Analyse">
+        <header className="flex items-start gap-2.5 p-3.5 pb-2.5">
+          <a
+            className={cn(buttonVariants({ variant: 'outline', size: 'icon' }), 'shrink-0 text-foreground max-md:hidden')}
+            href={href({ page: 'partien' })}
+            aria-label="Alle Partien"
+            title="Alle Partien"
+          >
+            <ChevronLeft />
           </a>
-          <div className="side-title" data-testid="game-header">
-            <span className={`res-badge res-${game.myResult ?? 'neutral'}`}>{headline}</span>
-            <div>
-              <strong>
+          <div className="flex min-w-0 flex-1 items-start gap-2.5" data-testid="game-header">
+            <ResultBadge result={game.myResult ?? 'neutral'} className="mt-0.5">
+              {headline}
+            </ResultBadge>
+            <div className="flex min-w-0 flex-col">
+              <strong className="text-[15px]">
                 {scoreText(game.result)} · durch {terminationText[game.termination]}
               </strong>
-              <span className="side-meta">{meta}</span>
-              {(game.opening || game.eco) && <span className="side-meta">{[game.eco, game.opening].filter(Boolean).join(' · ')}</span>}
+              <span className="truncate text-[13.5px] text-muted-foreground max-md:whitespace-nowrap md:whitespace-normal">{meta}</span>
+              {(game.opening || game.eco) && (
+                <span className="truncate text-[13.5px] text-muted-foreground max-md:whitespace-nowrap md:whitespace-normal">
+                  {[game.eco, game.opening].filter(Boolean).join(' · ')}
+                </span>
+              )}
             </div>
           </div>
-          <MoreMenu
-            items={[
-              { label: 'Brett drehen', icon: 'flip', onClick: () => setOrientation(other) },
-              { label: 'PGN exportieren', icon: 'download', onClick: exportPgn },
-              ...(game.source === 'chesscom' && game.externalId ? [{ label: 'Auf Chess.com öffnen', icon: 'external' as const, href: game.externalId }] : []),
-            ]}
-          />
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" size="icon" aria-label="Weitere Aktionen" data-testid="more-menu" />}>
+              <Ellipsis />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-56">
+              <DropdownMenuItem onClick={() => setOrientation(other)}>
+                <ArrowUpDown /> Brett drehen
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportPgn}>
+                <Download /> PGN exportieren
+              </DropdownMenuItem>
+              {game.source === 'chesscom' && game.externalId && (
+                <DropdownMenuItem onClick={() => window.open(game.externalId, '_blank', 'noreferrer')}>
+                  <ExternalLink /> Auf Chess.com öffnen
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
 
-        <div className="tabs" role="tablist" aria-label="Ansicht">
-          {(
-            [
-              ['fehler', 'Fehler'],
-              ['zuege', 'Züge'],
-              ['verlauf', 'Verlauf'],
-            ] as [Tab, string][]
-          ).map(([t, label]) => (
-            <button key={t} role="tab" aria-selected={tab === t} className="tab" onClick={() => pickTab(t)} data-testid={`tab-${t}`}>
-              {label}
-              {t === 'fehler' && errorCount > 0 && <span className="tab-count">{errorCount}</span>}
-            </button>
-          ))}
-        </div>
+        <Tabs value={tab} onValueChange={(v) => pickTab(v as Tab)} className="min-h-0 flex-1 gap-0">
+          <TabsList variant="line" className="h-10 w-full justify-start border-b px-3.5" aria-label="Ansicht">
+            <TabsTrigger value="fehler" className="flex-none px-3 text-[15px]" data-testid="tab-fehler">
+              Fehler
+              {errorCount > 0 && <Badge className="h-5 min-w-5 bg-blunder px-1.5 text-background">{errorCount}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="zuege" className="flex-none px-3 text-[15px]" data-testid="tab-zuege">
+              Züge
+            </TabsTrigger>
+            <TabsTrigger value="verlauf" className="flex-none px-3 text-[15px]" data-testid="tab-verlauf">
+              Verlauf
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="tab-body" role="tabpanel">
-          {tab === 'fehler' && (
-            <>
-              {!done && <AnalysisBox game={game} analysis={analysis} />}
-              {done && variation && (
-                <VariationCard fen={fens[variation.base]} moves={variation.moves} step={variation.step} onStep={stepVariation} onClose={() => setVariation(null)} />
-              )}
-              {done && !variation && upcoming && (
-                <ErrorCard
-                  move={upcoming}
-                  moveLabel={labels[upcoming.ply - 1]}
-                  explanation={explainMove(upcoming, fens, done, parsed.moves[upcoming.ply - 2])}
-                  canShowLine={!!(done.evals[upcoming.ply - 1]?.pv?.length || upcoming.best)}
-                  onShowLine={() => showVariation(upcoming)}
-                />
-              )}
-              {done && !variation && !upcoming && justPlayed && (
-                <p className={`move-note note-${justPlayed.class}`} data-testid="move-note">
-                  <strong>
-                    {labels[justPlayed.ply - 1]} {classText[justPlayed.class!]}
-                  </strong>
-                  <button className="link-btn" onClick={() => goTo(justPlayed.ply - 1)}>
-                    Stellung davor mit Pfeilen und Erklärung
-                  </button>
-                </p>
-              )}
-              {done && !variation && !upcoming && (
-                <>
-                  {!justPlayed && <AnalysisBox game={game} analysis={analysis} />}
-                  <ErrorList moves={errors} labels={labels} current={ply} onPick={(m) => goTo(m.ply - 1)} />
-                </>
-              )}
-              {done && (
-                <button className="btn btn-small first-error" onClick={() => firstError && goTo(firstError.ply - 1)} disabled={!firstError} data-testid="first-error">
-                  {firstError ? 'Zum ersten Fehler' : 'Keine Fehler gefunden'}
+          <TabsContent value="fehler" className="flex min-h-0 animate-in flex-col gap-3 overflow-y-auto p-3.5 text-[15px] fade-in-0">
+            {!done && <AnalysisBox game={game} analysis={analysis} />}
+            {done && variation && (
+              <VariationCard fen={fens[variation.base]} moves={variation.moves} step={variation.step} onStep={stepVariation} onClose={() => setVariation(null)} />
+            )}
+            {done && !variation && upcoming && (
+              <ErrorCard
+                move={upcoming}
+                moveLabel={labels[upcoming.ply - 1]}
+                explanation={explainMove(upcoming, fens, done, parsed.moves[upcoming.ply - 2])}
+                canShowLine={!!(done.evals[upcoming.ply - 1]?.pv?.length || upcoming.best)}
+                onShowLine={() => showVariation(upcoming)}
+              />
+            )}
+            {done && !variation && !upcoming && justPlayed && (
+              <p
+                className={cn(
+                  'flex flex-wrap gap-x-2 gap-y-1 rounded-md border-l-4 bg-muted px-3 py-2.5',
+                  justPlayed.class === 'blunder' ? 'border-l-blunder' : justPlayed.class === 'mistake' ? 'border-l-mistake' : 'border-l-inaccuracy',
+                )}
+                data-testid="move-note"
+              >
+                <strong>
+                  {labels[justPlayed.ply - 1]} {classText[justPlayed.class!]}
+                </strong>
+                <button className="font-semibold text-primary underline" onClick={() => goTo(justPlayed.ply - 1)}>
+                  Stellung davor mit Pfeilen und Erklärung
                 </button>
-              )}
-            </>
-          )}
-          {tab === 'zuege' && <MoveList moves={parsed.moves.map((m) => m.san)} currentPly={ply} onSelect={goTo} marks={marks} />}
-          {tab === 'verlauf' && (
-            <div className="history-tab">
-              {done ? (
-                <>
-                  <div className="eval-readout" data-testid="eval-readout">
-                    <span>{variation ? 'Bewertung vor der Variante' : 'Bewertung'}</span>
-                    <strong>{done.evals[evalIndex] ? evalLabel(done.evals[evalIndex]!, fens[evalIndex]) : '–'}</strong>
-                    {whiteValues[evalIndex] !== null && <span>· Gewinnchance Weiß {Math.round(whiteValues[evalIndex]!)} %</span>}
-                  </div>
-                  <EvalChart values={whiteValues} marks={marks} labels={labels} current={evalIndex} onSelect={goTo} />
-                  <AnalysisBox game={game} analysis={analysis} />
-                </>
-              ) : (
+              </p>
+            )}
+            {done && !variation && !upcoming && (
+              <>
+                {!justPlayed && <AnalysisBox game={game} analysis={analysis} />}
+                <ErrorList moves={errors} labels={labels} current={ply} onPick={(m) => goTo(m.ply - 1)} />
+              </>
+            )}
+            {done && (
+              <Button variant="outline" size="sm" className="self-start" onClick={() => firstError && goTo(firstError.ply - 1)} disabled={!firstError} data-testid="first-error">
+                {firstError ? 'Zum ersten Fehler' : 'Keine Fehler gefunden'}
+              </Button>
+            )}
+          </TabsContent>
+          <TabsContent value="zuege" className="flex min-h-0 flex-col overflow-y-auto">
+            <MoveList moves={parsed.moves.map((m) => m.san)} currentPly={ply} onSelect={goTo} marks={marks} />
+          </TabsContent>
+          <TabsContent value="verlauf" className="flex min-h-0 animate-in flex-col gap-3 overflow-y-auto p-3.5 fade-in-0">
+            {done ? (
+              <>
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[15px] text-muted-foreground tabular-nums" data-testid="eval-readout">
+                  <span>{variation ? 'Bewertung vor der Variante' : 'Bewertung'}</span>
+                  <strong className="text-2xl text-foreground">{done.evals[evalIndex] ? evalLabel(done.evals[evalIndex]!, fens[evalIndex]) : '–'}</strong>
+                  {whiteValues[evalIndex] !== null && <span>· Gewinnchance Weiß {Math.round(whiteValues[evalIndex]!)} %</span>}
+                </div>
+                <EvalChart values={whiteValues} marks={marks} labels={labels} current={evalIndex} onSelect={goTo} />
                 <AnalysisBox game={game} analysis={analysis} />
-              )}
-            </div>
-          )}
-        </div>
-      </aside>
+              </>
+            ) : (
+              <AnalysisBox game={game} analysis={analysis} />
+            )}
+          </TabsContent>
+        </Tabs>
+      </Card>
     </div>
   );
 }
@@ -375,69 +412,26 @@ type Tab = 'fehler' | 'zuege' | 'verlauf';
 function ErrorList({ moves, labels, current, onPick }: { moves: MoveAnalysis[]; labels: string[]; current: number; onPick: (m: MoveAnalysis) => void }) {
   if (moves.length === 0) return null;
   return (
-    <ol className="error-list" data-testid="error-list">
+    <ol className="m-0 flex list-none flex-col gap-1.5 p-0" data-testid="error-list">
       {moves.map((m) => (
         <li key={m.ply}>
-          <button className={`error-item note-${m.class} ${current === m.ply - 1 ? 'is-current' : ''}`} onClick={() => onPick(m)}>
-            <span className={`class-dot dot-${m.class}`} aria-hidden />
+          <button
+            className={cn(
+              'flex w-full flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border border-l-4 bg-muted/50 px-3 py-2.5 text-left transition-colors hover:bg-muted',
+              m.class === 'blunder' ? 'border-l-blunder' : 'border-l-mistake',
+              current === m.ply - 1 && 'ring-2 ring-ring',
+            )}
+            onClick={() => onPick(m)}
+          >
             <strong>{labels[m.ply - 1]}</strong>
-            <span>{classText[m.class!]}</span>
-            {m.hanging && <span className="error-tag">Figur eingestellt</span>}
-            {m.allowedMate && <span className="error-tag">Matt zugelassen</span>}
-            {m.timeTrouble && <span className="error-tag">Zeitnot</span>}
+            <span className="text-muted-foreground">{classText[m.class!]}</span>
+            {m.hanging && <Badge variant="secondary">Figur eingestellt</Badge>}
+            {m.allowedMate && <Badge variant="secondary">Matt zugelassen</Badge>}
+            {m.timeTrouble && <Badge variant="secondary">Zeitnot</Badge>}
           </button>
         </li>
       ))}
     </ol>
-  );
-}
-
-/** „…“-Menü für Nebenaktionen */
-function MoreMenu({ items }: { items: { label: string; icon: IconName; onClick?: () => void; href?: string }[] }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('keydown', esc);
-    };
-  }, [open]);
-  return (
-    <div className="more-menu" ref={ref}>
-      <button className="icon-link" aria-label="Weitere Aktionen" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} data-testid="more-menu">
-        <Icon name="more" size={22} />
-      </button>
-      {open && (
-        <div className="menu" role="menu">
-          {items.map((it) =>
-            it.href ? (
-              <a key={it.label} role="menuitem" className="menu-item" href={it.href} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
-                <Icon name={it.icon} size={18} /> {it.label}
-              </a>
-            ) : (
-              <button
-                key={it.label}
-                role="menuitem"
-                className="menu-item"
-                onClick={() => {
-                  it.onClick?.();
-                  setOpen(false);
-                }}
-              >
-                <Icon name={it.icon} size={18} /> {it.label}
-              </button>
-            ),
-          )}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -464,23 +458,23 @@ function AnalysisBox({ game, analysis }: { game: GameRecord; analysis: AnalysisR
     const sides: Side[] = game.myColor ? [game.myColor] : ['white', 'black'];
     const depth = 'depth' in analysis.limit ? `Tiefe ${analysis.limit.depth}` : `${analysis.limit.movetime} ms/Stellung`;
     return (
-      <div className="analysis-box" data-testid="analysis-summary">
+      <div className="flex flex-col gap-1.5 rounded-lg border bg-muted/40 px-3.5 py-3" data-testid="analysis-summary">
         {sides.map((s) => (
           <p key={s}>
             <strong>{game.myColor ? 'Deine Fehler' : game[s].name}:</strong> {summaryText(analysis.summary![s])}
           </p>
         ))}
-        <span className="analysis-meta">
+        <span className="text-sm text-muted-foreground">
           Stockfish, {depth}
           {analysis.baseTime === null && game.timeClass === 'daily' ? ' · Fernschach: keine Zeitnot-Auswertung' : ''}
         </span>
       </div>
     );
   }
-  if (analysis?.status === 'failed') return <div className="analysis-box">Diese Partie konnte nicht analysiert werden.</div>;
+  if (analysis?.status === 'failed') return <div className="rounded-lg border bg-muted/40 px-3.5 py-3">Diese Partie konnte nicht analysiert werden.</div>;
   const running = queue.current?.gameId === game.id;
   return (
-    <div className="analysis-box is-pending" data-testid="analysis-pending">
+    <div className="flex flex-col items-start gap-2 rounded-lg border bg-muted/40 px-3.5 py-3 text-muted-foreground" data-testid="analysis-pending">
       {running ? (
         <span>
           Wird gerade analysiert … Stellung {Math.min(queue.current!.position + 1, queue.current!.positions)} von {queue.current!.positions}
@@ -488,10 +482,10 @@ function AnalysisBox({ game, analysis }: { game: GameRecord; analysis: AnalysisR
       ) : (
         <>
           <span>Noch nicht analysiert.</span>
-          <button className="btn btn-small" onClick={() => analysisQueue.prioritize(game.id)}>
+          <Button variant="outline" size="sm" onClick={() => analysisQueue.prioritize(game.id)}>
             Als Nächstes analysieren
-          </button>
-          {queue.status === 'paused' && <span className="analysis-meta">Die Analyse ist pausiert (Weiter unter „Partien“).</span>}
+          </Button>
+          {queue.status === 'paused' && <span className="text-sm">Die Analyse ist pausiert (Weiter unter „Partien“).</span>}
         </>
       )}
     </div>

@@ -1,0 +1,34 @@
+/*
+ * Brettmaße: das Brett wird auf ein Vielfaches von 8 px gerundet, damit die Felder exakt aufgehen,
+ * und so bemessen, dass am Mac Brett, Spielerzeilen und Knöpfe ohne Scrollen auf den Bildschirm passen.
+ * (round() und abgeleitete Größen lassen sich mit Tailwind-Klassen nicht sinnvoll ausdrücken.)
+ */
+.play,
+.analysis-layout {
+  --bar-height: 42px;
+  --board-size: round(down, min(calc(100dvh - 250px), calc(100vw - 520px), 720px), 8px);
+}
+
+.analysis-layout {
+  --evalbar: 30px;
+  /* Kopfzeile, Abstände, 2 Spielerzeilen und Knopfreihe ≈ 290 px */
+  --board-size: round(down, min(calc(100dvh - 290px), calc(100vw - 560px), 720px), 8px);
+  /* rechte Spalte genau so hoch wie Brett + Spielerzeilen + Knöpfe */
+  --side-h: calc(var(--board-size) + 2 * var(--bar-height) + 12px + 58px);
+}
+
+@media (max-width: 767px) {
+  .play,
+  .analysis-layout {
+    --board-size: round(down, 100vw, 8px);
+  }
+}
+
+/* Spielen und Import bleiben im Hintergrund erhalten (laufende Partie / laufender Import) */
+.page-slot {
+  display: contents;
+}
+
+.page-slot[hidden] {
+  display: none;
+}

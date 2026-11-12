@@ -31,6 +31,8 @@ export const getBoardTheme = (): BoardTheme => {
 
 export function applyTheme(theme = getTheme(), board = getBoardTheme()) {
   document.documentElement.dataset.theme = theme;
+  // shadcn schaltet den dunklen Modus über die Klasse „dark“
+  document.documentElement.classList.toggle('dark', theme === 'dark');
   document.documentElement.dataset.board = board;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#f2ede3' : '#121519');
 }

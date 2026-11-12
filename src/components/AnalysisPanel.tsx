@@ -1,6 +1,9 @@
 import { analysisQueue } from '../analysis/queue';
 import { useQueueState } from '../analysis/useQueue';
 import { formatDate } from '../chess/format';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 function duration(ms: number): string {
   const min = Math.round(ms / 60000);
@@ -29,31 +32,27 @@ export function AnalysisPanel() {
             : 'startet …';
 
   return (
-    <section className="analysis-panel" aria-label="Analyse" data-testid="analysis-panel">
-      <div className="analysis-head">
-        <span className="analysis-count" data-testid="analysis-count">
+    <Card size="sm" className="gap-2 px-4" aria-label="Analyse" data-testid="analysis-panel">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-bold tabular-nums" data-testid="analysis-count">
           Analyse: {s.processed} von {s.total} Partien
         </span>
         {!finished && (
-          <button
-            className="btn btn-small"
-            onClick={() => (s.status === 'paused' ? analysisQueue.resume() : analysisQueue.pause())}
-            data-testid="analysis-toggle"
-          >
+          <Button variant="outline" size="sm" onClick={() => (s.status === 'paused' ? analysisQueue.resume() : analysisQueue.pause())} data-testid="analysis-toggle">
             {s.status === 'paused' ? 'Weiter' : 'Pause'}
-          </button>
+          </Button>
         )}
       </div>
-      <progress max={Math.max(1, s.total)} value={s.processed} />
-      <span className="analysis-status" data-testid="analysis-status">
+      <Progress value={s.total ? (s.processed / s.total) * 100 : 0} aria-label="Analyse-Fortschritt" />
+      <span className="text-[15px]" data-testid="analysis-status">
         {label}
       </span>
       {!finished && (
-        <span className="analysis-note">
+        <span className="text-sm text-muted-foreground">
           Die Analyse läuft nur, solange die App geöffnet ist (am Handy: im Vordergrund). Beim nächsten Öffnen geht es an derselben Stelle weiter.
           {s.avgMs !== null && ` Bisher ${Math.round(s.avgMs / 1000)} s pro Partie auf diesem Gerät, noch ${duration(left * s.avgMs)}.`}
         </span>
       )}
-    </section>
+    </Card>
   );
 }

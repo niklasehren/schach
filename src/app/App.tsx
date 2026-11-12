@@ -1,27 +1,37 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { analysisQueue } from '../analysis/queue';
 import { backfillErrorTypes } from '../analysis/errorTypes';
 import { maybeAutoImport } from '../chesscom/autoImport';
-import { Icon, type IconName } from '../components/Icons';
-import { GamesPage } from '../pages/GamesPage';
-import { GameViewPage } from '../pages/GameViewPage';
-import { ImportPage } from '../pages/ImportPage';
-import { OverviewPage } from '../pages/OverviewPage';
-import { PlayPage } from '../pages/PlayPage';
-import { SettingsPage } from '../pages/SettingsPage';
-import { TrainingPage } from '../pages/TrainingPage';
+import { ChessKnight, Download, House, List, Settings, Target, type LucideIcon } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { href, useRoute, type Route } from './router';
 
-const links: { route: Route; label: string; icon: IconName; match: Route['page'][] }[] = [
-  { route: { page: 'uebersicht' }, label: 'Übersicht', icon: 'home', match: ['uebersicht'] },
-  { route: { page: 'spielen' }, label: 'Spielen', icon: 'play', match: ['spielen'] },
-  { route: { page: 'partien' }, label: 'Partien', icon: 'list', match: ['partien', 'partie'] },
-  { route: { page: 'training' }, label: 'Training', icon: 'target', match: ['training'] },
-  { route: { page: 'import' }, label: 'Import', icon: 'import', match: ['import'] },
+// Seiten erst bei Bedarf laden (kleineres Start-Paket)
+const OverviewPage = lazy(() => import('../pages/OverviewPage').then((m) => ({ default: m.OverviewPage })));
+const PlayPage = lazy(() => import('../pages/PlayPage').then((m) => ({ default: m.PlayPage })));
+const GamesPage = lazy(() => import('../pages/GamesPage').then((m) => ({ default: m.GamesPage })));
+const GameViewPage = lazy(() => import('../pages/GameViewPage').then((m) => ({ default: m.GameViewPage })));
+const TrainingPage = lazy(() => import('../pages/TrainingPage').then((m) => ({ default: m.TrainingPage })));
+const ImportPage = lazy(() => import('../pages/ImportPage').then((m) => ({ default: m.ImportPage })));
+const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+
+const links: { route: Route; label: string; icon: LucideIcon; match: Route['page'][] }[] = [
+  { route: { page: 'uebersicht' }, label: 'Übersicht', icon: House, match: ['uebersicht'] },
+  { route: { page: 'spielen' }, label: 'Spielen', icon: ChessKnight, match: ['spielen'] },
+  { route: { page: 'partien' }, label: 'Partien', icon: List, match: ['partien', 'partie'] },
+  { route: { page: 'training' }, label: 'Training', icon: Target, match: ['training'] },
+  { route: { page: 'import' }, label: 'Import', icon: Download, match: ['import'] },
 ];
 
 export function App() {
   const route = useRoute();
+  // Spielen und Import erst beim ersten Besuch laden, danach im Hintergrund erhalten
+  const [visited, setVisited] = useState(() => new Set<Route['page']>([route.page]));
+  useEffect(() => {
+    setVisited((v) => (v.has(route.page) ? v : new Set(v).add(route.page)));
+  }, [route.page]);
   // Hintergrund-Analyse starten (läuft, solange die App offen ist); Fehlerarten für ältere Analysen nachtragen
   useEffect(() => {
     void analysisQueue.start();
@@ -50,57 +60,93 @@ export function App() {
     };
   }, []);
 
-  const navItems = (variant: 'top' | 'bottom') =>
-    links.map((l) => {
-      const active = l.match.includes(route.page);
-      return (
-        <a key={l.label} className={`nav-link ${active ? 'is-active' : ''}`} href={href(l.route)} aria-current={active ? 'page' : undefined}>
-          <Icon name={l.icon} size={variant === 'bottom' ? 24 : 19} />
-          <span>{l.label}</span>
-        </a>
-      );
-    });
-
   return (
-    <div className="app">
-      <header className="topbar">
-        <a className="wordmark" href={href({ page: 'uebersicht' })}>
-          Schach
-        </a>
-        <nav className="nav nav-top" aria-label="Hauptnavigation">
-          {navItems('top')}
-        </nav>
-        <a
-          className={`icon-link settings-link ${route.page === 'einstellungen' ? 'is-active' : ''}`}
-          href={href({ page: 'einstellungen' })}
-          aria-label="Einstellungen"
-          title="Einstellungen"
-        >
-          <Icon name="settings" size={21} />
-        </a>
+    <TooltipProvider delay={250}>
+    <div className="flex min-h-dvh flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
+      <header className="sticky top-0 z-30 border-b bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-6 px-4 md:h-16 md:px-7">
+          <a className="font-heading text-[28px] leading-none text-foreground no-underline" href={href({ page: 'uebersicht' })}>
+            Schach
+          </a>
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Hauptnavigation">
+            {links.map((l) => {
+              const active = l.match.includes(route.page);
+              return (
+                <a
+                  key={l.label}
+                  href={href(l.route)}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(buttonVariants({ variant: active ? 'default' : 'ghost', size: 'lg' }), 'rounded-full px-3.5 text-[15px] no-underline', !active && 'text-muted-foreground')}
+                >
+                  <l.icon data-icon="inline-start" />
+                  {l.label}
+                </a>
+              );
+            })}
+          </nav>
+          <a
+            className={cn(buttonVariants({ variant: 'outline', size: 'icon-lg' }), 'ml-auto text-foreground', route.page === 'einstellungen' && 'border-ring')}
+            href={href({ page: 'einstellungen' })}
+            aria-label="Einstellungen"
+            title="Einstellungen"
+          >
+            <Settings />
+          </a>
+        </div>
       </header>
+
       {toast && (
-        <div className="toast" role="status" data-testid="toast">
+        <div
+          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 animate-in rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background shadow-lg fade-in-0 slide-in-from-bottom-2 md:bottom-6"
+          role="status"
+          data-testid="toast"
+        >
           {toast}
         </div>
       )}
-      <main className="main">
-        {/* Spielen und Import bleiben im Hintergrund erhalten: laufende Partie bzw. laufender Import gehen beim Seitenwechsel nicht verloren */}
-        <div className="page-slot" hidden={route.page !== 'spielen'}>
-          <PlayPage active={route.page === 'spielen'} />
-        </div>
-        <div className="page-slot" hidden={route.page !== 'import'}>
-          <ImportPage />
-        </div>
-        {route.page === 'uebersicht' && <OverviewPage />}
-        {route.page === 'partien' && <GamesPage />}
-        {route.page === 'partie' && <GameViewPage id={route.id} ply={route.ply} />}
-        {route.page === 'training' && <TrainingPage />}
-        {route.page === 'einstellungen' && <SettingsPage />}
+
+      <main className="flex flex-1 justify-center pt-3 pb-5 md:px-7 md:pt-6 md:pb-10">
+        <Suspense fallback={<p className="text-muted-foreground">Lädt …</p>}>
+          {/* Spielen und Import bleiben im Hintergrund erhalten: laufende Partie bzw. laufender Import gehen beim Seitenwechsel nicht verloren */}
+          {visited.has('spielen') && (
+            <div className="page-slot" hidden={route.page !== 'spielen'}>
+              <PlayPage active={route.page === 'spielen'} />
+            </div>
+          )}
+          {visited.has('import') && (
+            <div className="page-slot" hidden={route.page !== 'import'}>
+              <ImportPage />
+            </div>
+          )}
+          {route.page === 'uebersicht' && <OverviewPage />}
+          {route.page === 'partien' && <GamesPage />}
+          {route.page === 'partie' && <GameViewPage id={route.id} ply={route.ply} />}
+          {route.page === 'training' && <TrainingPage />}
+          {route.page === 'einstellungen' && <SettingsPage />}
+        </Suspense>
       </main>
-      <nav className="nav nav-bottom" aria-label="Hauptnavigation unten">
-        {navItems('bottom')}
+
+      {/* Am Handy: Navigation als Leiste unten, mit dem Daumen erreichbar */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background/95 px-1 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] backdrop-blur md:hidden"
+        aria-label="Hauptnavigation unten"
+      >
+        {links.map((l) => {
+          const active = l.match.includes(route.page);
+          return (
+            <a
+              key={l.label}
+              href={href(l.route)}
+              aria-current={active ? 'page' : undefined}
+              className={cn('flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[11.5px] font-semibold no-underline', active ? 'text-primary' : 'text-muted-foreground')}
+            >
+              <l.icon className="size-6" strokeWidth={1.8} />
+              {l.label}
+            </a>
+          );
+        })}
       </nav>
     </div>
+    </TooltipProvider>
   );
 }

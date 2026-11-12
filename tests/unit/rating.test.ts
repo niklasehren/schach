@@ -30,7 +30,10 @@ describe('Rating-Verlauf auf der Zeitachse', () => {
     expect(s.games).toBe(5);
     // Veränderung gegenüber der letzten Partie vor dem Zeitraum (26.02.: 335)
     expect(s.delta).toBe(351 - 335);
-    expect(s.best).toBe(424);
+    // Bestwert über alle Partien, Partien pro Tag für den Tooltip
+    expect(s.bestOverall).toBe(424);
+    expect(byDay(8).games).toBe(2);
+    expect(byDay(7).games).toBe(0);
   });
 
   it('Woche: die letzten 7 Tage einschließlich heute (6.–12.11.)', () => {

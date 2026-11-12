@@ -1,0 +1,162 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+/* chessground-Grundstile in der untersten Ebene, damit unsere Brett-Regeln sie überschreiben können */
+@import "@lichess-org/chessground/assets/chessground.base.css" layer(base);
+@import "@lichess-org/chessground/assets/chessground.cburnett.css" layer(base);
+/* Brett (chessground): Themes, Maße, Darstellung – in der Ebene „components“, damit Tailwind-Klassen Vorrang haben */
+@import "./styles/tokens.css";
+@import "./styles/layout.css" layer(components);
+@import "./styles/board.css" layer(components);
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--app-font-heading);
+    --font-sans: var(--app-font-sans);
+    --color-brass: var(--brass);
+    --color-brass-foreground: var(--brass-foreground);
+    --color-hero: var(--hero);
+    --color-hero-foreground: var(--hero-foreground);
+    --color-hero-muted: var(--hero-muted);
+    --color-win: var(--win);
+    --color-win-bg: var(--win-bg);
+    --color-loss: var(--loss);
+    --color-loss-bg: var(--loss-bg);
+    --color-draw: var(--draw);
+    --color-draw-bg: var(--draw-bg);
+    --color-blunder: var(--mark-blunder);
+    --color-mistake: var(--mark-mistake);
+    --color-inaccuracy: var(--mark-inaccuracy);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * Farben „Klubhaus“ auf den shadcn-Variablen: Waldgrün, Messing, Anthrazit (dunkel, Standard) bzw. Papier (hell).
+ * Dunkel über die Klasse „dark“ am <html> (Schalter in den Einstellungen). Text-Farbpaare WCAG AA (≥ 4,5:1), nachgerechnet.
+ */
+:root {
+    /* Klubhaus hell */
+    --app-font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+    --app-font-heading: 'Instrument Serif', ui-serif, Georgia, serif;
+    --radius: 0.75rem;
+    --background: #f2ede3;
+    --foreground: #1c1f1b;
+    --card: #fffcf6;
+    --card-foreground: #1c1f1b;
+    --popover: #fffcf6;
+    --popover-foreground: #1c1f1b;
+    --primary: #1d5a43;
+    --primary-foreground: #fbf6ea;
+    --secondary: #f1eadc;
+    --secondary-foreground: #1c1f1b;
+    --muted: #f1eadc;
+    --muted-foreground: #4a5048;
+    --accent: #ece3d2;
+    --accent-foreground: #1c1f1b;
+    --destructive: #a3241a;
+    --border: #e2d9c8;
+    --input: #cdbfa6;
+    --ring: #c99a3a;
+    --chart-1: #1d5a43;
+    --chart-2: #c99a3a;
+    --chart-3: #2f6aa8;
+    --chart-4: #9a5a06;
+    --chart-5: #4a5048;
+    --brass: #c99a3a;
+    --brass-foreground: #1c1f1b;
+    --hero: #1d5a43;
+    --hero-foreground: #fbf6ea;
+    --hero-muted: #d5e3d9;
+    --win: #17663f;
+    --win-bg: #d9eedf;
+    --loss: #a3241a;
+    --loss-bg: #f6dcd7;
+    --draw: #4b5360;
+    --draw-bg: #e4e6ea;
+    --mark-blunder: #b3261e;
+    --mark-mistake: #9a5a06;
+    --mark-inaccuracy: #2f6aa8;
+}
+
+.dark {
+    /* Klubhaus dunkel (Standard) */
+    --background: #121519;
+    --foreground: #efe9dc;
+    --card: #1b1f24;
+    --card-foreground: #efe9dc;
+    --popover: #1f242a;
+    --popover-foreground: #efe9dc;
+    --primary: #6cc79f;
+    --primary-foreground: #0f1a15;
+    --secondary: #22272e;
+    --secondary-foreground: #efe9dc;
+    --muted: #22272e;
+    --muted-foreground: #b9b2a3;
+    --accent: #2a3038;
+    --accent-foreground: #efe9dc;
+    --destructive: #ff8a78;
+    --border: #2f353d;
+    --input: #444c56;
+    --ring: #e0b24f;
+    --chart-1: #9fe0c2;
+    --chart-2: #e0b24f;
+    --chart-3: #7fb4ee;
+    --chart-4: #f0a347;
+    --chart-5: #b9b2a3;
+    --brass: #e0b24f;
+    --brass-foreground: #1c1f1b;
+    --hero: #183d30;
+    --hero-foreground: #f4ecda;
+    --hero-muted: #c9d8cc;
+    --win: #7fdcaa;
+    --win-bg: #1d3a2c;
+    --loss: #ff9b8c;
+    --loss-bg: #432420;
+    --draw: #c6cbd3;
+    --draw-bg: #2c3138;
+    --mark-blunder: #ff7b6b;
+    --mark-mistake: #f0a347;
+    --mark-inaccuracy: #7fb4ee;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+}

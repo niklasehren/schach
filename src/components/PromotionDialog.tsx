@@ -1,5 +1,6 @@
 import type { Color } from '@lichess-org/chessground/types';
 import type { PromotionPiece } from '../chess/game';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const choices: { piece: PromotionPiece; role: string; label: string }[] = [
   { piece: 'q', role: 'queen', label: 'Dame' },
@@ -14,21 +15,29 @@ type Props = {
   onCancel: () => void;
 };
 
-/** Auswahl der Figur bei der Bauernumwandlung, liegt über dem Brett. */
+/** Auswahl der Figur bei der Bauernumwandlung (shadcn-Dialog) */
 export function PromotionDialog({ color, onChoose, onCancel }: Props) {
   return (
-    <div className="promotion" role="dialog" aria-label="Umwandlung wählen" onClick={onCancel}>
-      <div className="promotion-panel cg-wrap" onClick={(e) => e.stopPropagation()}>
-        <p className="promotion-title">Umwandeln in</p>
-        <div className="promotion-choices">
+    <Dialog open onOpenChange={(open: boolean) => !open && onCancel()}>
+      <DialogContent className="w-auto max-w-[calc(100vw-2rem)] sm:max-w-md" showCloseButton={false}>
+        <DialogHeader>
+          <DialogTitle>Umwandlung wählen</DialogTitle>
+          <DialogDescription>In welche Figur soll sich der Bauer verwandeln?</DialogDescription>
+        </DialogHeader>
+        <div className="cg-wrap grid grid-cols-4 gap-2">
           {choices.map((c) => (
-            <button key={c.piece} className="promotion-choice" aria-label={c.label} onClick={() => onChoose(c.piece)}>
-              <piece className={`${c.role} ${color}`} />
+            <button
+              key={c.piece}
+              className="relative aspect-square w-16 rounded-lg border bg-[var(--sq-light)] transition-colors hover:border-ring sm:w-20"
+              aria-label={c.label}
+              onClick={() => onChoose(c.piece)}
+            >
+              <piece className={`${c.role} ${color} absolute! inset-[8%] h-auto! w-auto!`} />
             </button>
           ))}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

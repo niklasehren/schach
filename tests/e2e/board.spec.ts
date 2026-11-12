@@ -56,9 +56,11 @@ test('Züge durchblättern mit Pfeiltasten und Knöpfen', async ({ page }) => {
 
 test('Gegen Stockfish als Schwarz: Computer eröffnet und antwortet', async ({ page }) => {
   await page.goto('/#/spielen');
-  await page.getByRole('radio', { name: 'Gegen Computer' }).click();
-  await page.getByRole('radio', { name: 'Schwarz' }).click();
-  await page.getByLabel('Spielstärke').fill('0');
+  await page.getByRole('button', { name: 'Gegen Computer', exact: true }).click();
+  await page.getByRole('button', { name: 'Schwarz', exact: true }).click();
+  const slider = page.getByRole('slider', { name: 'Spielstärke' });
+  await slider.focus();
+  await slider.press('Home');
   await expect(page.locator('.strength-label')).toHaveText('Einsteiger 1/4');
   await page.getByRole('button', { name: 'Partie starten' }).click();
 

@@ -3,9 +3,9 @@
   scroll-margin-top: 80px;
   width: var(--board-size);
   aspect-ratio: 1;
-  border-radius: var(--radius-sm);
+  border-radius: calc(var(--radius) * 0.7);
   overflow: hidden;
-  box-shadow: var(--shadow-board);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25), 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
 .board {
@@ -45,7 +45,7 @@
 
 /* Koordinaten klein und dezent im Feld */
 .board coords {
-  font-family: var(--font-sans);
+  font-family: inherit;
   font-size: clamp(11px, calc(var(--board-size) / 46), 15px);
   font-weight: 700;
   opacity: 1;
@@ -88,55 +88,22 @@
   color: var(--coord-on-dark);
 }
 
-/* Umwandlungs-Auswahl */
-.promotion {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(20, 24, 22, 0.35);
-  border-radius: var(--radius-sm);
-  z-index: 20;
+/* Geschlagene Figuren neben dem Namen: klein, gleiche Sorte leicht überlappend */
+.player-material piece {
+  position: static;
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  will-change: auto;
 }
 
-.promotion-panel {
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 14px 16px 16px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+.player-material piece.stacked {
+  margin-right: -9px;
 }
 
-.promotion-title {
-  margin: 0 0 10px;
-  font-size: 14px;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.promotion-choices {
-  display: flex;
-  gap: 8px;
-}
-
-.promotion-choice {
-  width: calc(var(--board-size) / 8);
-  min-width: 52px;
-  aspect-ratio: 1;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--sq-light);
-  cursor: pointer;
-  padding: 0;
-  position: relative;
-}
-
-.promotion-choice:hover {
-  border-color: var(--accent);
-}
-
-.promotion-choice piece {
-  position: absolute;
-  inset: 6%;
-  width: auto;
-  height: auto;
+/* Variante am Brett: gestrichelter Messing-Rahmen */
+.in-variation .board-frame {
+  outline: 3px dashed var(--brass);
+  outline-offset: 2px;
 }
