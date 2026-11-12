@@ -2,6 +2,8 @@ import { GamesPage } from '../pages/GamesPage';
 import { GameViewPage } from '../pages/GameViewPage';
 import { ImportPage } from '../pages/ImportPage';
 import { PlayPage } from '../pages/PlayPage';
+import { useEffect } from 'react';
+import { analysisQueue } from '../analysis/queue';
 import { href, useRoute, type Route } from './router';
 
 const links: { route: Route; label: string; match: Route['page'][] }[] = [
@@ -12,6 +14,10 @@ const links: { route: Route; label: string; match: Route['page'][] }[] = [
 
 export function App() {
   const route = useRoute();
+  // Hintergrund-Analyse starten (läuft, solange die App offen ist)
+  useEffect(() => {
+    void analysisQueue.start();
+  }, []);
   return (
     <div className="app">
       <header className="topbar">

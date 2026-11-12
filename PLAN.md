@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 12. November 2026 · Status: Blöcke 0–2 und 4 (mit Chess.com-Import) fertig, als Nächstes Block 5
+Stand: 12. November 2026 · Status: Blöcke 0–2, 4 (mit Chess.com-Import) und 5 fertig, als Nächstes Block 6
 
 ## 1. Idee in einem Satz
 
@@ -72,6 +72,25 @@ Nach der Partie läuft Stockfish im Hintergrund über jede Stellung (Ziel: Tiefe
   - **„Matt zugelassen“**: Patzer. Wenn ich vorher schon bei −7 bis −10 stand, ist es ein Fehler, darunter nur eine Ungenauigkeit.
   - **„Eigenes Matt verloren“**: Patzer. Wenn ich danach noch über +7 stehe, ist es ein Fehler, über +10 nur eine Ungenauigkeit.
 - Diese Regeln übernehmen wir 1:1.
+
+### Umsetzung Block 5 (Stand 12.11.2026)
+
+- **Engine-Einstellung: feste Tiefe 16.** Gemessen an 5 echten Rapid-Partien (je ~60 Stellungen) im Browser am Mac:
+
+  | Einstellung | Chrome | Safari-Engine | erreichte Tiefe |
+  |---|---|---|---|
+  | Tiefe 14 | 2,1 s/Partie | 1,9 s | 14 |
+  | **Tiefe 16** | **8,8 s/Partie** | **7,8 s** | 16 |
+  | 0,3 s pro Stellung | 17,4 s/Partie | 17,4 s | ~26 |
+
+  Echtbetrieb: 10 Partien in 90 s → ~100 Partien in ~15 min (Mac). Feste Tiefe statt fester Zeit, weil dann Mac und Handy **dieselben** Ergebnisse liefern. Handy-Größe im Test mit CPU-Drosselung ergab Mac-Werte (Drosselung wirkt nicht auf den Engine-Worker) → echte iPhone-Zeit zeigt die App selbst an („Bisher x s pro Partie auf diesem Gerät“). Erwartung: 1,5–3× langsamer.
+- Gewinnchance, Klassen und Matt-Sonderregeln 1:1 wie oben (`src/analysis/rules.ts`, mit Tests). Mattsetzen selbst zählt nicht als „Matt übersehen“.
+- **Figur eingestellt:** Fehler/Patzer **und** nach der Engine-Variante (bis 4 Halbzüge: Gegner – ich – Gegner – ich) habe ich ≥ 2 Bauerneinheiten weniger als vor meinem Zug. Erfasst auch Gabeln; ein Abtausch zählt nicht. Beispiel: 6. g4?? ist Patzer, aber Stockfishs beste Antwort Lxc2 gewinnt nur einen Bauern → kein „Figur eingestellt“.
+- **Phase:** Endspiel = keine Damen und je Seite ≤ 2 Leichtfiguren/Türme, oder insgesamt ≤ 4 Figuren (ohne Könige/Bauern). Eröffnung = bis Zug 12, solange höchstens 2 Figuren vom Brett sind. Sonst Mittelspiel.
+- **Zeitnot:** Restzeit **vor** dem Zug < 10 % der Grundzeit aus dem TimeControl-Header. Daily/Fernschach und App-Partien (noch ohne Uhr) → „nicht bestimmbar“. Zeitklasse wird mitgespeichert.
+- Gespeichert pro Partie: Bewertung jeder Stellung (für die Kurve in Block 6), meine Züge und die des Gegners getrennt nach Farbe, Zusammenfassung je Seite, Rechenzeit. Zwischenstand alle 4 Stellungen → nach Neuladen geht es weiter.
+- Warteschlange: eine Partie gleichzeitig, neueste zuerst, neue Partien automatisch, Pause/Weiter (bleibt nach Neuladen), pausiert automatisch während einer Partie gegen den Computer. Läuft nur bei geöffneter App.
+- Gegen Freund: beide Seiten werden markiert, da keine eigene Farbe bekannt ist.
 
 Ansicht: Brett + Zugliste zum Durchklicken (auch per Pfeiltasten / Wischen), Bewertungskurve, farbige Markierung der Fehler, Pfeil für den besten Zug, kurze Zusammenfassung oben („2 Patzer, 1 Figur eingestellt, 3 von 4 Fehlern in Zeitnot“).
 
@@ -162,7 +181,7 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 | **1 Brett & Regeln** ✅ | Brett mit chessground + chess.js, legale Züge, Umwandlung (Bauer → Dame etc.), Grund-Layout, Design-Grundlagen | Man kann eine Partie gegen sich selbst ziehen |
 | **2 Gegen Stockfish** ✅ | Engine im Worker, Start-Bildschirm: Farbe, Stärke (Elo/Skill) · zweiter Modus „Gegen Freund (am selben Gerät)“ mit Namen · Aufgeben · Materialvorteil und geschlagene Figuren · Zurückblättern (Pfeiltasten, Knöpfe, Zugliste) · größere Koordinaten | Partie gegen den Computer oder einen Freund |
 | **4 Speichern + Chess.com-Import** ✅ | IndexedDB (alle Tabellen aus Abschnitt 5), App-Partien automatisch speichern, Partienliste mit Filter, Partie ansehen, PGN-Export, Datensicherung · Chess.com-Import über die öffentliche API (geprüft: funktioniert direkt aus dem Browser, CORS erlaubt), nur normales Schach, keine Doppelten, Fortschrittsanzeige | Partien bleiben nach Neuladen erhalten; eigene Chess.com-Partien in der Liste |
-| **5 Analyse-Rechnung** | Hintergrund-Analyse, Gewinnchance, Klassen, Phase, Figur eingestellt, Matt übersehen, Zeitnot (aus `%clk` der Chess.com-Partien) | Analyse läuft für App- und Chess.com-Partien |
+| **5 Analyse-Rechnung** ✅ | Hintergrund-Analyse, Gewinnchance, Klassen, Phase, Figur eingestellt, Matt übersehen, Zeitnot (aus `%clk` der Chess.com-Partien) | Analyse läuft für App- und Chess.com-Partien |
 | **6 Analyse-Ansicht** | Durchklicken, Bewertungskurve, bester Zug als Pfeil, Zusammenfassung | Eigene Partie Zug für Zug nachvollziehen |
 | **7 Puzzles** | Puzzles aus Fehlern, Lösen am Brett, Leitner-Wiederholung, „Heute fällig“ | Eigene Fehler als Training |
 | **9 Statistik** | (siehe unten, vorgezogen) | Wo/wie ich verliere |
@@ -192,5 +211,5 @@ Bewusst **nicht** geplant: Online-Spiel gegeneinander.
 ## 10. Offene Punkte / Annahmen
 
 - Partien „gegen Freund“ werden wie Computer-Partien gespeichert und analysiert (beide Seiten). Offen: Aus welchen Fehlern entstehen dort Puzzles – nur aus meinen? Dann muss ich beim Start angeben, welcher Spieler ich bin. → Klären vor Block 7.
-- Analyse-Dauer pro Partie im Browser mit der Lite-Engine (Erwartung: etwa 1–3 Minuten für eine Partie mit 40 Zügen, am Handy länger) → Messung in Block 5; ggf. Tiefe anpassen.
+- Analyse-Dauer: am Mac gemessen (~9 s/Partie bei Tiefe 16, s. Abschnitt 3). Am iPhone noch selbst ablesen (Anzeige in „Partien“).
 - Schwellen für Spielphase und „Figur eingestellt“ → an echten Partien feinjustieren.

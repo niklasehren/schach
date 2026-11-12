@@ -711,6 +711,12 @@ input[type='range'] {
   text-overflow: ellipsis;
 }
 
+.game-badges {
+  display: flex;
+  order: 3;
+  margin-top: 3px;
+}
+
 .game-chevron {
   color: var(--text-muted);
   font-size: 22px;
@@ -841,6 +847,180 @@ input[type='range'] {
 
 .progress progress::-moz-progress-bar {
   background: var(--accent);
+}
+
+/* Analyse */
+.btn-small {
+  flex: none;
+  padding: 5px 12px;
+  font-size: 14px;
+}
+
+.analysis-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.analysis-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.analysis-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-panel progress {
+  width: 100%;
+  height: 6px;
+  appearance: none;
+  border: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--line);
+  accent-color: var(--accent);
+}
+
+.analysis-panel progress::-webkit-progress-bar {
+  background: var(--line);
+}
+
+.analysis-panel progress::-webkit-progress-value {
+  background: var(--accent);
+}
+
+.analysis-panel progress::-moz-progress-bar {
+  background: var(--accent);
+}
+
+.analysis-status {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-note,
+.analysis-meta {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  box-shadow: inset 0 0 0 1px var(--line);
+  white-space: nowrap;
+}
+
+.badge.is-done {
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.badge.is-running {
+  color: var(--text);
+}
+
+.badge.is-open {
+  opacity: 0.7;
+}
+
+.analysis-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 15px;
+}
+
+.analysis-box p {
+  margin: 0;
+}
+
+.analysis-box.is-pending {
+  align-items: flex-start;
+  color: var(--text-muted);
+}
+
+.move-note {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--line);
+  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 4px;
+}
+
+.move-note.note-blunder {
+  border-left-color: var(--mark-blunder);
+}
+
+.move-note.note-mistake {
+  border-left-color: var(--mark-mistake);
+}
+
+.move-note.note-inaccuracy {
+  border-left-color: var(--mark-inaccuracy);
+}
+
+.move-note-detail {
+  width: 100%;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.movelist-mark {
+  margin-left: 2px;
+  font-weight: 700;
+}
+
+.movelist-move.mark-blunder {
+  color: var(--mark-blunder);
+  font-weight: 600;
+}
+
+.movelist-move.mark-mistake {
+  color: var(--mark-mistake);
+  font-weight: 600;
+}
+
+.movelist-move.mark-inaccuracy {
+  color: var(--mark-inaccuracy);
+}
+
+.movelist-move.is-current[data-mark] {
+  color: var(--accent-text);
+}
+
+.movelist-move.mark-blunder.is-current {
+  background: var(--mark-blunder);
+}
+
+.movelist-move.mark-mistake.is-current {
+  background: var(--mark-mistake);
+}
+
+.movelist-move.mark-inaccuracy.is-current {
+  background: var(--mark-inaccuracy);
 }
 
 /* Handy und schmale Fenster: alles untereinander, Brett bildschirmbreit */

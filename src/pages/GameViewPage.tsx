@@ -20,7 +20,11 @@ import {
 } from '../chess/format';
 import { getGame } from '../db/games';
 import { downloadFile } from '../db/backup';
-import type { GameRecord } from '../db/schema';
+import { db, type AnalysisRecord, type GameRecord, type MoveAnalysis, type MoveClass, type Side } from '../db/schema';
+import { summaryText } from '../analysis/analyze';
+import { analysisQueue } from '../analysis/queue';
+import { useQueueState } from '../analysis/useQueue';
+import { toGermanSan } from '../chess/game';
 import { useLive } from '../db/useLive';
 import { href } from '../app/router';
 
@@ -72,7 +76,16 @@ export function GameViewPage({ id }: { id: string }) {
 function GameView({ game }: { game: GameRecord }) {
   const parsed = useMemo(() => parse(game.pgn), [game.pgn]);
   const total = parsed?.moves.length ?? 0;
-  const [ply, setPly] = useState(total);
+  // Start bei der Grundstellung (vor Zug 1)
+  const [ply, setPly] = useState(0);
+  const analysis = useLive(() => db.analyses.get(game.id).then((a) => a ?? null), [game.id]);
+  const done = analysis?.status === 'done' && analysis.sides ? analysis : null;
+  // Markiert werden meine Züge; bei „Gegen Freund“ (keine eigene Farbe) die beider Seiten
+  const markedSides: Side[] = game.myColor ? [game.myColor] : ['white', 'black'];
+  const markedMoves: MoveAnalysis[] = done ? markedSides.flatMap((s) => done.sides![s]).sort((a, b) => a.ply - b.ply) : [];
+  const marks: Record<number, MoveClass> = {};
+  for (const m of markedMoves) if (m.class) marks[m.ply] = m.class;
+  const firstError = markedMoves.find((m) => m.class === 'mistake' || m.class === 'blunder');
   const [orientation, setOrientation] = useState<Color>(game.myColor ?? 'white');
 
   const goTo = useCallback((p: number) => setPly(Math.max(0, Math.min(total, p))), [total]);
@@ -166,8 +179,18 @@ function GameView({ game }: { game: GameRecord }) {
           )}
         </div>
 
-        <MoveList moves={parsed.moves.map((m) => m.san)} currentPly={ply} onSelect={goTo} />
+        <AnalysisBox game={game} analysis={analysis} />
+        {done && (
+          <MoveNote move={markedMoves.find((m) => m.ply === ply && m.class)} upcoming={markedMoves.find((m) => m.ply === ply + 1 && (m.class === 'mistake' || m.class === 'blunder'))} />
+        )}
+
+        <MoveList moves={parsed.moves.map((m) => m.san)} currentPly={ply} onSelect={goTo} marks={marks} />
         <NavControls ply={ply} last={total} onGo={goTo} />
+        {done && (
+          <button className="btn" onClick={() => firstError && goTo(firstError.ply - 1)} disabled={!firstError} data-testid="first-error">
+            {firstError ? 'Zum ersten Fehler' : 'Keine Fehler gefunden'}
+          </button>
+        )}
 
         <div className="actions">
           <button className="btn" onClick={() => setOrientation(other)}>
@@ -185,4 +208,77 @@ function GameView({ game }: { game: GameRecord }) {
       </aside>
     </div>
   );
+}
+
+const classText: Record<MoveClass, string> = { blunder: 'Patzer', mistake: 'Fehler', inaccuracy: 'Ungenauigkeit' };
+
+/** Zusammenfassung der Analyse bzw. ihr Stand */
+function AnalysisBox({ game, analysis }: { game: GameRecord; analysis: AnalysisRecord | null | undefined }) {
+  const queue = useQueueState();
+  if (analysis === undefined) return null;
+  if (analysis?.status === 'done' && analysis.summary) {
+    const sides: Side[] = game.myColor ? [game.myColor] : ['white', 'black'];
+    const depth = 'depth' in analysis.limit ? `Tiefe ${analysis.limit.depth}` : `${analysis.limit.movetime} ms/Stellung`;
+    return (
+      <div className="analysis-box" data-testid="analysis-summary">
+        {sides.map((s) => (
+          <p key={s}>
+            <strong>{game.myColor ? 'Deine Fehler' : game[s].name}:</strong> {summaryText(analysis.summary![s])}
+          </p>
+        ))}
+        <span className="analysis-meta">
+          Stockfish, {depth}
+          {analysis.baseTime === null && game.timeClass === 'daily' ? ' · Fernschach: keine Zeitnot-Auswertung' : ''}
+        </span>
+      </div>
+    );
+  }
+  if (analysis?.status === 'failed') return <div className="analysis-box">Diese Partie konnte nicht analysiert werden.</div>;
+  const running = queue.current?.gameId === game.id;
+  return (
+    <div className="analysis-box is-pending" data-testid="analysis-pending">
+      {running ? (
+        <span>
+          Wird gerade analysiert … Stellung {Math.min(queue.current!.position + 1, queue.current!.positions)} von {queue.current!.positions}
+        </span>
+      ) : (
+        <>
+          <span>Noch nicht analysiert.</span>
+          <button className="btn btn-small" onClick={() => analysisQueue.prioritize(game.id)}>
+            Als Nächstes analysieren
+          </button>
+          {queue.status === 'paused' && <span className="analysis-meta">Die Analyse ist pausiert (Weiter unter „Partien“).</span>}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Kurzer Hinweis zum angezeigten Zug (Pfeile und Kurve folgen in Block 6) */
+function MoveNote({ move, upcoming }: { move?: MoveAnalysis; upcoming?: MoveAnalysis }) {
+  if (move?.class) {
+    const tags = [move.hanging && 'Figur eingestellt', move.allowedMate && 'Matt zugelassen', move.missedMate && 'Matt übersehen', move.timeTrouble && 'in Zeitnot']
+      .filter(Boolean)
+      .join(' · ');
+    return (
+      <p className={`move-note note-${move.class}`} data-testid="move-note">
+        <strong>
+          {toGermanSan(move.san)}: {classText[move.class]}
+        </strong>
+        {tags && ` · ${tags}`}
+        {move.bestSan && <> · besser war {toGermanSan(move.bestSan)}</>}
+        <span className="move-note-detail">
+          Gewinnchance {Math.round(move.winBefore)} % → {Math.round(move.winAfter)} %
+        </span>
+      </p>
+    );
+  }
+  if (upcoming?.class) {
+    return (
+      <p className="move-note" data-testid="move-note">
+        Hier folgt {upcoming.class === 'blunder' ? 'ein Patzer' : 'ein Fehler'}. Finde zuerst selbst einen besseren Zug, dann einen Zug vor.
+      </p>
+    );
+  }
+  return null;
 }

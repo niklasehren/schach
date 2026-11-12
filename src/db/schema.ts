@@ -61,20 +61,75 @@ export type GameRecord = {
   accuracies?: { white?: number; black?: number };
 };
 
-/** Engine-Analyse einer Partie (ab Block 5) */
+export type MoveClass = 'inaccuracy' | 'mistake' | 'blunder';
+export type Phase = 'opening' | 'middlegame' | 'endgame';
+
+/** Bewertung einer Stellung aus Sicht von Weiß (cp = Hundertstel-Bauern, mate = Matt in n, positiv = Weiß setzt matt) */
+export type PositionEval = { cp?: number; mate?: number; depth: number; best?: string; pv?: string[] };
+
+/** Ein analysierter Halbzug */
+export type MoveAnalysis = {
+  /** Halbzug-Nummer, 1 = erster Zug von Weiß */
+  ply: number;
+  san: string;
+  uci: string;
+  /** Bester Engine-Zug in der Stellung davor */
+  best?: string;
+  bestSan?: string;
+  /** Gewinnchance des ziehenden Spielers vor/nach dem Zug, 0–100 % */
+  winBefore: number;
+  winAfter: number;
+  /** Verlust an Gewinnchance in Prozentpunkten (≥ 0) */
+  loss: number;
+  class?: MoveClass;
+  phase: Phase;
+  /** Figur eingestellt: der Gegner gewinnt mit seiner besten Antwort ≥ 2 Bauerneinheiten */
+  hanging: boolean;
+  missedMate: boolean;
+  allowedMate: boolean;
+  /** Restzeit vor dem Zug in Sekunden; null = ohne Uhr */
+  clock: number | null;
+  /** Restzeit < 10 % der Grundzeit; null = nicht bestimmbar (ohne Uhr, Fernschach) */
+  timeTrouble: boolean | null;
+};
+
+export type SideSummary = {
+  moves: number;
+  inaccuracies: number;
+  mistakes: number;
+  blunders: number;
+  hanging: number;
+  missedMates: number;
+  allowedMates: number;
+  /** Fehler + Patzer */
+  errors: number;
+  /** davon in Zeitnot (nur wenn Zeitnot bestimmbar) */
+  errorsInTimeTrouble: number;
+  timeTroubleKnown: boolean;
+  /** Durchschnittlicher Verlust an Gewinnchance pro Zug (Prozentpunkte) */
+  avgLoss: number;
+};
+
+/** Engine-Analyse einer Partie (Block 5) */
 export type AnalysisRecord = {
   gameId: string;
   createdAt: number;
+  updatedAt: number;
+  /** partial = Zwischenstand (nach Neuladen geht es dort weiter), failed = Partie nicht lesbar */
+  status: 'partial' | 'done' | 'failed';
   engine: string;
-  depth: number;
-  moves: {
-    ply: number;
-    eval: { cp?: number; mate?: number };
-    best?: string;
-    class?: 'inaccuracy' | 'mistake' | 'blunder';
-    phase?: 'opening' | 'middlegame' | 'endgame';
-    tags?: string[];
-  }[];
+  limit: { depth: number } | { movetime: number };
+  /** Bewertung jeder Stellung, Index 0 = Ausgangsstellung */
+  evals: (PositionEval | null)[];
+  myColor: Side | null;
+  timeClass: GameRecord['timeClass'] | null;
+  /** Grundzeit in Sekunden (aus dem TimeControl-Header), null = ohne Uhr/Fernschach */
+  baseTime: number | null;
+  /** Züge getrennt nach Farbe; meine Züge = sides[myColor] */
+  sides?: { white: MoveAnalysis[]; black: MoveAnalysis[] };
+  summary?: { white: SideSummary; black: SideSummary };
+  /** Reine Rechenzeit in Millisekunden */
+  ms: number;
 };
 
 /** Puzzle aus einem eigenen Fehler (ab Block 7) */
@@ -120,6 +175,8 @@ export class SchachDB extends Dexie {
       attempts: 'id, puzzleId, date',
       settings: 'key',
     });
+    // Version 2: Analysen nach Status abfragbar (Warteschlange)
+    this.version(2).stores({ analyses: 'gameId, status' });
   }
 }
 

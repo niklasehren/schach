@@ -25,6 +25,7 @@ import {
 import { getEngine } from '../engine/stockfish';
 import { buildAppGame, saveGame, setSetting } from '../db/games';
 import { href } from '../app/router';
+import { analysisQueue } from '../analysis/queue';
 import { strengthLabel, strengthLevels, strengthOptions } from '../engine/strength';
 
 const other = (c: Color): Color => (c === 'white' ? 'black' : 'white');
@@ -69,6 +70,12 @@ export function PlayPage({ active = true }: { active?: boolean }) {
     const r = resultFromStatus(gameStatus(chess.current));
     if (r) setResult(r);
   }, [version, session, result]);
+
+  // Während einer Partie gegen den Computer pausiert die Hintergrund-Analyse (beide teilen sich die Rechenleistung)
+  const playingEngine = !!session && session.setup.mode === 'computer' && !result;
+  useEffect(() => {
+    analysisQueue.setYielding(playingEngine);
+  }, [playingEngine]);
 
   // Partieende: automatisch speichern (einmal pro Partie; Partien ganz ohne Züge nicht)
   useEffect(() => {

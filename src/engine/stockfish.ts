@@ -12,18 +12,42 @@ export type EngineInfo = {
   eloMax: number;
 };
 
+/** Verbindung zur Engine: im Browser ein Web Worker, in Tests Stockfish direkt in Node */
+export type Transport = {
+  send: (cmd: string) => void;
+  onLine: (cb: (line: string) => void) => void;
+  terminate: () => void;
+};
+
+export function workerTransport(url = ENGINE_URL): Transport {
+  const worker = new Worker(url);
+  return {
+    send: (cmd) => worker.postMessage(cmd),
+    onLine: (cb) => {
+      worker.onmessage = (e: MessageEvent<string>) => cb(String(e.data));
+    },
+    terminate: () => worker.terminate(),
+  };
+}
+
+/** Grenze für eine Analyse: feste Suchtiefe oder feste Zeit pro Stellung */
+export type SearchLimit = { depth: number } | { movetime: number };
+
+/** Bewertung aus Sicht von Weiß: cp = Hundertstel-Bauern, mate = Matt in n Zügen (positiv = Weiß setzt matt) */
+export type Evaluation = { cp?: number; mate?: number; depth: number; best?: string; pv?: string[] };
+
 export class Engine {
-  private worker: Worker;
+  private transport: Transport;
   private listeners = new Set<(line: string) => void>();
   private ready: Promise<EngineInfo>;
   /** Befehle laufen nacheinander, nie gleichzeitig */
   private queue: Promise<unknown> = Promise.resolve();
 
-  constructor(url = ENGINE_URL) {
-    this.worker = new Worker(url);
-    this.worker.onmessage = (e: MessageEvent<string>) => {
-      for (const listener of this.listeners) listener(String(e.data));
-    };
+  constructor(transport: Transport = workerTransport()) {
+    this.transport = transport;
+    transport.onLine((line) => {
+      for (const listener of this.listeners) listener(line);
+    });
     this.ready = this.handshake();
   }
 
@@ -32,7 +56,7 @@ export class Engine {
   }
 
   private send(cmd: string) {
-    this.worker.postMessage(cmd);
+    this.transport.send(cmd);
   }
 
   /** Schickt Befehle und wartet auf die erste Antwortzeile, für die `done` zutrifft. */
@@ -94,8 +118,35 @@ export class Engine {
     });
   }
 
+  /**
+   * Bewertet eine Stellung. Stockfish meldet die Bewertung aus Sicht der Seite am Zug;
+   * hier wird sie auf die Sicht von Weiß umgerechnet.
+   */
+  evaluate(fen: string, limit: SearchLimit): Promise<Evaluation> {
+    return this.enqueue(async () => {
+      await this.ready;
+      const whiteToMove = fen.split(' ')[1] !== 'b';
+      let last: Evaluation | null = null;
+      const go = 'depth' in limit ? `go depth ${limit.depth}` : `go movetime ${limit.movetime}`;
+      const bestLine = await this.request([`position fen ${fen}`, go], (l) => l.startsWith('bestmove'), (line) => {
+        const parsed = parseInfo(line);
+        if (parsed) last = parsed;
+      });
+      const result: Evaluation = last ?? { depth: 0 };
+      const sign = whiteToMove ? 1 : -1;
+      const best = bestLine.split(' ')[1];
+      return {
+        depth: result.depth,
+        cp: result.cp !== undefined ? sign * result.cp : undefined,
+        mate: result.mate !== undefined ? sign * result.mate : undefined,
+        best: best && best !== '(none)' ? best : result.pv?.[0],
+        pv: result.pv,
+      };
+    });
+  }
+
   terminate() {
-    this.worker.terminate();
+    this.transport.terminate();
   }
 }
 
@@ -104,4 +155,17 @@ let shared: Engine | null = null;
 export function getEngine(): Engine {
   shared ??= new Engine();
   return shared;
+}
+
+/** Liest eine „info depth … score … pv …“-Zeile (nur Hauptvariante, keine Zwischenstände mit Schranken) */
+export function parseInfo(line: string): Evaluation | null {
+  if (!line.startsWith('info ') || !line.includes(' score ') || !line.includes(' pv ')) return null;
+  if (/ (lowerbound|upperbound)/.test(line)) return null;
+  const multipv = line.match(/ multipv (\d+)/);
+  if (multipv && multipv[1] !== '1') return null;
+  const depth = Number(line.match(/ depth (\d+)/)?.[1] ?? 0);
+  const score = line.match(/ score (cp|mate) (-?\d+)/);
+  if (!score) return null;
+  const pv = line.split(' pv ')[1].trim().split(/\s+/).slice(0, 12);
+  return score[1] === 'cp' ? { depth, cp: Number(score[2]), pv } : { depth, mate: Number(score[2]), pv };
 }

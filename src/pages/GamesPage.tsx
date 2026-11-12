@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { countGames, listGames, type SourceFilter } from '../db/games';
-import type { GameRecord } from '../db/schema';
+import { db, type AnalysisRecord, type GameRecord } from '../db/schema';
+import { AnalysisPanel } from '../components/AnalysisPanel';
+import { useQueueState } from '../analysis/useQueue';
 import { useLive } from '../db/useLive';
 import { formatDate, formatTimeControl, myResultText, scoreText, sourceText } from '../chess/format';
 import { href } from '../app/router';
@@ -18,6 +20,12 @@ export function GamesPage() {
   const [limit, setLimit] = useState(PAGE);
   const games = useLive(() => listGames(filter, limit), [filter, limit]);
   const total = useLive(() => countGames(filter), [filter]);
+  const ids = games?.map((g) => g.id) ?? [];
+  const analyses = useLive(
+    () => db.analyses.where('gameId').anyOf(ids).toArray().then((rows) => new Map(rows.map((a) => [a.gameId, a]))),
+    [ids.join(',')],
+  );
+  const queue = useQueueState();
 
   return (
     <div className="page">
@@ -25,6 +33,8 @@ export function GamesPage() {
         <h1 className="page-title">Partien</h1>
         {total !== undefined && <span className="page-count">{total === 1 ? '1 Partie' : `${total} Partien`}</span>}
       </div>
+
+      <AnalysisPanel />
 
       <div className="segmented segmented-3" role="radiogroup" aria-label="Quelle">
         {filters.map((f) => (
@@ -57,7 +67,7 @@ export function GamesPage() {
         <ul className="game-list" data-testid="game-list">
           {games.map((g) => (
             <li key={g.id}>
-              <GameRow game={g} />
+              <GameRow game={g} analysis={analyses?.get(g.id)} analysing={queue.current?.gameId === g.id} />
             </li>
           ))}
         </ul>
@@ -78,7 +88,25 @@ function opponentOf(g: GameRecord): { name: string; rating?: number; color?: 'wh
   return { name: opp.isEngine && opp.detail ? `${opp.name} · ${opp.detail}` : opp.name, rating: opp.rating };
 }
 
-function GameRow({ game: g }: { game: GameRecord }) {
+function AnalysisBadge({ game, analysis, analysing }: { game: GameRecord; analysis?: AnalysisRecord; analysing: boolean }) {
+  if (analysis?.status === 'done') {
+    const side = analysis.summary?.[game.myColor ?? 'white'];
+    const blunders = game.myColor && side ? side.blunders : 0;
+    return (
+      <span className="badge is-done" data-testid="badge-done">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
+        analysiert{blunders > 0 && ` · ${blunders} Patzer`}
+      </span>
+    );
+  }
+  if (analysis?.status === 'failed') return <span className="badge">nicht lesbar</span>;
+  if (analysing) return <span className="badge is-running">wird analysiert</span>;
+  return <span className="badge is-open">offen</span>;
+}
+
+function GameRow({ game: g, analysis, analysing }: { game: GameRecord; analysis?: AnalysisRecord; analysing: boolean }) {
   const opp = opponentOf(g);
   const myRating = g.myColor ? g[g.myColor].rating : undefined;
   const outcome = g.myResult ?? 'neutral';
@@ -99,6 +127,9 @@ function GameRow({ game: g }: { game: GameRecord }) {
           )}
           <span className="game-opponent-name">{g.myColor ? `gegen ${opp.name}` : opp.name}</span>
           {opp.rating !== undefined && <span className="game-rating">{opp.rating}</span>}
+        </span>
+        <span className="game-badges">
+          <AnalysisBadge game={g} analysis={analysis} analysing={analysing} />
         </span>
         <span className="game-meta">
           {formatDate(g.date)} · <span className={`source source-${g.source}`}>{sourceText[g.source]}</span>

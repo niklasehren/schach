@@ -1,36 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { move, startFriendGame } from './helpers';
+import { mockChessCom, move, runImport, startFriendGame } from './helpers';
 
-const fixture = (name: string) => readFileSync(new URL(`../fixtures/${name}`, import.meta.url), 'utf8');
 const shot = (page: Page, name: string) => page.screenshot({ path: `test-results/${name}-${test.info().project.name}.png`, fullPage: true });
-
-/** Nachgestellte Chess.com-API für den Benutzer „testspieler“ */
-async function mockChessCom(page: Page, status: Record<string, number> = {}) {
-  const calls: string[] = [];
-  await page.route('https://api.chess.com/**', async (route) => {
-    const url = route.request().url();
-    calls.push(url);
-    const path = new URL(url).pathname;
-    if (status[path]) return route.fulfill({ status: status[path], body: '{}' });
-    const bodies: Record<string, string> = {
-      '/pub/player/testspieler/games/archives': fixture('chesscom-archives.json'),
-      '/pub/player/testspieler/games/2026/11': fixture('chesscom-2026-11.json'),
-      '/pub/player/testspieler/games/2026/10': fixture('chesscom-2026-10.json'),
-      '/pub/player/testspieler/games/2026/06': '{"games":[]}',
-    };
-    if (path in bodies) return route.fulfill({ status: 200, contentType: 'application/json', body: bodies[path], headers: { 'access-control-allow-origin': '*' } });
-    return route.fulfill({ status: 404, contentType: 'application/json', body: '{"code":0,"message":"not found"}', headers: { 'access-control-allow-origin': '*' } });
-  });
-  return calls;
-}
-
-async function runImport(page: Page, name: string, range: 'Alle' | 'Letzte 3 Monate' = 'Alle') {
-  await page.goto('/#/import');
-  await page.getByLabel('Chess.com-Benutzername').fill(name);
-  await page.getByRole('radio', { name: range }).click();
-  await page.getByRole('button', { name: 'Partien importieren' }).click();
-}
 
 test('App-Partie wird bei Matt gespeichert und ist nach Neuladen in der Liste', async ({ page }) => {
   await startFriendGame(page);
@@ -53,12 +25,14 @@ test('App-Partie wird bei Matt gespeichert und ist nach Neuladen in der Liste', 
   await row.click();
   await expect(page.getByTestId('game-header')).toContainText('Anna gewinnt');
   await expect(page.getByTestId('game-header')).toContainText('durch Schachmatt');
-  await expect(page.locator('.movelist-move.is-current')).toHaveText('Dxf7#');
-  // Nur ansehen: Durchblättern geht, Ziehen nicht
-  await page.keyboard.press('ArrowLeft');
-  await expect(page.locator('.movelist-move.is-current')).toHaveText('Sf6');
-  await page.getByRole('button', { name: 'Zum Anfang' }).click();
+  // Ansicht startet bei der Grundstellung (vor Zug 1)
   await expect(page.locator('.movelist-move.is-current')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Zum Anfang' })).toBeDisabled();
+  // Nur ansehen: Durchblättern geht
+  await page.keyboard.press('End');
+  await expect(page.locator('.movelist-move.is-current')).toHaveText(/^Dxf7#/);
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('.movelist-move.is-current')).toHaveText(/^Sf6/);
 
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'PGN exportieren' }).click();
@@ -113,7 +87,7 @@ test('Chess.com-Import mit nachgestellter API, erneuter Import holt nur Neues', 
   await expect(page.getByTestId('board').filter({ visible: true })).toHaveClass(/orientation-black/);
   await expect(page.getByTestId('game-header')).toContainText('D00');
   await expect(page.getByTestId('clock-white')).toBeVisible();
-  await page.getByRole('button', { name: 'Zum Anfang' }).click();
+  // Start bei der Grundstellung: volle Grundzeit
   await expect(page.getByTestId('clock-white')).toHaveText('10:00');
   await page.getByRole('button', { name: 'Zug vor' }).click();
   await page.getByRole('button', { name: 'Zug vor' }).click();
