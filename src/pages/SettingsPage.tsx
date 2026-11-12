@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { AccountCard, AdminCard, PrivacyCard } from '../components/AccountSettings';
+import { InstallCard } from '../components/InstallHint';
 
 /** Einstellungen dieses Geräts: heller Modus, Brett-Theme */
 export function SettingsPage() {
@@ -70,6 +71,7 @@ export function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+      <InstallCard />
       <PrivacyCard />
     </div>
   );

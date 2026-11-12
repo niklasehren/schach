@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { href, useRoute, type Route } from './router';
+import { UpdatePrompt } from '../components/UpdatePrompt';
 
 // Seiten erst bei Bedarf laden (kleineres Start-Paket)
 const OverviewPage = lazy(() => import('../pages/OverviewPage').then((m) => ({ default: m.OverviewPage })));
@@ -62,7 +63,7 @@ export function App() {
 
   return (
     <TooltipProvider delay={250}>
-    <div className="flex min-h-dvh flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="flex min-h-dvh flex-col pr-[env(safe-area-inset-right)] pb-[calc(4.5rem+env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] md:pb-0">
       <header className="sticky top-0 z-30 border-b bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-6 px-4 md:h-16 md:px-7">
           <a className="font-heading text-[28px] leading-none text-foreground no-underline" href={href({ page: 'uebersicht' })}>
@@ -128,7 +129,7 @@ export function App() {
 
       {/* Am Handy: Navigation als Leiste unten, mit dem Daumen erreichbar */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background/95 px-1 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background/95 pt-1 pr-[calc(0.25rem+env(safe-area-inset-right))] pb-[calc(0.25rem+env(safe-area-inset-bottom))] pl-[calc(0.25rem+env(safe-area-inset-left))] backdrop-blur md:hidden"
         aria-label="Hauptnavigation unten"
       >
         {links.map((l) => {
@@ -146,6 +147,7 @@ export function App() {
           );
         })}
       </nav>
+      <UpdatePrompt />
     </div>
     </TooltipProvider>
   );

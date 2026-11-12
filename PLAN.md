@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 12. November 2026 · Status: Blöcke 0–2, 4–7, 10 (Lichess-Puzzles) und 13 (Konten + Synchronisierung mit Supabase) fertig, Design „Klubhaus“ mit shadcn/ui; als Nächstes: Block 9 (Statistik)
+Stand: 12. November 2026 · Status: Blöcke 0–2, 4–8, 10 (Lichess-Puzzles) und 13 (Konten + Synchronisierung) fertig, App fürs iPhone installierbar (PWA), Design „Klubhaus“ mit shadcn/ui; als Nächstes: Block 9 (Statistik)
 
 ## 1. Idee in einem Satz
 
@@ -149,18 +149,19 @@ Ansicht: Brett + Zugliste zum Durchklicken (auch per Pfeiltasten / Wischen), Bew
 - **Bedienung wie bei „Meine Fehler“:** zwei Versuche, Pfeile (rot: mein erster falscher Zug, grün: Lösung), „Lösung zeigen“ zum Durchklicken. Richtig ist nur der Lösungszug – oder jeder Zug, der matt setzt (wie bei Lichess); keine Engine-Prüfung. Statt Partie-Link: Thema mit Erklärung. Link „Puzzles: Lichess, CC0“ unter dem Puzzle und auf der Trainingsseite.
 - **Puzzle-Rating (vereinfachtes Elo):** erwartete Lösungschance E = 1 / (1 + 10^((Puzzle − ich)/400)); neues Rating = alt + K · (Ergebnis − E). Ergebnis: im ersten Versuch gelöst 1, im zweiten 0,5, nicht gelöst 0. K = 40 für die ersten 15 Puzzles, danach 20. Untergrenze 100. **Startwert:** letzte Chess.com-Wertung (Rapid, sonst Blitz, Bullet, Täglich) **+ 400**, begrenzt auf 600–1800; ohne Chess.com-Partien 1000. Begründung: Puzzle-Ratings liegen im Anfängerbereich deutlich über Partie-Ratings; das Rating findet in den ersten Puzzles schnell zum eigenen Niveau. Gespeichert in `settings` (Schlüssel `puzzleRating`), Versuche in `attempts` mit `lichess:<ID>` – beides im Backup, kein neues Datenbankschema.
 - **Auswahl passend zum Rating:** zufällig unter den noch nie gespielten Puzzles im Fenster ±100 um mein Rating; ist dort nichts, wird das Fenster verdoppelt. Sind alle gespielt, darf eines wiederkommen.
-- **„Passend zu meinen Schwächen“:** Pro Puzzle wird ein Thema nach Gewicht gezogen. 80 % der Gewichte kommen aus meinen Fehlerarten (aus der Analyse; die Anzahl einer Fehlerart wird gleichmäßig auf ihre Themen verteilt), 20 % gleichmäßig auf alle Themen, damit keines ganz verschwindet. Ohne passende Fehler: alle gleich.
+- **„Passend zu meinen Schwächen“:** Pro Puzzle wird ein Thema nach Gewicht gezogen. 80 % der Gewichte kommen aus meinen Fehlerarten (aus der Analyse; die Anzahl einer Fehlerart wird gleichmäßig auf ihre Themen verteilt), 20 % gleichmäßig auf alle 14 Themen (je ca. 1,4 %), damit keines ganz verschwindet. Ohne passende Fehler: alle gleich.
+- **Regel für die Zuordnung (überarbeitet 12.11.2026):** Ein Thema bekommt nur Gewicht, wenn sein Muster direkt zur **erkannten** Fehlerart passt. Fesselung, Spieß, Abzugsangriff, Gefangene Figur, Hinlenkung und Umwandlung erkennt die Analyse (noch) nicht als eigene Fehlerart – sie kommen nur über den Grundanteil dran. Vorher landeten z. B. „Gefangene Figur“ und „Fesselung“ über „Drohung übersehen“ bzw. „Material eingestellt“ ohne echten Bezug in den Schwerpunkten. Beispiel mit 42× „Matt zugelassen“: gut drei Viertel der Puzzles sind dann Matt in 1, Matt in 2, Grundreihenmatt und Verteidigen (Test in `tests/unit/lichess.test.ts`).
 
-| Fehlerart (Analyse) | Themen |
-|---|---|
-| Matt zugelassen | Verteidigen, Grundreihenmatt, Matt in 1 |
-| Matt übersehen | Matt in 1, Matt in 2, Grundreihenmatt |
-| Drohung übersehen | Verteidigen, Abzugsangriff, Gefangene Figur |
-| Figur oder Bauer ungedeckt gelassen | Hängende Figur, Verteidigen |
-| Gabel übersehen | Gabel |
-| Material eingestellt | Hängende Figur, Fesselung, Spieß, Gefangene Figur |
-| Schach oder Schlagzug ohne Wirkung | Ruhiger Zug, Ablenkung |
-| Stellungsfehler (ohne klare Taktik) | – (kein Taktik-Thema) |
+| Fehlerart (Analyse) | Themen | Warum |
+|---|---|---|
+| Matt zugelassen | Matt in 1, Matt in 2, Grundreihenmatt, Verteidigen | Mattmuster kennen, um sie beim Gegner zu sehen, und rechtzeitig abwehren |
+| Matt übersehen | Matt in 1, Matt in 2, Grundreihenmatt | eigene Matts finden |
+| Drohung übersehen | Verteidigen | Drohung erkennen und abwehren |
+| Figur oder Bauer ungedeckt gelassen | Hängende Figur, Verteidigen | Ungedecktes sehen – eigenes und fremdes |
+| Gabel übersehen | Gabel | gleiches Muster |
+| Material eingestellt | Hängende Figur | Figuren, die einfach geschlagen werden können |
+| Schach oder Schlagzug ohne Wirkung | Ruhiger Zug | der stärkste Zug ist oft kein Schach/Schlagzug |
+| Stellungsfehler (ohne klare Taktik) | – | kein Taktik-Thema |
 
 - **Adressen:** `#/training` (Übersicht beider Arten), `#/training/fehler` (Tagesziel), `#/training/mehr` (Weiter üben), `#/training/allgemein/schwaechen` bzw. `#/training/allgemein/<Thema>`.
 
@@ -257,6 +258,17 @@ Gewählt aus zwei Entwürfen (`design-entwurf/`: A „Klubhaus“, B „Studio�
 - **Grafiken:** Wertungsverlauf und Bewertungskurve mit Recharts (shadcn Chart), Tooltip mit Datum, Wertung und Partien.
 - **Ladezeit:** Seiten werden erst bei Bedarf geladen. Bundle vorher 503 kB JS (gzip 162) + 54 kB CSS; nachher 1157 kB JS (gzip 384) in 34 Dateien + 103 kB CSS (gzip 19), davon Recharts 335 kB; beim Öffnen der Übersicht ca. 960 kB.
 
+## 7b. App fürs iPhone (Block 8, Stand 12.11.2026)
+
+- **Progressive Web App** mit `vite-plugin-pwa` 2.0 (Workbox). Manifest: Name „Schach“, `display: standalone` (Vollbild ohne Safari-Leiste), Start und Bereich `/schach/` (GitHub Pages), dunkle Theme- und Hintergrundfarbe `#121519`.
+- **Icons** im Klubhaus-Stil (Waldgrün, Messing-Ring, Springer aus dem Brett-Figurensatz cburnett), erzeugt mit `node scripts/icons.mjs` (rendert mit dem Chromium aus Playwright): 192 und 512 px, „maskable“ 512 px mit Rand für Android, `apple-touch-icon` 180 px, Favicon 32 px und SVG.
+- **iPhone-Angaben** in `index.html`: `apple-mobile-web-app-capable`, Statusleiste `black-translucent` (App reicht bis unter die Uhr), `viewport-fit=cover`.
+- **Safe Areas:** Kopfzeile mit Abstand zur Notch, Navigation unten mit Abstand zur Home-Leiste, links/rechts Abstand im Querformat; das Handy-Brett zieht die seitlichen Ränder ab.
+- **Offline:** Der Service Worker speichert beim ersten Besuch die ganze App vorab (ca. 73 Dateien, 4,1 MB): Seiten, Schriften, Stockfish (JS + WASM, 1,8 MB) und **alle 14 Puzzle-Themen**. Ohne Internet funktionieren Spielen, Analyse und beide Trainingsarten. Supabase und Chess.com werden nie aus dem Speicher bedient; die Synchronisierung merkt sich Änderungen und gleicht ab, sobald wieder Internet da ist (Ereignis „online“).
+- **Updates:** Eine neue Version wird im Hintergrund geladen (Prüfung beim Start, beim Zurückkehren in die App und stündlich). Dann erscheint unten „Neue Version verfügbar – Neu laden“. Aktiviert wird sie **nur auf Klick** – nie automatisch mitten in einer Partie oder einem Puzzle. Die Version steht in den Einstellungen.
+- **Hinweis für iPhone-Nutzer:** In Safari am iPhone/iPad zeigt die Übersicht eine ausblendbare Anleitung „Zum Home-Bildschirm“ (Teilen → Zum Home-Bildschirm → Hinzufügen) mit dem Hinweis, dass die Homescreen-App **einen eigenen Speicher** hat (einmal anmelden). In der installierten App ohne Konto erscheint stattdessen ein kurzer Hinweis „einmal anmelden“. Dauerhaft unter Einstellungen → „App aufs iPhone“.
+- **Tests:** `tests/e2e/pwa.spec.ts` baut zwei Versionen und liefert sie wie GitHub Pages unter `/schach/` aus: Manifest/Icons, Offline-Start (Spielen gegen Stockfish, Partie + Analyse, Lichess-Puzzle ohne Internet), Update-Meldung (kein Neuladen von selbst, erst auf Klick die neue Version), iPhone-Hinweise und Safe Areas in Handy-Größe.
+
 ## 8. Reihenfolge der Schritte
 
 Jeder Block endet mit: Test (automatisch + im Browser in Mac- und Handy-Größe) → kurze Zusammenfassung, wie du es ausprobierst.
@@ -280,7 +292,7 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 | **10 Lichess-Puzzles** ✅ (vorgezogen) | Allgemeines Training aus der Lichess-Datenbank (CC0): 14 Themen, Puzzle-Rating, „Passend zu meinen Schwächen“ oder Thema wählen; „Weiter üben“ ohne Tageslimit (s. Abschnitt 4b) | Zwei Trainingsarten mit eigenem Startknopf |
 | **9 Statistik** | (siehe unten, vorgezogen) | Wo/wie ich verliere |
 | **3 Uhr & Partieende** | Schachuhr mit Inkrement (Standard 15+10, wählbar), Partieende durch Zeit, keine Zugrücknahme, keine Hinweise | Vollständige Partie mit Uhr |
-| **8 App & Feinschliff** | PWA (Homescreen, offline), Handy-Bedienung, Ladezeiten, Endkontrolle | App aufs iPhone installieren und nutzen |
+| **8 App fürs iPhone** ✅ | PWA (Homescreen, offline, Update-Meldung, Safe Areas, Installationshinweis) – s. Abschnitt 7b | App aufs iPhone installieren und nutzen |
 
 ### Spätere Schritte (nur vorgesehen, noch nicht gebaut)
 
@@ -307,6 +319,6 @@ Bewusst **nicht** geplant: Online-Spiel gegeneinander.
 - ~~Puzzles aus „Gegen Freund“-Partien~~ → entschieden (Block 7): „Wer bist du?“ beim Start, Puzzles nur aus eigenen Zügen.
 - Fesselung, Spieß, Abzugsangriff: im Begriffs-Wörterbuch, aber noch ohne Erkennungsregel.
 - Analyse-Dauer: am Mac gemessen (~9 s/Partie bei Tiefe 16, s. Abschnitt 3). Am iPhone noch selbst ablesen (Anzeige in „Partien“).
-- Ladezeit: Seiten und Puzzle-Themen werden schon bei Bedarf geladen; Recharts (335 kB) ist der größte Brocken → in Block 8 prüfen.
+- Ladezeit: Seiten und Puzzle-Themen werden bei Bedarf geladen, die PWA speichert alles nach dem ersten Besuch; Recharts (ca. 330 kB) ist der größte Brocken.
 - Puzzle-Rating: Startwert (+400 auf Chess.com) und K-Faktor sind Annahmen → nach einigen Wochen am eigenen Verlauf prüfen.
 - Schwellen für Spielphase und „Figur eingestellt“ → an echten Partien feinjustieren.

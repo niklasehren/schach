@@ -173,6 +173,23 @@ describe('Themen-Gewichtung nach meinen Schwächen', () => {
     expect(top).toBe('fork');
   });
 
+  it('„Matt zugelassen“ 42×: Matt-Muster und Verteidigen vorn, Gefangene Figur nur mit Grundanteil', () => {
+    const w = themeWeights([
+      { type: 'mateAllowed', count: 42 },
+      { type: 'pieceTaken', count: 5 },
+      { type: 'undefended', count: 4 },
+      { type: 'threatMissed', count: 2 },
+      { type: 'other', count: 14 },
+    ]);
+    const top4 = [...w.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k]) => k);
+    expect(top4.sort()).toEqual(['backRankMate', 'defensiveMove', 'mateIn1', 'mateIn2']);
+    const base = BASE_SHARE / THEMES.length;
+    for (const t of ['trappedPiece', 'pin', 'skewer', 'discoveredAttack', 'attraction', 'promotion'] as const) expect(w.get(t)).toBeCloseTo(base);
+    // gut drei Viertel des Trainings sind Matt-Muster und Verteidigen
+    const mate = ['mateIn1', 'mateIn2', 'backRankMate', 'defensiveMove'].reduce((sum, k) => sum + w.get(k as never)!, 0);
+    expect(mate).toBeGreaterThan(0.75);
+  });
+
   it('jede Fehlerart verweist nur auf vorhandene Themen; Ziehen nach Gewicht', () => {
     for (const themes of Object.values(ERROR_THEMES)) for (const t of themes) expect(THEME_KEYS).toContain(t);
     const w = themeWeights([{ type: 'fork', count: 1 }]);

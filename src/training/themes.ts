@@ -22,17 +22,21 @@ export const themeOf = (key: string) => THEMES.find((t) => t.key === key);
 
 /**
  * Welche Themen helfen gegen welche meiner Fehlerarten (aus der Analyse, siehe errorTypes.ts).
+ * Regel: Ein Thema bekommt nur Gewicht, wenn sein Muster direkt zur erkannten Fehlerart passt.
+ * Fesselung, Spieß, Abzugsangriff, Gefangene Figur, Hinlenkung und Umwandlung erkennt die Analyse
+ * (noch) nicht als eigene Fehlerart – sie kommen nur über den Grundanteil dran.
  * Die Anzahl einer Fehlerart wird gleichmäßig auf ihre Themen verteilt.
  * „Stellungsfehler ohne klare Taktik“ (other) hat kein passendes Taktik-Thema.
  */
 export const ERROR_THEMES: Record<string, ThemeKey[]> = {
-  mateAllowed: ['defensiveMove', 'backRankMate', 'mateIn1'],
+  // Matt zugelassen: Mattmuster kennen (sie dann auch beim Gegner sehen) und rechtzeitig verteidigen
+  mateAllowed: ['mateIn1', 'mateIn2', 'backRankMate', 'defensiveMove'],
   mateMissed: ['mateIn1', 'mateIn2', 'backRankMate'],
-  threatMissed: ['defensiveMove', 'discoveredAttack', 'trappedPiece'],
+  threatMissed: ['defensiveMove'],
   undefended: ['hangingPiece', 'defensiveMove'],
   fork: ['fork'],
-  pieceTaken: ['hangingPiece', 'pin', 'skewer', 'trappedPiece'],
-  forcingUseless: ['quietMove', 'deflection'],
+  pieceTaken: ['hangingPiece'],
+  forcingUseless: ['quietMove'],
 };
 
 /** Anteil, der unabhängig von meinen Fehlern gleichmäßig auf alle Themen geht (damit nichts ganz verschwindet) */

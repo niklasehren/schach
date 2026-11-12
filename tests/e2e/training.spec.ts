@@ -75,3 +75,42 @@ test('Gegen Freund: Frage „Wer bist du?“', async ({ page }) => {
   await who.getByRole('button', { name: 'Niklas', exact: true }).click();
   await expect(who.getByRole('button', { name: 'Niklas', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
+
+test('Übersicht nach dem Tagesziel: „Tagesziel geschafft“, heute geübt, „Weiter üben“', async ({ page }) => {
+  test.setTimeout(150000);
+  await importZwischenzug(page);
+  await page.getByRole('link', { name: 'Training', exact: true }).click();
+  await expect(page.getByTestId('due-count')).toContainText(/Heute fällig: [1-9]/);
+  // So, als wären heute schon 10 neue Puzzles geübt worden (direkt in der lokalen Datenbank)
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const req = indexedDB.open('schach');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['puzzles', 'attempts'], 'readwrite');
+          const now = Date.now();
+          for (let i = 0; i < 10; i++) {
+            tx.objectStore('puzzles').put({
+              id: `geuebt:${i}`, userId: null, createdAt: now, gameId: 'geuebt', gameDate: 0, ply: i, fen: '', fenKey: `geuebt-${i}`, played: '', line: [],
+              class: 'mistake', winBefore: 50, box: 2, due: now + 3 * 86400000, firstSeen: now,
+            });
+            tx.objectStore('attempts').put({ id: `geuebt-a${i}`, puzzleId: `geuebt:${i}`, date: now, correct: true, ms: 1000, move: 'e2e4', try: 1 });
+          }
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+  );
+  // Neu laden: Dexie hält Abfragen im Speicher und sieht Schreibvorgänge an ihm vorbei erst danach
+  await page.goto('/#/uebersicht');
+  await page.reload();
+  await expect(page.getByTestId('overview-goal')).toHaveText('Tagesziel geschafft');
+  await expect(page.getByTestId('overview-due')).toHaveCount(0);
+  await expect(page.getByTestId('overview-practiced')).toContainText('Heute geübt: 10 Puzzles. Noch');
+  await expect(page.getByTestId('overview-start')).toHaveText('Weiter üben');
+  await shot(page, 'uebersicht-tagesziel');
+  await page.getByTestId('overview-start').click();
+  await expect(page).toHaveURL(/#\/training\/mehr$/);
+  await expect(page.getByTestId('puzzle-task')).toContainText('Finde einen besseren Zug');
+  await expect(page.getByTestId('puzzle-status')).toContainText(/noch \d+ neue/);
+});

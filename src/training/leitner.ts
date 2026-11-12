@@ -55,6 +55,12 @@ export function practiceQueue(puzzles: PuzzleRecord[]): PuzzleRecord[] {
     .sort((a, b) => (a.class === b.class ? 0 : a.class === 'blunder' ? -1 : 1) || b.gameDate - a.gameDate || a.ply - b.ply);
 }
 
+/** Wie viele verschiedene Puzzles aus meinen Fehlern heute geübt wurden (Lichess-Puzzles zählen nicht) */
+export function practicedToday(attempts: { puzzleId: string; date: number }[], now: number): number {
+  const today = startOfDay(now);
+  return new Set(attempts.filter((a) => a.date >= today && !a.puzzleId.startsWith('lichess:')).map((a) => a.puzzleId)).size;
+}
+
 /** Text für den Abstand bis zur nächsten Wiederholung */
 export function dueText(due: number, now: number): string {
   const days = Math.round((startOfDay(due) - startOfDay(now)) / DAY);

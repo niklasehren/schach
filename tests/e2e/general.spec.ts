@@ -82,9 +82,10 @@ test('Allgemeines Training: Thema wählen, Gegnerzug wird vorgespielt, Lösung, 
   await page.waitForTimeout(300);
   await shot(page, 'lichess-loesung');
 
-  // Zurück: Rating auf der Trainingsseite angepasst
+  // Zurück: die Trainingsseite zeigt das Rating nach dem letzten Puzzle (kann zufällig wieder 1000 sein)
+  const after = (await page.getByTestId('rating-change').innerText()).match(/→ (\d+)/)![1];
   await page.getByRole('button', { name: '← Training' }).click();
-  await expect(page.getByTestId('puzzle-rating')).not.toHaveText('1000');
+  await expect(page.getByTestId('puzzle-rating')).toHaveText(after);
 });
 
 test('Allgemeines Training startet passend zu meinen Schwächen', async ({ page }) => {

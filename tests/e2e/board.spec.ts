@@ -1,6 +1,18 @@
 import { expect, test } from '@playwright/test';
 import { clickSquare, move, startFriendGame } from './helpers';
 
+// Keine React-Warnungen in der Konsole (z. B. „The tag <piece> is unrecognized“ bei geschlagenen Figuren/Umwandlung)
+let warnings: string[] = [];
+test.beforeEach(({ page }) => {
+  warnings = [];
+  page.on('console', (m) => {
+    if ((m.type() === 'error' || m.type() === 'warning') && /unrecognized|React|Warning:/.test(m.text())) warnings.push(m.text());
+  });
+});
+test.afterEach(() => {
+  expect(warnings).toEqual([]);
+});
+
 test('Gegen Freund: Schäfermatt mit Namen und Ergebnis', async ({ page }) => {
   await startFriendGame(page);
   for (const [from, to] of [

@@ -12,7 +12,7 @@ import { playLine } from '../analysis/explain';
 import { analysisQueue } from '../analysis/queue';
 import { useQueueState } from '../analysis/useQueue';
 import { isAcceptable, winFor } from '../training/puzzles';
-import { dueText, INTERVALS, NEW_PER_DAY, practiceQueue, todaysQueue } from '../training/leitner';
+import { dueText, INTERVALS, NEW_PER_DAY, practicedToday, practiceQueue, startOfDay, todaysQueue } from '../training/leitner';
 import { finishPuzzle, logAttempt, markSeen, syncAllPuzzles } from '../training/store';
 import { usePuzzleSolver } from '../training/usePuzzleSolver';
 import { href, type TrainingMode } from '../app/router';
@@ -35,11 +35,13 @@ export function TrainingPage({ mode, theme }: { mode?: TrainingMode; theme?: str
 
 function TrainingHub() {
   const puzzles = useLive(() => db.puzzles.toArray(), []);
+  const attemptsToday = useLive(() => db.attempts.where('date').aboveOrEqual(startOfDay(Date.now())).toArray(), []);
   const queueState = useQueueState();
   const today = useMemo(() => (puzzles ? todaysQueue(puzzles, Date.now()) : null), [puzzles]);
   if (!puzzles || !today) return <p className="text-muted-foreground">Lädt …</p>;
 
   const count = today.due.length + today.fresh.length;
+  const practiced = practicedToday(attemptsToday ?? [], Date.now());
   const boxes = INTERVALS.map((_, i) => puzzles.filter((p) => p.box === i + 1).length);
   const fresh = puzzles.filter((p) => p.box === 0).length;
   const brassButton = cn(buttonVariants({ size: 'lg' }), 'h-13 bg-brass text-[17px] font-bold text-brass-foreground no-underline hover:bg-brass/90');
@@ -58,9 +60,9 @@ function TrainingHub() {
           {count
             ? `${today.due.length} Wiederholungen · ${today.fresh.length} neue (Tagesziel: ${NEW_PER_DAY} neue)`
             : fresh
-              ? `Noch ${fresh} neue Puzzles aus deinen Fehlern – du kannst weiter üben.`
+              ? `Heute geübt: ${practiced} ${practiced === 1 ? 'Puzzle' : 'Puzzles'}. Noch ${fresh} neue aus deinen Fehlern – du kannst weiter üben.`
               : puzzles.length
-                ? 'Alle Puzzles aus deinen Fehlern sind geübt. Weiter geht es mit dem Allgemeinen Training.'
+                ? `Heute geübt: ${practiced} ${practiced === 1 ? 'Puzzle' : 'Puzzles'}. Alle Puzzles aus deinen Fehlern sind geübt – weiter geht es mit dem Allgemeinen Training.`
                 : 'Sie entstehen automatisch, sobald deine Partien analysiert sind. Bis dahin: Allgemeines Training.'}
         </span>
         {count > 0 ? (

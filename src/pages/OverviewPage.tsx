@@ -7,7 +7,7 @@ import { href } from '../app/router';
 import { analysisQueue } from '../analysis/queue';
 import { useQueueState } from '../analysis/useQueue';
 import { countErrorTypes } from '../analysis/errorTypes';
-import { practiceQueue, todaysQueue } from '../training/leitner';
+import { practicedToday, practiceQueue, startOfDay, todaysQueue } from '../training/leitner';
 import { getPuzzleRating } from '../training/general';
 import { formatDate } from '../chess/format';
 import { GameRow } from '../components/GameRow';
@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { InstallHintBanner } from '../components/InstallHint';
 
 const tcLabels: Record<string, string> = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', daily: 'Täglich' };
 const eyebrow = 'text-xs font-bold tracking-[0.08em] uppercase';
@@ -28,6 +29,7 @@ export function OverviewPage() {
   const games = useLive(() => db.games.orderBy('date').reverse().toArray(), []);
   const analyses = useLive(() => db.analyses.where('status').equals('done').toArray(), []);
   const puzzles = useLive(() => db.puzzles.toArray(), []);
+  const attemptsToday = useLive(() => db.attempts.where('date').aboveOrEqual(startOfDay(Date.now())).toArray(), []);
   const rating = useLive(() => getPuzzleRating(), []);
   const queue = useQueueState();
 
@@ -36,7 +38,8 @@ export function OverviewPage() {
   if (games.length === 0) {
     return (
       <div className="w-full max-w-[1180px] animate-in px-3.5 fade-in-0 slide-in-from-bottom-1 md:px-0">
-        <Card className="gap-4 bg-hero p-7 text-hero-foreground ring-0">
+        <InstallHintBanner />
+        <Card className="mt-4 gap-4 bg-hero p-7 text-hero-foreground ring-0">
           <span className={cn(eyebrow, 'text-hero-muted')}>Willkommen</span>
           <h1 className="font-heading text-4xl leading-tight md:text-5xl">Dein persönlicher Schachberater</h1>
           <p className="max-w-xl text-hero-muted">Lade deine Chess.com-Partien oder spiel eine Partie. Die App findet deine Fehler und macht daraus Training.</p>
@@ -56,6 +59,7 @@ export function OverviewPage() {
   const today = todaysQueue(puzzles, Date.now());
   const due = today.due.length + today.fresh.length;
   const practice = practiceQueue(puzzles).length;
+  const practiced = practicedToday(attemptsToday ?? [], Date.now());
   const allTypes = countErrorTypes(analyses);
   const totalErrors = allTypes.reduce((sum, e) => sum + e.count, 0);
   // Top 3 nur mit konkreten Fehlerarten; Fehler ohne klare Taktik als eigene Zeile darunter
@@ -66,27 +70,47 @@ export function OverviewPage() {
 
   return (
     <div className="grid w-full max-w-[1180px] animate-in grid-cols-1 gap-4 px-3.5 fade-in-0 slide-in-from-bottom-1 md:grid-cols-[5fr_7fr] md:gap-5 md:px-0">
+      <InstallHintBanner />
       {/* Hauptkarte: Training */}
       <Card className="gap-4 bg-hero p-6 text-hero-foreground ring-0 md:p-7" aria-labelledby="due-title">
-        <span className={cn(eyebrow, 'text-hero-muted')} id="due-title">
-          Heute fällig
-        </span>
-        <div className="flex items-baseline gap-3.5">
-          <span className="font-heading text-[92px] leading-[0.9] md:text-[112px]" data-testid="overview-due">
-            {due}
-          </span>
-          <span className="text-2xl">{due === 1 ? 'Puzzle' : 'Puzzles'}</span>
-        </div>
-        <span className="text-[15px] text-hero-muted">
-          {today.fresh.length} neue aus deinen Fehlern · {today.due.length} Wiederholungen
-        </span>
+        {due > 0 ? (
+          <>
+            <span className={cn(eyebrow, 'text-hero-muted')} id="due-title">
+              Heute fällig
+            </span>
+            <div className="flex items-baseline gap-3.5">
+              <span className="font-heading text-[92px] leading-[0.9] md:text-[112px]" data-testid="overview-due">
+                {due}
+              </span>
+              <span className="text-2xl">{due === 1 ? 'Puzzle' : 'Puzzles'}</span>
+            </div>
+            <span className="text-[15px] text-hero-muted">
+              {today.fresh.length} neue aus deinen Fehlern · {today.due.length} Wiederholungen
+            </span>
+          </>
+        ) : (
+          // Nichts mehr fällig: wie auf der Trainingsseite
+          <>
+            <span className={cn(eyebrow, 'text-hero-muted')} id="due-title">
+              Meine Fehler
+            </span>
+            <span className="font-heading text-5xl leading-tight md:text-6xl" data-testid="overview-goal">
+              {puzzles.length ? 'Tagesziel geschafft' : 'Noch keine Puzzles'}
+            </span>
+            <span className="text-[15px] text-hero-muted" data-testid="overview-practiced">
+              {puzzles.length
+                ? `Heute geübt: ${practiced} ${practiced === 1 ? 'Puzzle' : 'Puzzles'}. ${practice ? `Noch ${practice} neue aus deinen Fehlern – du kannst weiter üben.` : 'Alle Puzzles aus deinen Fehlern sind geübt.'}`
+                : 'Sie entstehen automatisch, sobald deine Partien analysiert sind.'}
+            </span>
+          </>
+        )}
         <div className="mt-auto grid grid-cols-1 gap-2.5 sm:grid-cols-2" role="list" aria-label="Trainingsarten">
           <div role="listitem" className="flex flex-col gap-3 rounded-xl border-[1.5px] border-brass bg-brass/15 p-3.5" data-testid="overview-mine">
             <span className="flex items-start gap-2.5">
               <Target className="mt-0.5 size-5 shrink-0" />
               <span className="flex flex-col">
                 <strong>Meine Fehler</strong>
-                <small className="text-hero-muted">{due ? 'Stellungen aus deinen Partien' : practice ? 'Tagesziel geschafft – weiter üben?' : 'Alles geübt'}</small>
+                <small className="text-hero-muted">Stellungen aus deinen Partien</small>
               </span>
             </span>
             <a

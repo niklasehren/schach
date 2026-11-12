@@ -1,6 +1,7 @@
 import type { Color } from '@lichess-org/chessground/types';
 import type { PromotionPiece } from '../chess/game';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Piece } from './Piece';
 
 const choices: { piece: PromotionPiece; role: string; label: string }[] = [
   { piece: 'q', role: 'queen', label: 'Dame' },
@@ -32,20 +33,11 @@ export function PromotionDialog({ color, onChoose, onCancel }: Props) {
               aria-label={c.label}
               onClick={() => onChoose(c.piece)}
             >
-              <piece className={`${c.role} ${color} absolute! inset-[8%] h-auto! w-auto!`} />
+              <Piece className={`${c.role} ${color} absolute! inset-[8%] h-auto! w-auto!`} />
             </button>
           ))}
         </div>
       </DialogContent>
     </Dialog>
   );
-}
-
-// <piece> ist ein eigenes HTML-Element von chessground (für die Figurenbilder)
-declare module 'react' {
-  namespace JSX {
-    interface IntrinsicElements {
-      piece: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
-    }
-  }
 }

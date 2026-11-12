@@ -2,6 +2,7 @@ import type { PieceSymbol } from 'chess.js';
 import type { Color } from '@lichess-org/chessground/types';
 import type { Player } from '../chess/session';
 import { cn } from '@/lib/utils';
+import { Piece } from './Piece';
 
 const roles: Record<PieceSymbol, string> = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
 
@@ -46,7 +47,7 @@ export function PlayerBar({ player, color, captured, advantage, active, thinking
       {thinking && <span className="size-3.5 animate-spin rounded-full border-2 border-border border-t-primary" aria-label="denkt nach" />}
       <span className="player-material cg-wrap ml-auto flex min-w-0 items-center" aria-label={`Geschlagen: ${captured.length} Figuren`}>
         {captured.map((p, i) => (
-          <piece key={i} className={`${roles[p]} ${opponent} ${captured[i + 1] === p ? 'stacked' : ''}`} />
+          <Piece key={i} className={`${roles[p]} ${opponent} ${captured[i + 1] === p ? 'stacked' : ''}`} />
         ))}
         {advantage > 0 && <span className="ml-1.5 text-sm font-bold text-muted-foreground">+{advantage}</span>}
       </span>
