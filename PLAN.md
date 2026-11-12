@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 12. November 2026 · Status: Blöcke 0–2, 4–7 und 10 (Lichess-Puzzles) fertig, Design „Klubhaus“ mit shadcn/ui umgesetzt, zwei Trainingsarten (Meine Fehler / Allgemeines Training); als Nächstes: Block 9 (Statistik)
+Stand: 12. November 2026 · Status: Blöcke 0–2, 4–7, 10 (Lichess-Puzzles) und 13 (Konten + Synchronisierung mit Supabase) fertig, Design „Klubhaus“ mit shadcn/ui; als Nächstes: Block 9 (Statistik)
 
 ## 1. Idee in einem Satz
 
@@ -25,7 +25,7 @@ Spielen  →  Speichern  →  Analysieren  →  Puzzles aus Fehlern  →  Wieder
 | Datenspeicher | **IndexedDB über Dexie.js** | IndexedDB = Datenbank im Browser, Daten bleiben auf dem Gerät. Dexie macht die Bedienung einfach. |
 | Homescreen-App | **vite-plugin-pwa** | PWA = „Progressive Web App“: Webseite, die man aufs Handy installieren kann und die auch offline startet. |
 | Hosting | **GitHub Pages** (kostenlos, öffentliches Repo) | Automatische Veröffentlichung bei jedem Hochladen über GitHub Actions (= automatisierte Abläufe bei GitHub). |
-| Später | Supabase (Gratis-Plan) | Konten + Rangliste für die Freundesgruppe. |
+| Konten & Sync | Supabase (Gratis-Plan, Frankfurt) | Konten nur mit Einladung, Synchronisierung zwischen Geräten (Abschnitt 5b). Später: Rangliste für die Freundesgruppe. |
 
 ### Geprüft: Welche Stockfish-Version läuft ohne Server-Header? Brauchen wir Vercel?
 
@@ -180,6 +180,28 @@ Von Anfang an so angelegt, dass es später zu Supabase passt (eindeutige IDs, Ze
 
 Datensicherung: Export/Import aller Daten als Datei (wichtig, weil Browser-Daten z. B. beim Löschen des Verlaufs verloren gehen können).
 
+Seit Schritt 13 (Dexie-Version 4) trägt jede Zeile zusätzlich `updatedAt` (Änderungszeit, ms) und `dirty` (noch hochzuladen, indiziert); Löschungen stehen bis zum Hochladen in `tombstones`. Auf dem Server hat jede der fünf Tabellen die Spalten `user_id`, `id`, `data` (der lokale Datensatz als JSON), `updated_at`, `deleted`, `synced_at`.
+
+## 5b. Konten und Synchronisierung (Schritt 13, Stand 12.11.2026)
+
+- **Supabase-Projekt „Schach“**, Region **Frankfurt (eu-central-1)**, Gratis-Plan. Datenbank-Struktur als Migrationen in `supabase/migrations/`, Auth-Einstellungen in `supabase/config.toml` (`npx supabase db push --remote`, `npx supabase config push`), Edge Function `supabase/functions/login`. Die CLI ist per Browser-Login verbunden (`npx supabase login` in einem echten Terminal), kein Token im Repo.
+- **Schlüssel:** In der App stehen nur Projekt-URL und der öffentliche `sb_publishable_…`-Schlüssel (`src/sync/config.ts`). Der geheime Schlüssel existiert nur auf dem Supabase-Server (Umgebungsvariable der Edge Function) – nicht im Code, nicht bei GitHub, nicht im Browser.
+- **E-Mails – geprüft:** Ohne eigenen Mail-Server verschickt Supabase seit 26.9.2024 nur an Mitglieder des eigenen Supabase-Teams (höchstens 2 pro Stunde). Deshalb **ohne E-Mail-Versand**: Bestätigungs-Mail aus, Freigabe per **Einladungscode**, „Passwort vergessen“ über den Admin.
+- **Nur eingeladene Personen:** Tabelle `invites` (E-Mail + Code als bcrypt-Hash, nur über Admin-Funktionen erreichbar). Der Auth-Hook „Before User Created“ (Gratis-Plan) lehnt jede Registrierung ohne passende E-Mail + Code ab, prüft den Benutzernamen (3–30 Zeichen, eindeutig ohne Rücksicht auf Groß-/Kleinschreibung) und gibt eine deutsche Meldung zurück. Ein Trigger entfernt den Code aus den Benutzerdaten, legt das Profil an und markiert die Einladung als benutzt (nur einmal nutzbar).
+- **Login** mit Benutzername oder E-Mail + Passwort (mindestens 8 Zeichen). Bei Benutzername schlägt die Edge Function `login` die E-Mail auf dem Server nach und meldet an – die E-Mail verlässt den Server nie, Fehlermeldung immer gleich („Benutzername/E-Mail oder Passwort falsch.“).
+- **Admin** (Tabelle `admins`): E-Mail freigeben → Code wird einmal angezeigt (mit fertiger Nachricht zum Kopieren), Freigaben ansehen/entfernen, vorläufiges Passwort setzen. Alles in **Einstellungen → „Freunde einladen“** (nur für Admins sichtbar).
+- **Row Level Security** auf allen Tabellen: jeder liest/ändert/löscht nur Zeilen mit seiner `user_id`; ohne Anmeldung kein Zugriff. Bewiesen im Live-Test (`tests/live/supabase.test.ts`): Benutzer B kann die Daten von A weder lesen noch ändern, löschen oder eine Zeile mit A's `user_id` anlegen; Admin-Funktionen sind für B gesperrt.
+- **Offline zuerst:** Ohne Konto bleibt alles wie bisher (IndexedDB), Supabase wird gar nicht geladen. Mit Konto gleicht die App im Hintergrund ab: beim Start, alle 60 s (wenn sichtbar), beim Wiederkehren in den Tab, wenn das Netz zurückkommt und 4 s nach jeder Änderung. Erst hoch (alle `dirty`-Zeilen und Löschungen, in Paketen bis 400 kB), dann runter (alles mit `synced_at` nach dem letzten Stand, 10 s Überlappung).
+- **Konflikte:** Der **neueste Stand gewinnt** (`updated_at` der Änderung). Der Server verwirft ältere Uploads (Trigger), das Gerät übernimmt beim Herunterladen nur Neueres. Daten von vor Schritt 13 haben `updated_at = 0` → bei gleicher ID gewinnt der Stand im Konto.
+- **Reihenfolge beim Herunterladen:** Puzzles → Versuche → Einstellungen → Analysen → Partien. So entstehen keine neuen, ungeübten Puzzles über geübte, und kein Gerät analysiert eine Partie neu, deren Analyse schon im Konto liegt (**Analysen werden mitsynchronisiert**).
+- **Erster Login auf einem Gerät:** Alle lokalen Daten werden zum Hochladen vorgemerkt und ins Konto übernommen – nichts geht verloren (Test mit zwei Geräten). **Abmelden** lädt erst alles hoch und leert dann nur dieses Gerät (geht nicht, solange etwas nicht hochgeladen ist). **Konto löschen** entfernt Konto, Profil, Einladung und alle Daten (Server und Gerät).
+- **Datenschutzhinweis** in den Einstellungen: welche Daten, wo (Frankfurt, EU), wer sie sieht (nur man selbst; der Betreiber sieht E-Mail und Benutzername in der Einladungsliste und könnte als Projekt-Inhaber technisch zugreifen).
+- **Tests:** Offline in CI `tests/unit/sync.test.ts` (Server-Nachbau, zwei Geräte, Konflikte, Löschen, erster Login, Version-4-Update, Abmelden löscht nichts im Konto). Live nur lokal: `npm run test:live` (Vitest gegen Supabase + Browser-Test Registrieren → zweites Gerät → Abmelden → Konto löschen; Testkonten werden danach gelöscht).
+
+**Speicherbedarf (gemessen mit den echten 101 Partien):** Partien 183 kB, Analysen 605 kB (Postgres komprimiert die großen JSON-Felder), 478 Puzzles 291 kB, zusammen **ca. 1,1 MB**; mit Indizes, Lösungsversuchen und Änderungsständen grob **1,5 MB pro 100 Partien**. Die leere Datenbank belegt 14 MB. Von den **500 MB** bleiben gut 480 MB → **ca. 300 Nutzer mit je 100 Partien** oder **ca. 60 Nutzer mit je 500 Partien**. Für eine Freundesgruppe reicht das lange.
+
+**Pausieren im Gratis-Plan:** Supabase pausiert Gratis-Projekte nach **7 Tagen ohne Nutzung** (es reichen schon wenige Anfragen pro Tag, damit das nicht passiert – jeder angemeldete App-Nutzer gleicht ab). Ein pausiertes Projekt bleibt laut Supabase lange wiederherstellbar (Dokumentation: bis zu 1 Jahr, ältere Angabe 90 Tage). **Reaktivieren:** https://supabase.com/dashboard → Projekt „Schach“ → **„Resume project“** (bzw. „Restore“) klicken, 1–2 Minuten warten; Daten und Einstellungen sind wieder da. Während der Pause funktioniert die App offline weiter; die Synchronisierung meldet einen Fehler und holt alles nach, sobald das Projekt wieder läuft.
+
 ---
 
 ## 6. Ordnerstruktur
@@ -254,6 +276,7 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 | **5 Analyse-Rechnung** ✅ | Hintergrund-Analyse, Gewinnchance, Klassen, Phase, Figur eingestellt, Matt übersehen, Zeitnot (aus `%clk` der Chess.com-Partien) | Analyse läuft für App- und Chess.com-Partien |
 | **6 Analyse-Ansicht** ✅ | Durchklicken, Bewertungskurve, bester Zug als Pfeil, Zusammenfassung | Eigene Partie Zug für Zug nachvollziehen |
 | **7 Puzzles** ✅ | Puzzles aus Fehlern, Lösen am Brett, Leitner-Wiederholung, „Heute fällig“ | Eigene Fehler als Training |
+| **13 Konten & Synchronisierung** ✅ (vorgezogen) | Supabase (Gratis-Plan, Frankfurt): Registrierung nur mit Einladungscode, Login mit Benutzername/E-Mail, Row Level Security, Offline-zuerst-Abgleich aller fünf Tabellen, Konto löschen, Datenschutzhinweis (s. Abschnitt 5b) | Gleiche Daten auf Mac und iPhone; Freunde einladen |
 | **10 Lichess-Puzzles** ✅ (vorgezogen) | Allgemeines Training aus der Lichess-Datenbank (CC0): 14 Themen, Puzzle-Rating, „Passend zu meinen Schwächen“ oder Thema wählen; „Weiter üben“ ohne Tageslimit (s. Abschnitt 4b) | Zwei Trainingsarten mit eigenem Startknopf |
 | **9 Statistik** | (siehe unten, vorgezogen) | Wo/wie ich verliere |
 | **3 Uhr & Partieende** | Schachuhr mit Inkrement (Standard 15+10, wählbar), Partieende durch Zeit, keine Zugrücknahme, keine Hinweise | Vollständige Partie mit Uhr |
@@ -265,7 +288,7 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 |---|---|---|
 | 9 Statistik (vorgezogen, s. o.) | Wo/wie ich verliere: nach Phase, Fehlertyp, Zeitnot, Farbe, Eröffnung. Sinnvoll ab ca. 15–20 Partien (App zeigt bis dahin „noch zu wenig Daten“). | Merkmale werden schon ab Block 5 gespeichert |
 | 12 Schnell-Eintrag Brettpartie | Nur Knöpfe: Ergebnis, Phase, Fehlertyp – fließt in die Statistik ein. | Quelle `brett` |
-| 13 Freundesgruppe | Supabase (Gratis-Plan): Konten, Gruppe, Rangliste (z. B. gelöste Puzzles, Serien). Lokale Daten werden hochgeladen. | IDs + Benutzerfeld im Datenmodell |
+| 13b Freundesgruppe | Rangliste (z. B. gelöste Puzzles, Serien) auf Basis der Konten aus Schritt 13. | Konten, Profile (Abschnitt 5b) |
 | 14 Maia (optional) | Menschlich spielender Gegner (trainiert auf Lichess-Partien). Im Browser technisch aufwendiger → vorher kurze Machbarkeitsprüfung. | Engine-Anbindung ist austauschbar gebaut |
 
 Bewusst **nicht** geplant: Online-Spiel gegeneinander.
@@ -274,10 +297,10 @@ Bewusst **nicht** geplant: Online-Spiel gegeneinander.
 
 ## 9. Kosten & Lizenzen
 
-- Laufende Kosten: **0 €**. GitHub (Repo + Pages) und später Supabase-Gratis-Plan ohne Kreditkarte.
+- Laufende Kosten: **0 €**. GitHub (Repo + Pages) und Supabase-Gratis-Plan (500 MB Datenbank, 50 000 aktive Nutzer/Monat, Edge Functions inklusive) ohne Kreditkarte.
 - Lizenz des Repos: **GPL-3.0** (wegen Stockfish und chessground).
 - Lichess-Puzzles: **CC0** (gemeinfrei); Hinweis „Puzzles: Lichess, CC0“ in der App.
-- Daten bleiben bis Schritt 13 ausschließlich auf deinem Gerät.
+- Ohne Konto bleiben die Daten ausschließlich auf dem Gerät; mit Konto bei Supabase in Frankfurt (EU), siehe Abschnitt 5b.
 
 ## 10. Offene Punkte / Annahmen
 

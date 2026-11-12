@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
+import { installSyncHooks, SYNC_MARK, SYNC_TABLES, type Tombstone } from './syncHooks';
 
 /** Wie eine Partie endete (aus Sicht der Regeln, nicht des Spielers) */
 export type Termination =
@@ -185,6 +186,7 @@ export class SchachDB extends Dexie {
   puzzles!: EntityTable<PuzzleRecord, 'id'>;
   attempts!: EntityTable<AttemptRecord, 'id'>;
   settings!: EntityTable<SettingRecord, 'key'>;
+  tombstones!: EntityTable<Tombstone, 'id'>;
 
   constructor(name = 'schach') {
     super(name);
@@ -201,6 +203,30 @@ export class SchachDB extends Dexie {
     this.version(2).stores({ analyses: 'gameId, status' });
     // Version 3: Puzzles mit Stellungsschlüssel (gegen doppelte Stellungen)
     this.version(3).stores({ puzzles: 'id, gameId, due, box, fenKey' });
+    // Version 4 (Schritt 13, Synchronisierung): „dirty“ = noch hochzuladen, Grabsteine für Löschungen.
+    // Alles Vorhandene wird zum Hochladen vorgemerkt; unbekannte Änderungszeit = 0 (der Server-Stand gewinnt dann).
+    this.version(4)
+      .stores({
+        games: 'id, date, source, &externalId, [source+date], dirty',
+        analyses: 'gameId, status, dirty',
+        puzzles: 'id, gameId, due, box, fenKey, dirty',
+        attempts: 'id, puzzleId, date, dirty',
+        settings: 'key, dirty',
+        tombstones: 'id',
+      })
+      .upgrade(async (tx) => {
+        for (const t of SYNC_TABLES) {
+          await tx
+            .table(t)
+            .toCollection()
+            .modify((r: Record<string, unknown>) => {
+              r.updatedAt = typeof r.updatedAt === 'number' ? r.updatedAt : 0;
+              r.dirty = 1;
+              r[SYNC_MARK] = 'keep';
+            });
+        }
+      });
+    installSyncHooks(this);
   }
 }
 

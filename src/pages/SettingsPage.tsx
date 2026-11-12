@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { AccountCard, AdminCard, PrivacyCard } from '../components/AccountSettings';
 
 /** Einstellungen dieses Geräts: heller Modus, Brett-Theme */
 export function SettingsPage() {
@@ -12,6 +13,8 @@ export function SettingsPage() {
   return (
     <div className="flex w-full max-w-2xl animate-in flex-col gap-4 px-3.5 fade-in-0 slide-in-from-bottom-1 md:px-0">
       <h1 className="font-heading text-4xl">Einstellungen</h1>
+      <AccountCard />
+      <AdminCard />
       <Card>
         <CardHeader>
           <CardTitle>Darstellung</CardTitle>
@@ -67,6 +70,7 @@ export function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+      <PrivacyCard />
     </div>
   );
 }
