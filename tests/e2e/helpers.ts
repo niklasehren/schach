@@ -3,7 +3,8 @@ import { expect, type Page } from '@playwright/test';
 
 /** Klickt auf ein Feld (z. B. "e2"); berücksichtigt, ob das Brett gedreht ist. */
 export async function clickSquare(page: Page, square: string) {
-  const board = page.getByTestId('board');
+  // nur das sichtbare Brett (die Spielseite bleibt im Hintergrund erhalten)
+  const board = page.getByTestId('board').filter({ visible: true });
   const box = (await board.boundingBox())!;
   const black = (await board.getAttribute('class'))!.includes('orientation-black');
   const size = box.width / 8;
@@ -64,3 +65,19 @@ export async function runImport(page: Page, name: string, range: 'Alle' | 'Letzt
   await page.getByRole('button', { name: 'Partien importieren' }).click();
 }
 
+
+/** Chess.com liefert genau die Partie vom 12.11. gegen „Gegner7“ (Zwischenzug-Partie); danach Analyse abwarten */
+export async function importZwischenzug(page: Page) {
+  const month = fixture('chesscom-zwischenzug.json');
+  await page.route('https://api.chess.com/**', (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const body = path.endsWith('/archives') ? JSON.stringify({ archives: ['https://api.chess.com/pub/player/testspieler/games/2026/11'] }) : month;
+    return route.fulfill({ status: 200, contentType: 'application/json', body, headers: { 'access-control-allow-origin': '*' } });
+  });
+  await page.goto('/#/import');
+  await page.getByLabel('Chess.com-Benutzername').fill('testspieler');
+  await page.getByRole('button', { name: 'Partien importieren' }).click();
+  await expect(page.getByTestId('import-result')).toContainText('1 neue Partie');
+  await page.getByRole('link', { name: 'Partien', exact: true }).click();
+  await expect(page.getByTestId('analysis-count')).toHaveText('Analyse: 1 von 1 Partien', { timeout: 90000 });
+}

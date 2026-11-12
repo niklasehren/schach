@@ -6,7 +6,10 @@ export const TERMS = {
     text: 'Ein Zug, auf den der Gegner sofort reagieren muss (zum Beispiel ein Schach), bevor man sich um die eigentliche Drohung kümmert.',
   },
   gabel: { label: 'Gabel', text: 'Eine Figur greift zwei oder mehr gegnerische Figuren gleichzeitig an. Meist kann nur eine davon gerettet werden.' },
-  haengend: { label: 'hängende Figur', text: 'Eine Figur, die angegriffen und nicht gedeckt ist. Der Gegner kann sie ohne Gegenleistung schlagen.' },
+  haengend: {
+    label: 'hängende Figur',
+    text: 'Eine Figur, die angegriffen wird und entweder ungedeckt ist oder von einer weniger wertvollen Figur angegriffen wird. Der Gegner gewinnt dann Material.',
+  },
   fesselung: {
     label: 'Fesselung',
     text: 'Eine Figur kann nicht (oder nur mit Verlust) ziehen, weil dahinter eine wertvollere Figur oder der König stehen würde.',

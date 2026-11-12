@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { importChessCom, ImportError, type ImportSummary, type Progress, type Range } from '../chesscom/importer';
 import { BackupError, downloadFile, exportBackup, restoreBackup } from '../db/backup';
 import { getSetting, setSetting } from '../db/games';
+import { AUTO_KEY } from '../chesscom/autoImport';
+import { useLive } from '../db/useLive';
 import { href } from '../app/router';
 
 const USERNAME_KEY = 'chesscomUsername';
@@ -121,6 +123,8 @@ function ChessComImport() {
         )}
       </form>
 
+      <AutoImportToggle />
+
       {state.kind === 'running' && <ProgressView progress={state.progress} />}
 
       {state.kind === 'done' && (
@@ -231,5 +235,23 @@ function BackupSection() {
         </div>
       )}
     </section>
+  );
+}
+
+/** Schalter „Neue Partien automatisch laden“ (Standard: an) */
+function AutoImportToggle() {
+  const value = useLive(() => getSetting<boolean>(AUTO_KEY).then((v) => v ?? true), []);
+  if (value === undefined) return null;
+  return (
+    <div className="toggle-row">
+      <label className="toggle">
+        <input type="checkbox" checked={value} onChange={(e) => setSetting(AUTO_KEY, e.target.checked)} data-testid="auto-import" />
+        <span>Neue Partien automatisch laden</span>
+      </label>
+      <span className="field-note small">
+        Beim Öffnen der App und wenn du zu ihr zurückkehrst, höchstens alle 10 Minuten (aktueller und letzter Monat). Chess.com zeigt eine beendete
+        Partie in der Regel nach wenigen Minuten an; ganz frische Partien können also beim ersten Nachsehen noch fehlen.
+      </span>
+    </div>
   );
 }

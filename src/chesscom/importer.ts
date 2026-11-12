@@ -62,16 +62,16 @@ async function getJson<T>(url: string, name: string, deps: Required<Pick<Deps, '
   }
 }
 
-export type Range = 'last3' | 'all';
+export type Range = 'last2' | 'last3' | 'all';
 
 export function isValidUsername(name: string): boolean {
   return /^[A-Za-z0-9_-]{2,50}$/.test(name.trim());
 }
 
-/** Archiv-URLs (…/games/2026/09) auf die letzten 3 Kalendermonate einschließlich des laufenden begrenzen */
+/** Archiv-URLs (…/games/2026/09) auf die letzten 2 bzw. 3 Kalendermonate einschließlich des laufenden begrenzen */
 export function filterArchives(urls: string[], range: Range, now = new Date()): string[] {
   if (range === 'all') return urls;
-  const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  const from = new Date(now.getFullYear(), now.getMonth() - (range === 'last2' ? 1 : 2), 1);
   const minKey = from.getFullYear() * 12 + from.getMonth();
   return urls.filter((u) => {
     const m = u.match(/\/(\d{4})\/(\d{2})\/?$/);

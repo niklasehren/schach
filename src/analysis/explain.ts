@@ -22,9 +22,16 @@ export type ExplainInput = {
   /** Bewertung vor/nach meinem Zug aus meiner Sicht */
   before: Pov;
   after: Pov;
+  /** Letzter Zug des Gegners vor meinem Zug (Stellung davor + UCI), für „Drohung übersehen“ */
+  lastMove?: { fen: string; uci: string };
 };
 
 export type RuleKey =
+  | 'checkUseless'
+  | 'captureUseless'
+  | 'threatMissed'
+  | 'rescue'
+  | 'defend'
   | 'mateMissed'
   | 'mateAllowed'
   | 'undefendedTaken'
@@ -55,6 +62,11 @@ export const MERKE: Record<RuleKey, string> = {
   mateMissed: 'Steht der gegnerische König eingeengt, suche zuerst nach Schachgeboten – oft steckt ein Matt darin.',
   mateAvailable: 'Steht der gegnerische König eingeengt, suche zuerst nach Schachgeboten – oft steckt ein Matt darin.',
   mateAllowed: 'Prüfe vor jedem Zug, welche Schachgebote der Gegner danach hat.',
+  threatMissed: 'Schau nach jedem Zug des Gegners zuerst: Was greift er an?',
+  checkUseless: 'Ein Schach ist nur gut, wenn danach etwas für dich herausspringt. Prüfe vorher, wie der Gegner antworten kann.',
+  captureUseless: 'Ein Schlagzug ist nur gut, wenn danach etwas für dich herausspringt. Prüfe vorher, wie der Gegner antworten kann.',
+  rescue: 'Ist eine Figur angegriffen, such ihr ein Feld, auf dem sie sicher steht – am besten eins, von dem aus sie noch etwas tut.',
+  defend: 'Prüfe, welche deiner Figuren und Bauern ungedeckt sind, und decke sie, bevor der Gegner zugreift.',
   zwischenzug: 'Wird eine deiner Figuren angegriffen, schau zuerst, ob du Schach geben oder etwas schlagen kannst.',
   fork: 'Achte auf Felder, von denen eine gegnerische Figur zwei deiner Figuren gleichzeitig angreifen kann.',
   undefendedTaken: 'Bevor du ziehst: Prüfe, welche deiner Figuren und Bauern danach angegriffen und ungedeckt sind.',
@@ -72,7 +84,12 @@ const MERKE_ORDER: RuleKey[] = [
   'mateMissed',
   'mateAvailable',
   'mateAllowed',
+  'checkUseless',
+  'captureUseless',
+  'threatMissed',
   'zwischenzug',
+  'rescue',
+  'defend',
   'fork',
   'undefendedTaken',
   'hanging',
@@ -125,6 +142,10 @@ const pronNom = (t: PieceSymbol) => (nouns[t].fem ? 'sie' : 'er');
 /** „die schwarze Dame“, „der weiße Springer“ */
 const theirs = (t: PieceSymbol, color: 'w' | 'b') => `${nouns[t].fem ? 'die' : 'der'} ${color === 'w' ? 'weiße' : 'schwarze'} ${nouns[t].noun}`;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** „ein Bauer“, „eine Dame“ */
+const aNom = (t: PieceSymbol) => `${nouns[t].fem ? 'eine' : 'ein'} ${nouns[t].noun}`;
+/** „einem Bauern“, „einer Dame“ */
+const aDat = (t: PieceSymbol) => `${nouns[t].fem ? 'einer' : 'einem'} ${nouns[t].acc}`;
 
 /** Satzteile eines Zuges: Subjekt, Verb, Rest – für „Subjekt Verb Rest“ und „Danach Verb Subjekt Rest“ */
 function phrase(m: Move, mine: boolean): { subject: string; verb: string; rest: string } {
@@ -175,6 +196,18 @@ function threatened(chess: Chess, me: 'w' | 'b'): { square: Square; type: PieceS
   return out;
 }
 
+/** Wie ist eine Figur bedroht? null = gar nicht; sonst ungedeckt oder von einer billigeren Figur angegriffen */
+function threatOn(chess: Chess, sq: Square): { undefended: boolean; cheaper: { square: Square; type: PieceSymbol } | null } | null {
+  const piece = chess.get(sq);
+  if (!piece) return null;
+  const opp = piece.color === 'w' ? 'b' : 'w';
+  const attackers = chess.attackers(sq, opp).map((a) => ({ square: a, type: chess.get(a)!.type }));
+  if (attackers.length === 0) return null;
+  const undefended = !defended(chess, sq, piece.color);
+  const cheaper = attackers.filter((a) => values[a.type] < values[piece.type]).sort((a, b) => values[a.type] - values[b.type])[0] ?? null;
+  return undefended || cheaper ? { undefended, cheaper } : null;
+}
+
 /** Merkt sich, welche Fachbegriffe schon erklärt wurden: beim ersten Vorkommen kurze Erklärung in Klammern */
 class Terms {
   private used = new Set<TermKey>();
@@ -222,6 +255,99 @@ export function explain(input: ExplainInput): Explanation {
           ? `Danach kann der Gegner sofort matt setzen${reply[0] ? ` ${san(reply[0])}` : ''}.`
           : `Danach hat der Gegner ein ${terms.t('erzwungenesMatt', 'erzwungenes Matt', 'du kannst es nicht mehr verhindern')}: Matt in ${n} Zügen.`,
     });
+  }
+
+  // Drohung übersehen: der letzte Zug des Gegners greift eine meiner Figuren an (ungedeckt oder von einer
+  // billigeren Figur) – und nach meinem Zug ist sie immer noch so bedroht
+  if (input.lastMove && !played.length) {
+    const prev = new Chess(input.lastMove.fen);
+    for (const row of startChess.board()) {
+      for (const p of row) {
+        if (!p || p.color !== me || p.type === 'k' || values[p.type] < 3) continue;
+        const now = startChess.attackers(p.square, opp);
+        const before = prev.get(p.square)?.color === me && prev.get(p.square)?.type === p.type ? prev.attackers(p.square, opp) : [];
+        // neue Angreifer durch den letzten Zug (gezogene Figur oder frei gewordene Linie)
+        const fresh = now.filter((a) => !before.includes(a) || a === input.lastMove!.uci.slice(2, 4));
+        const attacker = fresh.map((a) => ({ square: a, type: startChess.get(a)!.type })).sort((a, b) => values[a.type] - values[b.type])[0];
+        if (!attacker) continue;
+        const undefendedBefore = !defended(startChess, p.square, me);
+        if (!undefendedBefore && values[attacker.type] >= values[p.type]) continue;
+        // Löst mein Zug das? Figur verfolgen und prüfen, ob sie danach noch bedroht ist
+        const square = playedMove.from === p.square ? playedMove.to : p.square;
+        if (playedMove.to === attacker.square || !threatOn(afterChess, square)) continue;
+        const why =
+          values[attacker.type] < values[p.type]
+            ? `${cap(aNom(attacker.type))} ist weniger wert als ${aNom(p.type)}, deshalb musst du reagieren, auch wenn ${theNom(p.type)} gedeckt ${undefendedBefore ? 'wäre' : 'ist'}.`
+            : `${cap(theNom(p.type))} ist ${terms.t('ungedeckt', 'ungedeckt', `keine deiner Figuren schützt ${pronAcc(p.type)}`)}, deshalb musst du reagieren.`;
+        // Hat mein Zug sogar die Deckung weggenommen?
+        const lostCover = !undefendedBefore && !defended(afterChess, square, me) && playedMove.from !== p.square;
+        const notSolved = lostCover
+          ? ` Dein Zug löst das nicht – im Gegenteil: ${cap(my(playedMove.piece))} zieht weg ${san(playedMove)} und deckt ${theAcc(p.type)} danach nicht mehr.`
+          : ` Dein Zug ${san(playedMove)} ändert daran nichts.`;
+        played.push({
+          rule: 'threatMissed',
+          text: `${cap(theNom(attacker.type))} auf ${attacker.square} greift ${myAcc(p.type)} auf ${p.square} an. ${why}${notSolved}`,
+        });
+        covered.add(square);
+        break;
+      }
+      if (played.some((i) => i.rule === 'threatMissed')) break;
+    }
+  }
+
+  // Schach / Schlagzug bringt nichts: die beste Antwort greift eine meiner Figuren an, oder eine alte Drohung bleibt
+  const r0 = reply[0];
+  if (r0 && (isCheck(playedMove) || playedMove.captured) && !played.some((i) => i.rule === 'mateAllowed' || i.rule === 'mateMissed')) {
+    const oppName = opp === 'w' ? 'Weiß' : 'Schwarz';
+    const afterReply = new Chess(r0.after);
+    // Neu angegriffen durch die Antwort (vorher nach meinem Zug nicht bedroht)
+    let newTarget: { square: Square; type: PieceSymbol } | null = null;
+    for (const row of afterReply.board()) {
+      for (const p of row) {
+        if (newTarget || !p || p.color !== me || p.type === 'k' || values[p.type] < 3) continue;
+        if (afterReply.attackers(p.square, opp).includes(r0.to) && threatOn(afterReply, p.square) && !threatOn(afterChess, p.square)) {
+          newTarget = { square: p.square, type: p.type };
+        }
+      }
+    }
+    // Alte Drohung: vor meinem Zug bedroht, nach der Antwort immer noch bedroht (Figur nicht gezogen)
+    const oldThreat = threatened(startChess, me).find(
+      (t) => t.square !== playedMove.from && afterReply.get(t.square)?.color === me && threatOn(afterReply, t.square),
+    );
+    if (newTarget || oldThreat) {
+      // Wie antwortet der Gegner?
+      let how: string;
+      if (isCheck(playedMove)) {
+        if (r0.piece === 'k') how = `${oppName} zieht einfach den König weg ${san(r0)}`;
+        else if (r0.captured && r0.to === playedMove.to) how = `${oppName} schlägt ${myAcc(r0.captured)} ${san(r0)}`;
+        else how = `${oppName} stellt ${theAcc(r0.piece)} dazwischen ${san(r0)}`;
+      } else {
+        const p = phrase(r0, false);
+        how = `${oppName} antwortet: ${p.subject} ${p.verb} ${p.rest} ${san(r0)}`;
+      }
+      const parts: string[] = [];
+      if (newTarget) {
+        const again = newTarget.square === playedMove.to;
+        parts.push(`${how} und greift damit ${myAcc(newTarget.type)} an.${again ? ` Du musst ${pronAcc(newTarget.type)} wieder wegziehen.` : ''}`);
+      } else {
+        parts.push(`${how}.`);
+      }
+      if (oldThreat) {
+        // „geht verloren“ nur, wenn die Engine-Variante die Figur wirklich schlägt
+        const lost = reply.some((m) => m.color === opp && m.to === oldThreat.square && m.captured === oldThreat.type);
+        parts.push(
+          lost
+            ? `${cap(my(oldThreat.type))} auf ${oldThreat.square} geht trotzdem verloren.`
+            : `${cap(my(oldThreat.type))} auf ${oldThreat.square} bleibt trotzdem angegriffen.`,
+        );
+        covered.add(oldThreat.square);
+      }
+      played.push({
+        rule: isCheck(playedMove) ? 'checkUseless' : 'captureUseless',
+        text: `${isCheck(playedMove) ? 'Dein Schach' : 'Dein Schlagzug'} hilft hier nicht: ${parts.join(' ')}`,
+      });
+      if (newTarget) covered.add(newTarget.square);
+    }
   }
 
   // Hat mein Zug eine bedrohte Figur in Sicherheit gebracht? (für „zwar …, aber …“)
@@ -284,22 +410,24 @@ export function explain(input: ExplainInput): Explanation {
     }
   }
 
-  // Hängende Figuren nach meinem Zug (ohne die schon genannten)
+  // Hängende Figuren nach meinem Zug (ohne die schon genannten): angegriffen und ungedeckt
+  // oder von einer weniger wertvollen Figur angegriffen – im Text steht, welcher Fall zutrifft
   for (const row of mateInPlay ? [] : afterChess.board()) {
     for (const p of row) {
       if (!p || p.color !== me || values[p.type] < 3 || p.type === 'k' || covered.has(p.square)) continue;
-      if (afterChess.attackers(p.square, opp).length && !defended(afterChess, p.square, me)) {
-        played.push({
-          rule: 'hanging',
-          text: `${cap(my(p.type))} auf ${p.square} ist danach eine ${terms.t('haengend', 'hängende Figur', 'angegriffen und von keiner deiner Figuren gedeckt')}.`,
-        });
-        covered.add(p.square);
-      }
+      const t = threatOn(afterChess, p.square);
+      if (!t) continue;
+      const term = terms.t('haengend', 'hängende Figur', 'sie kann geschlagen werden, ohne dass du gleichwertig zurückschlagen kannst');
+      const reason = t.undefended
+        ? 'Sie wird angegriffen, und keine deiner Figuren deckt sie.'
+        : `Sie wird von ${aDat(t.cheaper!.type)} angegriffen – ${aNom(t.cheaper!.type)} ist weniger wert, deshalb hilft auch Zurückschlagen nicht.`;
+      played.push({ rule: 'hanging', text: `${cap(my(p.type))} auf ${p.square} ist danach eine ${term}. ${reason}` });
+      covered.add(p.square);
     }
   }
 
   // Nur Materialverlust, wenn keine genauere Regel passt
-  if (!mateInPlay && !played.some((i) => ['undefendedTaken', 'pieceTaken', 'fork', 'hanging'].includes(i.rule)) && replyLoss >= 1) {
+  if (!mateInPlay && !played.some((i) => ['undefendedTaken', 'pieceTaken', 'fork', 'hanging', 'checkUseless', 'captureUseless'].includes(i.rule)) && replyLoss >= 1) {
     played.push({
       rule: 'materialLoss',
       text: `Mit seiner besten Antwort gewinnt der Gegner Material – etwa ${replyLoss === 1 ? 'einen Bauern' : `${replyLoss} Bauern`} an Wert.`,
@@ -363,7 +491,40 @@ export function explain(input: ExplainInput): Explanation {
     }
 
     const mateAvailable = better.some((i) => i.rule === 'mateAvailable');
+    // Rettet die angegriffene Figur und/oder deckt etwas, das sonst verloren ginge
     if (!zwischen && !mateAvailable && better.length < 2) {
+      const bestChess = new Chess(best.after);
+      const rescued = threatOn(startChess, best.from) && !threatOn(bestChess, best.to) && best.piece !== 'k' && best.piece !== 'p';
+      // Gedeckt: eigene Figur/Bauer, der jetzt oder nach meinem gespielten Zug angegriffen und ungedeckt war
+      // (also sonst verloren ginge) und nach dem besseren Zug von der gezogenen Figur gedeckt wird
+      let guarded: { square: Square; type: PieceSymbol; afterMine: boolean } | null = null;
+      const loose = (c: Chess, sq: Square) => c.get(sq)?.color === me && c.attackers(sq, opp).length > 0 && !defended(c, sq, me);
+      for (const row of bestChess.board()) {
+        for (const p of row) {
+          if (guarded || !p || p.color !== me || p.type === 'k' || p.square === best.to) continue;
+          const nowLoose = loose(startChess, p.square);
+          const looseAfterMine = !nowLoose && p.square !== playedMove.from && loose(afterChess, p.square);
+          if ((nowLoose || looseAfterMine) && bestChess.attackers(p.square, me).includes(best.to)) {
+            guarded = { square: p.square, type: p.type, afterMine: looseAfterMine };
+          }
+        }
+      }
+      if (rescued && guarded) {
+        better.push({
+          rule: 'rescue',
+          text: `Dieser Zug ${san(best)} löst zwei Probleme auf einmal: ${cap(my(best.piece))} ist in Sicherheit, und ${pronNom(best.piece)} deckt jetzt ${theAcc(guarded.type)} auf ${guarded.square}.`,
+        });
+      } else if (rescued) {
+        better.push({ rule: 'rescue', text: `${cap(bp.subject)} ${bp.verb} ${bp.rest} ${san(best)} und ist dort in Sicherheit.` });
+      } else if (guarded) {
+        better.push({
+          rule: 'defend',
+          text: `${cap(bp.subject)} ${bp.verb} ${bp.rest} ${san(best)} und deckt damit ${theAcc(guarded.type)} auf ${guarded.square}, ${nouns[guarded.type].fem ? 'die' : 'der'} ${guarded.afterMine ? 'nach deinem Zug ungedeckt war' : 'bisher ungedeckt war'}.`,
+        });
+      }
+    }
+
+    if (!zwischen && !mateAvailable && better.length < 2 && !better.some((i) => i.rule === 'rescue' || i.rule === 'defend')) {
       if (best.captured) {
         const wasUndefended = !defended(startChess, best.to, opp);
         better.push({
@@ -377,11 +538,14 @@ export function explain(input: ExplainInput): Explanation {
       }
     }
 
-    // Materialgewinn der Variante (wenn nicht schon gesagt)
-    if (!zwischen && !mateAvailable && better.length < 2) {
+    // Allgemeiner Material-Satz nur, wenn keine konkretere Regel passt – und nur, wenn die Fortsetzung
+    // wirklich mehr Material bringt als der gespielte Zug (nach der besten Antwort des Gegners)
+    if (better.length === 0) {
       const last = line.filter((m) => m.color === me).at(-1);
-      const gain = last ? materialBalance(last.after, side) - startMaterial : 0;
-      if (gain >= 1 && !(best.captured && values[best.captured] === gain)) {
+      const bestEnd = last ? materialBalance(last.after, side) : startMaterial;
+      const gain = bestEnd - startMaterial;
+      const playedEnd = materialBalance(replyEnd, side);
+      if (gain >= 1 && bestEnd - playedEnd >= 1) {
         better.push({
           rule: 'materialGain',
           text:
@@ -397,8 +561,31 @@ export function explain(input: ExplainInput): Explanation {
   }
 
   const rules = [...played, ...better].map((i) => i.rule);
-  const top = MERKE_ORDER.find((k) => rules.includes(k));
-  return { played: played.slice(0, 2), better: better.slice(0, 2), merke: top ? MERKE[top] : null };
+  const top = MERKE_ORDER.find((k) => rules.includes(k) && !contradicts(k, playedMove));
+  return { played: played.slice(0, 2), better: better.slice(0, 2), merke: top ? merkeFor(top, playedMove) : null };
+}
+
+/**
+ * Widerspricht ein Merksatz dem gespielten Zug? Beispiel: „Schau, ob du Schach geben kannst“, obwohl ich
+ * gerade Schach gegeben habe. Solche Merksätze werden übersprungen.
+ */
+export function contradicts(rule: RuleKey, played: Move): boolean {
+  const gaveCheck = isCheck(played);
+  const captured = !!played.captured;
+  if (rule === 'zwischenzug') return gaveCheck || captured;
+  if (rule === 'check' || rule === 'lineMate') return gaveCheck;
+  if (rule === 'capture' || rule === 'materialGain') return captured;
+  if (rule === 'checkUseless') return !gaveCheck;
+  if (rule === 'captureUseless') return !captured;
+  return false;
+}
+
+/** Merksatz; bei verpasstem Matt nach einem eigenen Schach ein angepasster fester Text */
+function merkeFor(rule: RuleKey, played: Move): string {
+  if ((rule === 'mateMissed' || rule === 'mateAvailable') && isCheck(played)) {
+    return 'Prüfe bei jedem Schach, ob es nicht ein noch stärkeres gibt – oft steckt ein Matt darin.';
+  }
+  return MERKE[rule];
 }
 
 /** Text ohne Begriffs-Markierungen (für Tests und Screenreader) */

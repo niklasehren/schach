@@ -3,6 +3,7 @@ import { Engine, type SearchLimit } from '../engine/stockfish';
 import { db, type AnalysisRecord, type GameRecord } from '../db/schema';
 import { getSetting, setSetting } from '../db/games';
 import { analyseGame, DEFAULT_LIMIT } from './analyze';
+import { syncPuzzlesForGame } from '../training/store';
 
 export type QueueState = {
   /** running = rechnet, paused = vom Nutzer angehalten, yielding = wartet, weil gerade gegen den Computer gespielt wird */
@@ -137,6 +138,12 @@ export class AnalysisQueue {
     await db.analyses.update(gameId, { evals, updatedAt: Date.now() });
   }
 
+  /** Eine einzelne Stellung bewerten (z. B. einen anderen Zug im Puzzle prüfen) – mit derselben Engine und Tiefe */
+  async evaluate(fen: string) {
+    this.engine ??= this.makeEngine();
+    return this.engine.evaluate(fen, this.limit);
+  }
+
   private shouldStop = () => this.paused || this.yielding;
 
   private wake() {
@@ -219,7 +226,11 @@ export class AnalysisQueue {
           await db.analyses.put(partial);
         },
       });
-      if (record) await db.analyses.put(record);
+      if (record) {
+        await db.analyses.put(record);
+        // Aus den Fehlern dieser Partie gleich Puzzles machen
+        await syncPuzzlesForGame(game.id).catch((e) => console.warn('Puzzles nicht erzeugt', e));
+      }
     } catch (e) {
       console.warn('Analyse fehlgeschlagen', game.id, e);
       const now = Date.now();

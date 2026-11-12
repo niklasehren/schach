@@ -48,7 +48,8 @@ export function buildAppGame(session: Session, chess: Chess, result: GameResult,
   pgnGame.setHeader('Result', score);
   pgnGame.setHeader('Termination', terminationText[result.reason]);
 
-  const myColor: Side | null = setup.mode === 'computer' ? session.orientation : null;
+  const myColor: Side | null =
+    setup.mode === 'computer' ? session.orientation : setup.friendMe && setup.friendMe !== 'none' ? setup.friendMe : null;
   return {
     id: newId(),
     userId: null,

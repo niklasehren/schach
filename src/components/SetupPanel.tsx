@@ -108,6 +108,17 @@ export function SetupPanel({ setup, onChange, onStart }: Props) {
               onChange={(e) => set({ blackName: e.target.value })}
             />
           </label>
+          <span className="field-label who-label" id="who-label">
+            Wer bist du?
+          </span>
+          <div className="segmented segmented-3" role="radiogroup" aria-labelledby="who-label">
+            {(['white', 'black', 'none'] as const).map((v) => (
+              <button key={v} type="button" role="radio" aria-checked={(setup.friendMe ?? 'none') === v} onClick={() => set({ friendMe: v })}>
+                {v === 'white' ? setup.whiteName.trim() || 'Weiß' : v === 'black' ? setup.blackName.trim() || 'Schwarz' : 'Keiner'}
+              </button>
+            ))}
+          </div>
+          <p className="field-note small">Fehler werden für dich markiert, und nur aus deinen Zügen entstehen Puzzles.</p>
         </div>
       )}
 

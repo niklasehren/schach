@@ -11,6 +11,8 @@ export type GameSetup = {
   /** Gegen Freund: Namen der beiden Spieler */
   whiteName: string;
   blackName: string;
+  /** Gegen Freund: Wer von beiden bin ich? (Fehler-Markierung und Puzzles nur für meine Züge) */
+  friendMe: Color | 'none';
 };
 
 export const defaultSetup: GameSetup = {
@@ -19,6 +21,7 @@ export const defaultSetup: GameSetup = {
   strengthIndex: defaultStrengthIndex,
   whiteName: '',
   blackName: '',
+  friendMe: 'none',
 };
 
 export type Player = { name: string; detail?: string; isEngine: boolean };

@@ -49,6 +49,17 @@ describe('App-Partie speichern', () => {
   });
 });
 
+describe('Gegen Freund: Wer bist du?', () => {
+  it('eigene Farbe und Ergebnis aus eigener Sicht; „Keiner“ = keine Farbe', () => {
+    const c = new Chess();
+    c.move('e4');
+    const asBlack = buildAppGame(createSession({ ...defaultSetup, mode: 'friend', whiteName: 'Anna', blackName: 'Ich', friendMe: 'black' }), c, { winner: 'white', reason: 'resign' });
+    expect(asBlack).toMatchObject({ myColor: 'black', myResult: 'loss' });
+    const nobody = buildAppGame(createSession({ ...defaultSetup, mode: 'friend', friendMe: 'none' }), c, { winner: 'white', reason: 'resign' });
+    expect(nobody).toMatchObject({ myColor: null, myResult: null });
+  });
+});
+
 describe('Liste und Filter', () => {
   it('neueste zuerst, Filter nach Quelle', async () => {
     const session = createSession({ ...defaultSetup, mode: 'computer', colorChoice: 'black' });

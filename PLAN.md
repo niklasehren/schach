@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 12. November 2026 · Status: Blöcke 0–2, 4 (mit Chess.com-Import), 5 und 6 fertig, als Nächstes Block 7
+Stand: 12. November 2026 · Status: Blöcke 0–2, 4 (mit Chess.com-Import), 5, 6 und 7 fertig, als Nächstes Block 9 (Statistik)
 
 ## 1. Idee in einem Satz
 
@@ -101,6 +101,14 @@ Ziel: Fehler am Brett verständlich machen, nicht nur als Text. Anlass: 7. Df1??
 - **Erklärungen** (`src/analysis/explain.ts`, regelbasiert, nur nachprüfbare Aussagen): Schach; Zwischenzug (eigene bedrohte Figur ist nach meinem nächsten Variantenzug nicht mehr angegriffen – per chess.js geprüft); Schlagen; Materialbilanz der Variante („gewonnen“/„zurück“); beste Antwort des Gegners schlägt eine Figur (+ „ungedeckt“, wenn wirklich ungedeckt); Gabel (nur echte Bedrohungen: König, ungedeckt oder wertvoller als der Angreifer); hängende Figuren; Matt zugelassen/übersehen mit Zuganzahl. Passt keine Regel: nur Variante und Gewinnchance.
 - **Sprache der Erklärungen (Überarbeitung 12.11.):** einfache Sätze, Kernaussage zuerst; Figuren ausgeschrieben, Notation nur in Klammern, keine Zugfolgen im Text (dafür „Beste Fortsetzung zeigen“). Höchstens 2 Punkte je Abschnitt, keine Doppelungen (Gabel + Schlagen = ein Satz; steht ein Matt im Raum, entfallen Material-Sätze). Fachbegriffe fett, beim ersten Vorkommen kurz erklärt, antippbar (Erklärung erscheint darunter – auch am Handy). Wörterbuch: ungedeckt, Zwischenzug, Gabel, hängende Figur, erzwungenes Matt, Mattdrohung, Fesselung, Spieß, Abzugsangriff (die letzten drei bisher nur im Wörterbuch, noch ohne Erkennungsregel). „Einen **weiteren** Bauern“ nur, wenn vor dem Zug schon Material fehlte. Fester **Merke-Satz** je Regel (`MERKE` in `explain.ts`), Vorrang: Matt > Zwischenzug > Gabel > ungedeckt > hängend > Schlagen > Schach > Material.
 - **Gewinnchance in Worten** (aus Sicht des Ziehenden, 0–100 %): ≥ 92 gewonnen · ≥ 80 deutlich besser · ≥ 65 klar besser · ≥ 55 leicht besser · 45–55 ausgeglichen · ≥ 35 leicht schlechter · ≥ 20 klar schlechter · ≥ 8 deutlich schlechter · darunter verloren. Ungefähr: ±0,5 Bauern = ausgeglichen, ±1,5 = leicht, ±4 = klar, ±7 = deutlich.
+- **Weitere Regeln (12.11., nach Durchsicht echter Partien):**
+  - **Drohung übersehen** (erster Punkt nach Matt): Der letzte gegnerische Zug greift eine meiner Figuren an (ungedeckt oder von einer billigeren Figur) und mein Zug löst das nicht – mit Hinweis, wenn mein Zug sogar die Deckung wegnimmt. Merke: „Schau nach jedem Zug des Gegners zuerst: Was greift er an?“
+  - **Schach/Schlagzug bringt nichts:** Mein Zug gibt Schach oder schlägt, aber die beste Antwort greift eine meiner Figuren an oder eine alte Drohung bleibt. „Geht verloren“ nur, wenn die Engine-Variante die Figur wirklich schlägt, sonst „bleibt angegriffen“.
+  - **Hängende Figur** = angegriffen und ungedeckt **oder** von einer weniger wertvollen Figur angegriffen; der Text nennt den Fall.
+  - **Besserer Zug rettet / deckt:** zieht die bedrohte Figur auf ein sicheres Feld und/oder deckt etwas, das sonst (oder nach meinem Zug) ungedeckt war – beides in einem Satz.
+  - Allgemeiner Material-Satz nur, wenn keine konkrete Regel passt und die Fortsetzung wirklich mehr Material bringt als mein Zug.
+  - **Merke-Satz widerspricht nie dem gespielten Zug** (z. B. kein „gib Schach“, wenn ich gerade Schach gegeben habe).
+- **Automatischer Import:** Mit gespeichertem Namen holt die App beim Öffnen und beim Zurückkehren in den Tab (höchstens alle 10 Minuten) leise den aktuellen und letzten Monat; Meldung nur bei neuen Partien, Schalter auf der Import-Seite (Standard: an). Chess.com speichert die Monatsliste laut Server-Angabe nur 5 s zwischen; eine beendete Partie erscheint in der Regel nach wenigen Minuten (genaue Verzögerung nicht gemessen).
 - **Bewertungsbalken** links am Brett, **Bewertungskurve** unter der Zugliste (Gewinnchance Weiß, Fehler als Punkte, Tooltip, Klick springt zum Zug), Bewertungszahl darüber.
 - **Zum ersten Fehler / Nächster Fehler** (Fehler und Patzer, ohne Ungenauigkeiten).
 - Markierungsfarben mit dem Paletten-Prüfer abgestimmt: Patzer rot, Fehler orange, Ungenauigkeit **blau** (gelb/orange waren bei Rot-Grün-Schwäche kaum zu unterscheiden); zusätzlich immer ??/?/?!.
@@ -108,6 +116,18 @@ Ziel: Fehler am Brett verständlich machen, nicht nur als Text. Anlass: 7. Df1??
 Ansicht: Brett + Zugliste zum Durchklicken (auch per Pfeiltasten / Wischen), Bewertungskurve, farbige Markierung der Fehler, Pfeil für den besten Zug, kurze Zusammenfassung oben („2 Patzer, 1 Figur eingestellt, 3 von 4 Fehlern in Zeitnot“).
 
 ## 4. Puzzles aus eigenen Fehlern
+
+### Umsetzung Block 7 (Stand 12.11.2026)
+
+- Ein Puzzle entsteht aus der Stellung **vor** jedem meiner Fehler und Patzer – automatisch, sobald eine Partie analysiert ist (auch nachträglich für schon analysierte Partien). Übersprungen: Stellungen mit Gewinnchance unter 10 % (war schon verloren) und doppelte Stellungen (gleiche FEN ohne Zugzähler).
+- **Richtig:** der beste Zug und jeder Zug mit höchstens **3 Prozentpunkten** weniger Gewinnchance (geprüft mit Stockfish in derselben Tiefe). Begründung: deutlich unter der Grenze für eine Ungenauigkeit (5 Punkte), lässt aber Spielraum für das Rauschen der Engine. Matt setzen ist immer richtig.
+- **Taktik über mehrere Züge:** Ist der beste Zug forcierend (Schach, Schlagen) oder führt er zu Matt, geht die Lösung weiter, solange meine Züge forcierend sind (höchstens 3 eigene Züge, bei Matt bis zum Matt); der Computer antwortet jeweils mit dem Zug der Engine-Variante. Ruhige beste Züge: nur ein Zug.
+- Kein Hinweis-Knopf. Nach einem Fehlversuch darf ich noch einmal; danach kommt die Lösung. Am Ende: dieselbe Erklärung, Pfeile und „Beste Fortsetzung“ wie in der Analyse, Link zur Originalpartie.
+- **Leitner:** neu = Kasten 0; richtig beim ersten Versuch → nächster Kasten (1/3/7/14/30 Tage), sonst Kasten 1 (morgen). Jeder Versuch steht in `attempts` (Zug, richtig/falsch, Versuch 1/2, Dauer).
+- **Heute fällig:** alle fälligen Wiederholungen + höchstens **10 neue** pro Tag (Patzer vor Fehlern, neuere Partien zuerst).
+- **Entscheidung „Gegen Freund“:** Beim Start fragt die App „Wer bist du?“ (Spieler 1 / Spieler 2 / Keiner). Markierungen und Puzzles nur für die eigenen Züge; bei „Keiner“ keine Puzzles.
+
+### Ursprünglicher Plan
 
 - Jede Stellung **vor** einem Fehler oder Patzer wird ein Puzzle. Aufgabe: „Finde den besseren Zug.“
 - **Richtig** ist der beste Engine-Zug **und** jeder Zug, der fast gleich gut ist (kleiner Verlust an Gewinnchance) – damit man nicht für gleichwertige Züge bestraft wird.
@@ -196,7 +216,7 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 | **4 Speichern + Chess.com-Import** ✅ | IndexedDB (alle Tabellen aus Abschnitt 5), App-Partien automatisch speichern, Partienliste mit Filter, Partie ansehen, PGN-Export, Datensicherung · Chess.com-Import über die öffentliche API (geprüft: funktioniert direkt aus dem Browser, CORS erlaubt), nur normales Schach, keine Doppelten, Fortschrittsanzeige | Partien bleiben nach Neuladen erhalten; eigene Chess.com-Partien in der Liste |
 | **5 Analyse-Rechnung** ✅ | Hintergrund-Analyse, Gewinnchance, Klassen, Phase, Figur eingestellt, Matt übersehen, Zeitnot (aus `%clk` der Chess.com-Partien) | Analyse läuft für App- und Chess.com-Partien |
 | **6 Analyse-Ansicht** ✅ | Durchklicken, Bewertungskurve, bester Zug als Pfeil, Zusammenfassung | Eigene Partie Zug für Zug nachvollziehen |
-| **7 Puzzles** | Puzzles aus Fehlern, Lösen am Brett, Leitner-Wiederholung, „Heute fällig“ | Eigene Fehler als Training |
+| **7 Puzzles** ✅ | Puzzles aus Fehlern, Lösen am Brett, Leitner-Wiederholung, „Heute fällig“ | Eigene Fehler als Training |
 | **9 Statistik** | (siehe unten, vorgezogen) | Wo/wie ich verliere |
 | **3 Uhr & Partieende** | Schachuhr mit Inkrement (Standard 15+10, wählbar), Partieende durch Zeit, keine Zugrücknahme, keine Hinweise | Vollständige Partie mit Uhr |
 | **8 App & Feinschliff** | PWA (Homescreen, offline), Handy-Bedienung, Ladezeiten, Endkontrolle | App aufs iPhone installieren und nutzen |
@@ -223,6 +243,7 @@ Bewusst **nicht** geplant: Online-Spiel gegeneinander.
 
 ## 10. Offene Punkte / Annahmen
 
-- Partien „gegen Freund“ werden wie Computer-Partien gespeichert und analysiert (beide Seiten). Offen: Aus welchen Fehlern entstehen dort Puzzles – nur aus meinen? Dann muss ich beim Start angeben, welcher Spieler ich bin. → Klären vor Block 7.
+- ~~Puzzles aus „Gegen Freund“-Partien~~ → entschieden (Block 7): „Wer bist du?“ beim Start, Puzzles nur aus eigenen Zügen.
+- Fesselung, Spieß, Abzugsangriff: im Begriffs-Wörterbuch, aber noch ohne Erkennungsregel.
 - Analyse-Dauer: am Mac gemessen (~9 s/Partie bei Tiefe 16, s. Abschnitt 3). Am iPhone noch selbst ablesen (Anzeige in „Partien“).
 - Schwellen für Spielphase und „Figur eingestellt“ → an echten Partien feinjustieren.

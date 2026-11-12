@@ -83,6 +83,25 @@ test('Zwischenzug 7. Lxc6+: Pfeile, Erklärung mit Schach, Variante zum Durchkli
   await expect(line).toHaveCount(0);
   await expect(visible(page, '.movelist-move.is-current')).toHaveText(/^Lg4/);
   await expect(board).toHaveAttribute('data-arrows', /good:b5c6/);
+
+  // 14. Se5?? nach 13...h6: zuerst die übersehene Drohung, dann „Le3 rettet und deckt d4“
+  await visible(page, '.movelist-row').nth(12).locator('.movelist-move').nth(1).click();
+  await expect(visible(page, '.movelist-move.is-current')).toHaveText(/^h6/);
+  await expect(page.getByTestId('error-card')).toContainText('14. Se5');
+  await expect(page.getByTestId('explain-played').locator('li').first()).toContainText('Der Bauer auf h6 greift deinen Läufer auf g5 an');
+  await expect(page.getByTestId('explain-better')).toContainText('löst zwei Probleme auf einmal: Dein Läufer ist in Sicherheit, und er deckt jetzt den Bauern auf d4');
+  await expect(page.getByTestId('merke')).toContainText('Was greift er an?');
+  await page.waitForTimeout(400);
+  await shot(page, 'drohung');
+
+  // 15. Dxc6+?? nach 14...Dd8: das Schach bringt nichts – Merksatz passt zum gespielten Zug
+  await visible(page, '.movelist-row').nth(13).locator('.movelist-move').nth(1).click();
+  await expect(visible(page, '.movelist-move.is-current')).toHaveText(/^Dd8/);
+  await expect(page.getByTestId('error-card')).toContainText('15. Dxc6+');
+  await expect(page.getByTestId('explain-played').locator('li').first()).toContainText('Dein Schach hilft hier nicht: Schwarz stellt den Läufer dazwischen (Ld7) und greift damit deine Dame an');
+  await expect(page.getByTestId('merke')).toHaveText('Merke: Ein Schach ist nur gut, wenn danach etwas für dich herausspringt. Prüfe vorher, wie der Gegner antworten kann.');
+  await page.waitForTimeout(400);
+  await shot(page, 'schach-bringt-nichts');
 });
 
 test('Bewertungsbalken, Kurve mit Fehlerpunkten, Nächster Fehler', async ({ page }) => {

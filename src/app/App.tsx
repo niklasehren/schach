@@ -2,13 +2,16 @@ import { GamesPage } from '../pages/GamesPage';
 import { GameViewPage } from '../pages/GameViewPage';
 import { ImportPage } from '../pages/ImportPage';
 import { PlayPage } from '../pages/PlayPage';
-import { useEffect } from 'react';
+import { TrainingPage } from '../pages/TrainingPage';
+import { useEffect, useState } from 'react';
+import { maybeAutoImport } from '../chesscom/autoImport';
 import { analysisQueue } from '../analysis/queue';
 import { href, useRoute, type Route } from './router';
 
 const links: { route: Route; label: string; match: Route['page'][] }[] = [
   { route: { page: 'spielen' }, label: 'Spielen', match: ['spielen'] },
   { route: { page: 'partien' }, label: 'Partien', match: ['partien', 'partie'] },
+  { route: { page: 'training' }, label: 'Training', match: ['training'] },
   { route: { page: 'import' }, label: 'Import', match: ['import'] },
 ];
 
@@ -17,6 +20,27 @@ export function App() {
   // Hintergrund-Analyse starten (läuft, solange die App offen ist)
   useEffect(() => {
     void analysisQueue.start();
+  }, []);
+
+  // Neue Chess.com-Partien automatisch holen: beim Öffnen und wenn der Tab wieder sichtbar wird
+  const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const check = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const added = await maybeAutoImport();
+      if (added > 0) {
+        setToast(added === 1 ? '1 neue Partie geladen' : `${added} neue Partien geladen`);
+        clearTimeout(timer);
+        timer = setTimeout(() => setToast(null), 6000);
+      }
+    };
+    void check();
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      document.removeEventListener('visibilitychange', check);
+      clearTimeout(timer);
+    };
   }, []);
   return (
     <div className="app">
@@ -33,11 +57,13 @@ export function App() {
               </a>
             );
           })}
-          <a className="nav-link is-soon" aria-disabled="true">
-            Training
-          </a>
         </nav>
       </header>
+      {toast && (
+        <div className="toast" role="status" data-testid="toast">
+          {toast}
+        </div>
+      )}
       <main className="main">
         {/* Spielen und Import bleiben im Hintergrund erhalten: laufende Partie bzw. laufender Import gehen beim Seitenwechsel nicht verloren */}
         <div className="page-slot" hidden={route.page !== 'spielen'}>
@@ -47,7 +73,8 @@ export function App() {
           <ImportPage />
         </div>
         {route.page === 'partien' && <GamesPage />}
-        {route.page === 'partie' && <GameViewPage id={route.id} />}
+        {route.page === 'partie' && <GameViewPage id={route.id} ply={route.ply} />}
+        {route.page === 'training' && <TrainingPage />}
       </main>
     </div>
   );

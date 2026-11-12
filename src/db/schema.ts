@@ -132,19 +132,33 @@ export type AnalysisRecord = {
   ms: number;
 };
 
-/** Puzzle aus einem eigenen Fehler (ab Block 7) */
+/** Puzzle aus einem eigenen Fehler (Block 7) */
 export type PuzzleRecord = {
+  /** „gameId:ply“ */
   id: string;
   userId: string | null;
   createdAt: number;
   gameId: string;
+  /** Datum der Partie (für „neuere Partien zuerst“) */
+  gameDate: number;
+  /** Halbzug meines Fehlers; die Puzzle-Stellung ist die davor */
   ply: number;
   fen: string;
-  solutions: string[];
-  themes: string[];
+  /** FEN ohne Zugzähler – erkennt gleiche Stellungen */
+  fenKey: string;
+  /** Mein Zug in der Partie (UCI) */
+  played: string;
+  /** Lösung als Zugfolge (UCI): meine Züge an geraden Stellen, dazwischen die Antworten des Gegners */
+  line: string[];
+  class: MoveClass;
+  /** Meine Gewinnchance vor dem Fehler (0–100) */
+  winBefore: number;
+  /** Leitner-Kasten: 0 = neu (noch nie geübt), 1–5 */
   box: number;
-  /** Fälligkeitstag als Zeitstempel (Mitternacht) */
-  due: number;
+  /** Fällig ab (Tagesbeginn, ms); null = neu */
+  due: number | null;
+  /** Wann zum ersten Mal geübt (für das Tageslimit neuer Puzzles) */
+  firstSeen: number | null;
 };
 
 export type AttemptRecord = {
@@ -153,6 +167,10 @@ export type AttemptRecord = {
   date: number;
   correct: boolean;
   ms: number;
+  /** Gezogener Zug (UCI) */
+  move: string;
+  /** 1 = erster Versuch, 2 = zweiter Versuch */
+  try: number;
 };
 
 export type SettingRecord = { key: string; value: unknown };
@@ -177,6 +195,8 @@ export class SchachDB extends Dexie {
     });
     // Version 2: Analysen nach Status abfragbar (Warteschlange)
     this.version(2).stores({ analyses: 'gameId, status' });
+    // Version 3: Puzzles mit Stellungsschlüssel (gegen doppelte Stellungen)
+    this.version(3).stores({ puzzles: 'id, gameId, due, box, fenKey' });
   }
 }
 
