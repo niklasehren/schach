@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Dexie from 'dexie';
 import { SchachDB, type GameRecord, type PuzzleRecord } from '../../src/db/schema';
 import { SYNC_TABLES, type SyncTable } from '../../src/db/syncHooks';
+import { buildBoardGame, deleteBoardGame, saveBoardGame } from '../../src/db/boardGames';
 import { adoptLocalData, clearLocalData, PULL_ORDER, pull, push, syncOnce, type CursorStore, type Remote, type RemoteRow, type SyncContext } from '../../src/sync/engine';
 
 /** Nachbau des Servers mit denselben Regeln wie die Migration: neuester Stand gewinnt, synced_at = Serverzeit */
@@ -172,6 +173,36 @@ describe('Synchronisierung zwischen zwei Geräten', () => {
     expect(await d2.db.games.get('weg')).toBeUndefined();
     // Die vom Server kommende Löschung erzeugt auf Gerät 2 keinen neuen Grabstein
     expect(await d2.db.tombstones.count()).toBe(0);
+  });
+
+  it('Brett-Einträge: Anlegen, Bearbeiten und Löschen kommen auf dem zweiten Gerät an', async () => {
+    const d1 = device();
+    const d2 = device();
+    const entry = buildBoardGame(
+      { day: '2026-11-12', opponent: 'Lena', occasion: 'schulliga', myColor: 'white', myResult: 'loss', decidedIn: 'endgame', reasons: ['endgameUnknown'], note: 'Turmendspiel', pgn: '' },
+      { myName: 'Ich' },
+    );
+    await saveBoardGame(entry, d1.db);
+    await syncOnce(d1);
+    expect(server.get('userA', 'games', entry.id)!.data).toMatchObject({ source: 'brett', board: { reasons: ['endgameUnknown'], note: 'Turmendspiel' } });
+    await syncOnce(d2);
+    expect(await d2.db.games.get(entry.id)).toMatchObject({ source: 'brett', myResult: 'loss', plies: 0, board: { occasion: 'schulliga', decidedIn: 'endgame' } });
+
+    // Auf Gerät 2 bearbeitet (später) → Gerät 1 übernimmt
+    at(12);
+    await saveBoardGame({ ...entry, myResult: 'draw', result: '1/2-1/2', board: { ...entry.board!, reasons: ['timeTrouble'] } }, d2.db);
+    await syncOnce(d2);
+    await syncOnce(d1);
+    expect(await d1.db.games.get(entry.id)).toMatchObject({ myResult: 'draw', board: { reasons: ['timeTrouble'] } });
+
+    // Auf Gerät 1 gelöscht → auch auf Gerät 2 weg
+    at(13);
+    await deleteBoardGame(entry.id, d1.db);
+    await vi.waitFor(async () => expect(await d1.db.tombstones.count()).toBeGreaterThan(0));
+    await syncOnce(d1);
+    expect(server.get('userA', 'games', entry.id)).toMatchObject({ deleted: true });
+    await syncOnce(d2);
+    expect(await d2.db.games.get(entry.id)).toBeUndefined();
   });
 
   it('Erster Login: lokale Daten des Geräts werden übernommen, nichts geht verloren, ältere Stände überschreiben nichts', async () => {

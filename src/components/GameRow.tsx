@@ -1,15 +1,17 @@
-import { CircleAlert, CircleCheck, CircleDashed, Clock, LoaderCircle, MonitorSmartphone, Rocket, Sun, Zap, type LucideIcon } from 'lucide-react';
+import { CircleAlert, CircleCheck, CircleDashed, Clock, LoaderCircle, MonitorSmartphone, NotebookPen, Rocket, Sun, Zap, type LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { AnalysisRecord, GameRecord } from '../db/schema';
 import { formatDate, formatTimeControl, myResultText, scoreText } from '../chess/format';
 import { href } from '../app/router';
+import { hasMoves, OCCASION_LABELS } from '../db/boardGames';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 const tcIcon: Record<string, LucideIcon> = { bullet: Rocket, blitz: Zap, rapid: Clock, daily: Sun, classical: Clock };
 const tcName: Record<string, string> = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', daily: 'Täglich', classical: 'Klassisch' };
 
-export const timeClassName = (g: GameRecord) => (g.timeClass ? tcName[g.timeClass] : g.source === 'app' ? 'App-Partie' : 'ohne Uhr');
+export const timeClassName = (g: GameRecord) =>
+  g.timeClass ? tcName[g.timeClass] : g.source === 'app' ? 'App-Partie' : g.board ? OCCASION_LABELS[g.board.occasion] : 'ohne Uhr';
 
 /** Ergebnis-Abzeichen: Sieg grün, Niederlage rot, Remis grau */
 export function ResultBadge({ result, children, className }: { result: 'win' | 'loss' | 'draw' | 'neutral'; children: React.ReactNode; className?: string }) {
@@ -41,11 +43,14 @@ export function GameRow({ game: g, analysis, analysing }: { game: GameRecord; an
         ? analysis.summary?.[g.myColor].blunders ?? 0
         : (analysis.summary?.white.blunders ?? 0) + (analysis.summary?.black.blunders ?? 0)
       : null;
-  const TcIcon = g.timeClass ? tcIcon[g.timeClass] : MonitorSmartphone;
+  const TcIcon = g.timeClass ? tcIcon[g.timeClass] : g.source === 'brett' ? NotebookPen : MonitorSmartphone;
+  const isBoard = g.source === 'brett';
+  // Brett-Eintrag ohne Züge: es gibt nichts zum Durchklicken → gleich zum Bearbeiten
+  const moves = !isBoard || hasMoves(g);
   return (
     <a
       className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 border-t px-4 py-3 text-inherit no-underline transition-colors first:border-t-0 hover:bg-muted/60 md:grid-cols-[104px_28px_1fr_auto]"
-      href={href({ page: 'partie', id: g.id })}
+      href={moves ? href({ page: 'partie', id: g.id }) : href({ page: 'brett', id: g.id })}
       data-testid="game-row"
     >
       <ResultBadge result={g.myResult ?? 'neutral'} className="md:w-full">
@@ -77,12 +82,17 @@ export function GameRow({ game: g, analysis, analysing }: { game: GameRecord; an
         </span>
       </span>
       <span className="flex items-center gap-2 md:justify-end">
+        {isBoard && (
+          <Badge variant="outline" className="h-6 border-brass/60 px-2 font-semibold text-brass" data-testid="board-badge">
+            Brett
+          </Badge>
+        )}
         {blunders !== null && blunders > 0 && (
           <Badge className="h-6 bg-blunder px-2 font-bold text-background" data-testid="blunder-badge">
             {blunders} Patzer
           </Badge>
         )}
-        <AnalysisStatus status={analysis?.status === 'done' ? 'done' : analysis?.status === 'failed' ? 'failed' : analysing ? 'running' : 'open'} />
+        {moves && <AnalysisStatus status={analysis?.status === 'done' ? 'done' : analysis?.status === 'failed' ? 'failed' : analysing ? 'running' : 'open'} />}
       </span>
     </a>
   );

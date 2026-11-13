@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
-import { BookOpen, Download, Info, Swords, Target } from 'lucide-react';
+import { BookOpen, Download, Info, NotebookPen, Swords, Target } from 'lucide-react';
 import { db, type GameRecord } from '../db/schema';
 import { useLive } from '../db/useLive';
 import { href } from '../app/router';
@@ -49,6 +49,9 @@ export function OverviewPage() {
             </a>
             <a className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-12 border-hero-foreground/40 bg-transparent px-5 text-base text-hero-foreground no-underline')} href={href({ page: 'spielen' })}>
               <Swords data-icon="inline-start" /> Partie spielen
+            </a>
+            <a className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-12 border-hero-foreground/40 bg-transparent px-5 text-base text-hero-foreground no-underline')} href={href({ page: 'brett' })}>
+              <NotebookPen data-icon="inline-start" /> Brettpartie eintragen
             </a>
           </div>
         </Card>
@@ -195,6 +198,11 @@ export function OverviewPage() {
           {games.slice(0, 5).map((g) => (
             <GameRow key={g.id} game={g} analysis={byId.get(g.id)} analysing={queue.current?.gameId === g.id} />
           ))}
+        </div>
+        <div className="border-t px-4 pt-3 pb-2">
+          <a className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 w-full text-[15px] text-foreground no-underline sm:w-auto')} href={href({ page: 'brett' })} data-testid="overview-board-entry">
+            <NotebookPen data-icon="inline-start" /> Brettpartie eintragen
+          </a>
         </div>
       </Card>
 

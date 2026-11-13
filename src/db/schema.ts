@@ -26,7 +26,31 @@ export type GamePlayer = {
   detail?: string;
 };
 
-/** Eine gespeicherte Partie (App, Chess.com, später Brettpartie) */
+/** Anlass einer Brettpartie (Schritt 12) */
+export type BoardOccasion = 'schulliga' | 'freunde' | 'turnier' | 'sonstiges';
+
+/** Hauptgründe, warum eine Brettpartie so ausging (Mehrfachauswahl) */
+export type BoardReason =
+  | 'pieceBlunder'
+  | 'threatMissed'
+  | 'mateMissed'
+  | 'mateAllowed'
+  | 'timeTrouble'
+  | 'badOpening'
+  | 'endgameUnknown'
+  | 'opponentError'
+  | 'playedWell';
+
+/** Schnell-Eintrag einer Partie am echten Brett (nur bei source = 'brett') */
+export type BoardEntry = {
+  occasion: BoardOccasion;
+  /** Wo wurde die Partie entschieden; null = nicht angegeben */
+  decidedIn: 'opening' | 'middlegame' | 'endgame' | null;
+  reasons: BoardReason[];
+  note?: string;
+};
+
+/** Eine gespeicherte Partie (App, Chess.com, Brettpartie) */
 export type GameRecord = {
   id: string;
   /** Für die spätere Freundesgruppe (Supabase); lokal noch leer */
@@ -36,7 +60,8 @@ export type GameRecord = {
   /** Zeitpunkt der Partie (Ende) in Millisekunden */
   date: number;
   source: 'app' | 'chesscom' | 'brett';
-  mode: 'computer' | 'friend' | 'online';
+  /** board = am echten Brett (Schnell-Eintrag) */
+  mode: 'computer' | 'friend' | 'online' | 'board';
   white: GamePlayer;
   black: GamePlayer;
   /** Meine Farbe; null bei „Gegen Freund“ (beide Seiten sind Menschen am Gerät) */
@@ -60,6 +85,8 @@ export type GameRecord = {
   /** Benutzername, mit dem importiert wurde */
   account?: string;
   accuracies?: { white?: number; black?: number };
+  /** Nur Brettpartien: Anlass, Phase, Gründe, Notiz. Ohne Züge ist pgn leer und plies 0. */
+  board?: BoardEntry;
 };
 
 export type MoveClass = 'inaccuracy' | 'mistake' | 'blunder';

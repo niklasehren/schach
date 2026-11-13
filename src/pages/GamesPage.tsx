@@ -6,7 +6,8 @@ import { AnalysisPanel } from "../components/AnalysisPanel";
 import { GameRow } from "../components/GameRow";
 import { useQueueState } from "../analysis/useQueue";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { NotebookPen } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
@@ -94,13 +95,20 @@ export function GamesPage() {
         )}
       </div>
 
+      <a
+        className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11 self-start text-[15px] text-foreground no-underline")}
+        href={href({ page: "brett" })}
+      >
+        <NotebookPen data-icon="inline-start" /> Brettpartie eintragen
+      </a>
+
       <AnalysisPanel />
 
       <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-x-4">
         <Filter
           label="Quelle"
           value={source}
-          className="grid-cols-3"
+          className="grid-cols-4"
           onChange={(v) => {
             setSource(v);
             reset();
@@ -109,6 +117,7 @@ export function GamesPage() {
             ["all", "Alle"],
             ["app", "App"],
             ["chesscom", "Chess.com"],
+            ["brett", "Brett"],
           ]}
         />
         <Filter

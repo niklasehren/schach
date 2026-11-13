@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 12. November 2026 · Status: Blöcke 0–2, 4–8, 10 (Lichess-Puzzles) und 13 (Konten + Synchronisierung) fertig, App fürs iPhone installierbar (PWA), Design „Klubhaus“ mit shadcn/ui; als Nächstes: Block 9 (Statistik)
+Stand: 13. November 2026 · Status: Blöcke 0–2, 4–8, 10 (Lichess-Puzzles), 12 (Brettpartien eintragen) und 13 (Konten + Synchronisierung) fertig, App fürs iPhone installierbar (PWA), Design „Klubhaus“ mit shadcn/ui; als Nächstes: Block 9 (Statistik)
 
 ## 1. Idee in einem Satz
 
@@ -167,6 +167,34 @@ Ansicht: Brett + Zugliste zum Durchklicken (auch per Pfeiltasten / Wischen), Bew
 
 - **Adressen:** `#/training` (Übersicht beider Arten), `#/training/fehler` (Tagesziel), `#/training/mehr` (Weiter üben), `#/training/allgemein/schwaechen` bzw. `#/training/allgemein/<Thema>`.
 
+## 4c. Brettpartien schnell eintragen (Schritt 12, Stand 13.11.2026)
+
+Ziel: Partien am echten Brett (Schülerliga, Freunde, Turnier), die nicht mitgeschrieben werden, direkt danach am iPhone in ca. 30 Sekunden festhalten.
+
+- **Knopf „Brettpartie eintragen“** auf der Übersicht (unter „Letzte Partien“, bei leerer App im Willkommens-Bereich) und auf der Partien-Seite. Adresse `#/brett` (neu) bzw. `#/brett/<id>` (bearbeiten).
+- **Felder als Antipp-Knöpfe:** Ergebnis (Sieg/Remis/Niederlage) und meine Farbe sind Pflicht, alles andere optional. Datum: „Heute“ (Standard), „Gestern“ oder Kalender. Gegner: Name mit Vorschlägen aus früheren Brett-Einträgen (zuletzt gespielte zuerst). Anlass: Schülerliga / Mit Freunden / Turnier / Sonstiges (Standard = Anlass des letzten Eintrags). Wo entschieden: Eröffnung / Mittelspiel / Endspiel. Hauptgründe (Mehrfachauswahl). Notiz. Speichern-Knopf bleibt am Handy über der Navigationsleiste sichtbar. Schnellster Weg: Ergebnis + Farbe + Speichern = 3 Antipper.
+- **Optional „Züge einfügen (PGN)“:** wird mit chess.js geprüft (englische Notation, z. B. `1. e4 e5 2. Nf3`; deutsche Kürzel wie „Sf3“ ergeben eine verständliche Meldung). Mit Zügen läuft die Partie durch die normale Analyse, es entstehen Puzzles, und nach dem Speichern öffnet sich die Analyse-Ansicht.
+- **Speicherung:** in der Tabelle `games` mit `source: 'brett'`, `mode: 'board'` und dem Zusatzfeld `board` (`occasion`, `decidedIn`, `reasons`, `note`). Ohne Züge: `pgn` leer, `plies` 0 – die Analyse-Warteschlange überspringt solche Einträge und zählt sie nicht mit. Kein neues Datenbankschema; wird wie jede Partie mit dem Konto synchronisiert und ist im Backup.
+- **Partienliste:** Abzeichen „Brett“, Anlass statt Zeitklasse, Filter Quelle „Brett“. Ein Eintrag ohne Züge öffnet direkt das Formular; mit Zügen die Analyse (dort „…“ → „Brett-Eintrag bearbeiten“, Anlass und Gründe unter der Überschrift).
+- **Bearbeiten und Löschen:** gleiches Formular. Ändern sich Züge oder Farbe, werden Analyse und Puzzles der Partie verworfen und neu berechnet. Löschen (mit Rückfrage) entfernt Eintrag, Analyse und Puzzles; die Löschung wird abgeglichen.
+- **Code:** `src/db/boardGames.ts` (Aufbau, Speichern, Löschen, Gegner-Vorschläge, Zuordnung), `src/pages/BoardEntryPage.tsx`. Tests: `tests/unit/boardGames.test.ts`, Sync zweier Geräte in `tests/unit/sync.test.ts`, `tests/e2e/brett.spec.ts` (Mac und Handy).
+
+**Zuordnung der Gründe zu den Fehlerarten** (für Block 9; `REASON_MAPPING` und `boardFindings()` in `src/db/boardGames.ts`). `boardFindings()` liefert je Grund einen eigenen Fehler mit denselben Feldern wie ein Fehler aus der Analyse (Fehlerart, Phase, Zeitnot), damit die Statistik beide Quellen zusammenzählen kann:
+
+| Grund (Brett) | Fehlerart (Analyse, `errorType`) | Phase | Bemerkung |
+|---|---|---|---|
+| Figur eingestellt | Material eingestellt (`pieceTaken`) | „Wo entschieden“ | |
+| Drohung übersehen | Drohung übersehen (`threatMissed`) | „Wo entschieden“ | |
+| Matt übersehen | Matt übersehen (`mateMissed`) | „Wo entschieden“ | |
+| Matt zugelassen | Matt zugelassen (`mateAllowed`) | „Wo entschieden“ | |
+| Eröffnung schlecht | Stellungsfehler (`other`) | immer Eröffnung | |
+| Endspiel nicht gewusst | Stellungsfehler (`other`) | immer Endspiel | |
+| Zeitnot | – (keine eigene Fehlerart) | – | markiert alle Fehler dieses Eintrags als „in Zeitnot“; allein gewählt = ein Fehler `other` in Zeitnot |
+| Gegner hat Fehler gemacht | – | – | kein eigener Fehler |
+| Gut gespielt | – | – | kein eigener Fehler |
+
+Regeln für die Statistik: Brett-Einträge zählen **Partien** mit Gründen, nicht einzelne Züge – in Block 9 getrennt ausweisen („aus Brettpartien“) oder je Partie gewichten. Hat ein Brett-Eintrag Züge **und** eine fertige Analyse, zählen die Fehler aus der Analyse; die Gründe bleiben als eigene Einschätzung erhalten (nicht doppelt zählen). „Gabel übersehen“, „ungedeckt gelassen“ und „Schach/Schlagzug ohne Wirkung“ gibt es nur aus der Analyse.
+
 ---
 
 ## 5. Datenmodell (IndexedDB)
@@ -175,7 +203,7 @@ Von Anfang an so angelegt, dass es später zu Supabase passt (eindeutige IDs, Ze
 
 | Tabelle | Inhalt |
 |---|---|
-| `games` | ID, Datum, Quelle (`app` / `chesscom` / `brett`), Modus (gegen Computer / gegen Freund am selben Gerät), Spielernamen, meine Farbe, Gegner-Stärke, Bedenkzeit, Ergebnis, Abbruchgrund, **PGN mit Restzeit pro Zug** (Standard-Format `{[%clk 0:14:32]}`, wie Lichess/Chess.com) |
+| `games` | ID, Datum, Quelle (`app` / `chesscom` / `brett`), Modus (gegen Computer / gegen Freund am selben Gerät / am Brett), bei Brettpartien `board` (Anlass, wo entschieden, Gründe, Notiz), Spielernamen, meine Farbe, Gegner-Stärke, Bedenkzeit, Ergebnis, Abbruchgrund, **PGN mit Restzeit pro Zug** (Standard-Format `{[%clk 0:14:32]}`, wie Lichess/Chess.com) |
 | `analyses` | Partie-ID, Engine-Version, Tiefe, pro Zug: Bewertung, bester Zug, Klasse, Phase, Merkmale (Figur eingestellt, Matt übersehen, Zeitnot) |
 | `puzzles` | ID, Partie-ID, Stellung (FEN), Lösung(en), Thema/Merkmale, Leitner-Kasten, nächster Fälligkeitstag |
 | `attempts` | Puzzle-ID, Datum, richtig/falsch, benötigte Zeit |
@@ -292,6 +320,7 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 | **7 Puzzles** ✅ | Puzzles aus Fehlern, Lösen am Brett, Leitner-Wiederholung, „Heute fällig“ | Eigene Fehler als Training |
 | **13 Konten & Synchronisierung** ✅ (vorgezogen) | Supabase (Gratis-Plan, Frankfurt): Registrierung nur mit Einladungscode, Login mit Benutzername/E-Mail, Row Level Security, Offline-zuerst-Abgleich aller fünf Tabellen, Konto löschen, Datenschutzhinweis (s. Abschnitt 5b) | Gleiche Daten auf Mac und iPhone; Freunde einladen |
 | **10 Lichess-Puzzles** ✅ (vorgezogen) | Allgemeines Training aus der Lichess-Datenbank (CC0): 14 Themen, Puzzle-Rating, „Passend zu meinen Schwächen“ oder Thema wählen; „Weiter üben“ ohne Tageslimit (s. Abschnitt 4b) | Zwei Trainingsarten mit eigenem Startknopf |
+| **12 Brettpartien eintragen** ✅ (vorgezogen) | Schnell-Eintrag am Handy: Ergebnis, Farbe, Gegner, Anlass, Phase, Hauptgründe, Notiz, optional Züge (PGN → Analyse); Abzeichen und Filter „Brett“, bearbeiten/löschen, synchronisiert (s. Abschnitt 4c) | Brettpartie in ca. 30 s eintragen |
 | **9 Statistik** | (siehe unten, vorgezogen) | Wo/wie ich verliere |
 | **3 Uhr & Partieende** | Schachuhr mit Inkrement (Standard 15+10, wählbar), Partieende durch Zeit, keine Zugrücknahme, keine Hinweise | Vollständige Partie mit Uhr |
 | **8 App fürs iPhone** ✅ | PWA (Homescreen, offline, Update-Meldung, Safe Areas, Installationshinweis) – s. Abschnitt 7b | App aufs iPhone installieren und nutzen |
@@ -300,8 +329,7 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 
 | Schritt | Inhalt | Vorbereitet durch |
 |---|---|---|
-| 9 Statistik (vorgezogen, s. o.) | Wo/wie ich verliere: nach Phase, Fehlertyp, Zeitnot, Farbe, Eröffnung. Sinnvoll ab ca. 15–20 Partien (App zeigt bis dahin „noch zu wenig Daten“). | Merkmale werden schon ab Block 5 gespeichert |
-| 12 Schnell-Eintrag Brettpartie | Nur Knöpfe: Ergebnis, Phase, Fehlertyp – fließt in die Statistik ein. | Quelle `brett` |
+| 9 Statistik (vorgezogen, s. o.) | Wo/wie ich verliere: nach Phase, Fehlertyp, Zeitnot, Farbe, Eröffnung, Quelle (inkl. Brettpartien über `boardFindings()`, s. Abschnitt 4c). Sinnvoll ab ca. 15–20 Partien (App zeigt bis dahin „noch zu wenig Daten“). | Merkmale ab Block 5, Brett-Gründe ab Schritt 12 |
 | 13b Freundesgruppe | Rangliste (z. B. gelöste Puzzles, Serien) auf Basis der Konten aus Schritt 13. | Konten, Profile (Abschnitt 5b) |
 | 14 Maia (optional) | Menschlich spielender Gegner (trainiert auf Lichess-Partien). Im Browser technisch aufwendiger → vorher kurze Machbarkeitsprüfung. | Engine-Anbindung ist austauschbar gebaut |
 

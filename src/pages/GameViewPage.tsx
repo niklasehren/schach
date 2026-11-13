@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowUpDown, ChevronLeft, Download, Ellipsis, ExternalLink, Flag } from 'lucide-react';
+import { ArrowUpDown, ChevronLeft, Download, Ellipsis, ExternalLink, Flag, NotebookPen } from 'lucide-react';
 import { ResultBadge } from '../components/GameRow';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -41,6 +41,7 @@ import { useQueueState } from '../analysis/useQueue';
 import { toGermanSan } from '../chess/game';
 import { useLive } from '../db/useLive';
 import { href } from '../app/router';
+import { hasMoves, OCCASION_LABELS, REASON_LABELS } from '../db/boardGames';
 
 const other = (c: Color): Color => (c === 'white' ? 'black' : 'white');
 
@@ -84,6 +85,11 @@ export function GameViewPage({ id, ply }: { id: string; ply?: number }) {
         </a>
       </div>
     );
+  // Brett-Eintrag ohne Züge: nichts zum Ansehen → Eintrag bearbeiten
+  if (game.source === 'brett' && !hasMoves(game)) {
+    window.location.replace(href({ page: 'brett', id: game.id }));
+    return null;
+  }
   return <GameView key={`${game.id}:${ply ?? 0}`} game={game} initialPly={ply ?? 0} />;
 }
 
@@ -299,6 +305,12 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
                 {scoreText(game.result)} · durch {terminationText[game.termination]}
               </strong>
               <span className="truncate text-[13.5px] text-muted-foreground max-md:whitespace-nowrap md:whitespace-normal">{meta}</span>
+              {game.board && (
+                <span className="text-[13.5px] text-muted-foreground" data-testid="board-info">
+                  {[OCCASION_LABELS[game.board.occasion], ...game.board.reasons.map((r) => REASON_LABELS[r])].join(' · ')}
+                  {game.board.note && <> – „{game.board.note}“</>}
+                </span>
+              )}
               {(game.opening || game.eco) && (
                 <span className="truncate text-[13.5px] text-muted-foreground max-md:whitespace-nowrap md:whitespace-normal">
                   {[game.eco, game.opening].filter(Boolean).join(' · ')}
@@ -317,6 +329,11 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
               <DropdownMenuItem onClick={exportPgn}>
                 <Download /> PGN exportieren
               </DropdownMenuItem>
+              {game.source === 'brett' && (
+                <DropdownMenuItem onClick={() => (window.location.hash = href({ page: 'brett', id: game.id }))}>
+                  <NotebookPen /> Brett-Eintrag bearbeiten
+                </DropdownMenuItem>
+              )}
               {game.source === 'chesscom' && game.externalId && (
                 <DropdownMenuItem onClick={() => window.open(game.externalId, '_blank', 'noreferrer')}>
                   <ExternalLink /> Auf Chess.com öffnen

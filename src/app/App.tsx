@@ -16,12 +16,13 @@ const GamesPage = lazy(() => import('../pages/GamesPage').then((m) => ({ default
 const GameViewPage = lazy(() => import('../pages/GameViewPage').then((m) => ({ default: m.GameViewPage })));
 const TrainingPage = lazy(() => import('../pages/TrainingPage').then((m) => ({ default: m.TrainingPage })));
 const ImportPage = lazy(() => import('../pages/ImportPage').then((m) => ({ default: m.ImportPage })));
+const BoardEntryPage = lazy(() => import('../pages/BoardEntryPage').then((m) => ({ default: m.BoardEntryPage })));
 const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 
 const links: { route: Route; label: string; icon: LucideIcon; match: Route['page'][] }[] = [
   { route: { page: 'uebersicht' }, label: 'Übersicht', icon: House, match: ['uebersicht'] },
   { route: { page: 'spielen' }, label: 'Spielen', icon: ChessKnight, match: ['spielen'] },
-  { route: { page: 'partien' }, label: 'Partien', icon: List, match: ['partien', 'partie'] },
+  { route: { page: 'partien' }, label: 'Partien', icon: List, match: ['partien', 'partie', 'brett'] },
   { route: { page: 'training' }, label: 'Training', icon: Target, match: ['training'] },
   { route: { page: 'import' }, label: 'Import', icon: Download, match: ['import'] },
 ];
@@ -124,6 +125,7 @@ export function App() {
           {route.page === 'partie' && <GameViewPage id={route.id} ply={route.ply} />}
           {route.page === 'training' && <TrainingPage mode={route.mode} theme={route.theme} />}
           {route.page === 'einstellungen' && <SettingsPage />}
+          {route.page === 'brett' && <BoardEntryPage key={route.id ?? 'neu'} id={route.id} />}
         </Suspense>
       </main>
 

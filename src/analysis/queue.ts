@@ -5,6 +5,7 @@ import { getSetting, setSetting } from '../db/games';
 import { analyseGame, DEFAULT_LIMIT } from './analyze';
 import { syncPuzzlesForGame } from '../training/store';
 import { withErrorTypes } from './errorTypes';
+import { hasMoves } from '../db/boardGames';
 
 export type QueueState = {
   /** running = rechnet, paused = vom Nutzer angehalten, yielding = wartet, weil gerade gegen den Computer gespielt wird */
@@ -68,7 +69,8 @@ export class AnalysisQueue {
     }
     // Zähler aktuell halten; neue Partien wecken die Warteschlange
     this.sub = liveQuery(async () => {
-      const [total, done] = await Promise.all([db.games.count(), db.analyses.where('status').anyOf('done', 'failed').toArray()]);
+      // Brettpartien ohne Züge gibt es nichts zu analysieren
+      const [total, done] = await Promise.all([db.games.filter(hasMoves).count(), db.analyses.where('status').anyOf('done', 'failed').toArray()]);
       const ok = done.filter((a) => a.status === 'done' && a.ms > 0);
       return { total, processed: done.length, avgMs: ok.length ? ok.reduce((s, a) => s + a.ms, 0) / ok.length : null };
     }).subscribe({
@@ -174,14 +176,14 @@ export class AnalysisQueue {
       this.priority = null;
       if (!finished.has(id)) {
         const g = await db.games.get(id);
-        if (g) return g;
+        if (g && hasMoves(g)) return g;
       }
     }
     // Neueste zuerst; eine angefangene Partie zuerst fertig rechnen
     const partial = await db.analyses.where('status').equals('partial').primaryKeys();
     for (const id of partial) {
       const g = await db.games.get(id);
-      if (g) return g;
+      if (g && hasMoves(g)) return g;
     }
     let next: GameRecord | undefined;
     await db.games
@@ -189,7 +191,7 @@ export class AnalysisQueue {
       .reverse()
       .until(() => next !== undefined)
       .each((g) => {
-        if (!next && !finished.has(g.id)) next = g;
+        if (!next && !finished.has(g.id) && hasMoves(g)) next = g;
       });
     return next;
   }

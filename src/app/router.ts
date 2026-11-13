@@ -7,6 +7,8 @@ export type Route =
   | { page: 'partien' }
   | { page: 'partie'; id: string; ply?: number }
   | { page: 'import' }
+  /** Brettpartie eintragen (ohne id) oder bearbeiten */
+  | { page: 'brett'; id?: string }
   | { page: 'training'; mode?: TrainingMode; theme?: string };
 
 /** fehler = Tagesziel aus meinen Fehlern, mehr = „Weiter üben“ ohne Limit, allgemein = Lichess-Puzzles (Thema oder „schwaechen“) */
@@ -20,6 +22,7 @@ export function parseRoute(hash: string): Route {
     const mode = parts[1] === 'fehler' || parts[1] === 'mehr' || parts[1] === 'allgemein' ? parts[1] : undefined;
     return mode === 'allgemein' ? { page: 'training', mode, theme: parts[2] ?? 'schwaechen' } : mode ? { page: 'training', mode } : { page: 'training' };
   }
+  if (parts[0] === 'brett') return parts[1] ? { page: 'brett', id: parts[1] } : { page: 'brett' };
   if (parts[0] === 'spielen') return { page: 'spielen' };
   if (parts[0] === 'einstellungen') return { page: 'einstellungen' };
   if (parts[0] === 'partien') return { page: 'partien' };
@@ -29,6 +32,7 @@ export function parseRoute(hash: string): Route {
 
 export function href(route: Route): string {
   if (route.page === 'partie') return `#/partien/${encodeURIComponent(route.id)}${route.ply !== undefined ? `/${route.ply}` : ''}`;
+  if (route.page === 'brett') return route.id ? `#/brett/${encodeURIComponent(route.id)}` : '#/brett';
   if (route.page === 'training' && route.mode) return `#/training/${route.mode}${route.mode === 'allgemein' && route.theme ? `/${route.theme}` : ''}`;
   return `#/${route.page}`;
 }
