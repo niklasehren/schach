@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 13. November 2026 · Status: Blöcke 0–2, 4–8, 10 (Lichess-Puzzles), 12 (Brettpartien eintragen) und 13 (Konten + Synchronisierung) fertig, App fürs iPhone installierbar (PWA), Design „Klubhaus“ mit shadcn/ui, Übersicht neu im Stil „Klubraum“ (Brett des ersten Puzzles, Coach-Satz aus den eigenen Daten); als Nächstes: Block 9 (Statistik)
+Stand: 13. November 2026 · Status: Blöcke 0–2, 4–10 (9 = Statistik, 10 = Lichess-Puzzles), 12 (Brettpartien eintragen) und 13 (Konten + Synchronisierung) fertig, App fürs iPhone installierbar (PWA), Design „Klubhaus“ mit shadcn/ui, Übersicht neu im Stil „Klubraum“ (Brett des ersten Puzzles, Coach-Satz aus den eigenen Daten); als Nächstes: Block 3 (Uhr & Partieende)
 
 ## 1. Idee in einem Satz
 
@@ -195,6 +195,51 @@ Ziel: Partien am echten Brett (Schülerliga, Freunde, Turnier), die nicht mitges
 
 Regeln für die Statistik: Brett-Einträge zählen **Partien** mit Gründen, nicht einzelne Züge – in Block 9 getrennt ausweisen („aus Brettpartien“) oder je Partie gewichten. Hat ein Brett-Eintrag Züge **und** eine fertige Analyse, zählen die Fehler aus der Analyse; die Gründe bleiben als eigene Einschätzung erhalten (nicht doppelt zählen). „Gabel übersehen“, „ungedeckt gelassen“ und „Schach/Schlagzug ohne Wirkung“ gibt es nur aus der Analyse.
 
+## 4d. Statistik (Block 9, Stand 13.11.2026)
+
+Ziel: ein ehrlicher Schachberater, der meine Selbsteinschätzung mit meinen echten Daten vergleicht. Seite **„Statistik“** in der Navigation (am iPhone als fünfte von sechs Kacheln in der unteren Leiste), Adresse `#/statistik`.
+
+**Grundregeln (Ehrlichkeit):** Jede Zahl steht mit der Anzahl Partien (bzw. Züge) da. Unter **10 Partien** in einer Gruppe gibt es **kein Urteil**, sondern „noch zu wenig Daten“ mit dem Hinweis, wie viele fehlen. In Tabellen sind Gruppen unter 10 Partien grau („Einzelfälle, noch keine Aussage“). Zahlen kommen nur aus der Engine-Analyse; Brettpartien ohne Züge fließen nur als **eigene Angabe** und getrennt gekennzeichnet ein.
+
+**Filter oben:** Zeitraum „Letzte 4 Wochen“ (Standard) oder „Alles“ (wird pro Gerät gemerkt), Zeitklasse (nur vorhandene).
+
+**Oben: „Deine Einschätzung gegen die Daten“** – jede Vermutung als Zitat mit Urteil (Spielstein-Symbol: voll = stimmt, halb = teilweise, Ring = stimmt nicht, gestrichelt = noch zu wenig Daten), einem Satz mit Zahlen, den geprüften Teilaussagen (ja/nein), Balken mit Anzahl Partien und einer Übung.
+
+| Vermutung (Vorlage) | Was geprüft wird | Mindestdaten |
+|---|---|---|
+| Farbe („Mit Weiß spiele ich besser“) | (1) Punkte-Quote mit dieser Farbe ≥ 10 Prozentpunkte höher; (2) Patzer pro Partie klar niedriger | je Farbe 10 analysierte Partien |
+| Wo ich verliere („… eher im Endspiel, manchmal früher durch Übersehen“) | (1) Die Phase ist die häufigste Phase des **entscheidenden Fehlers** in Niederlagen und hat ≥ 40 %; (2) optional: ≥ 50 % der entscheidenden Fehler in früheren Phasen sind „Übersehen“ (Drohung übersehen, ungedeckt gelassen, Gabel, Material eingestellt, Matt zugelassen/übersehen) | 10 analysierte Niederlagen |
+| Zeitnot („In Zeitnot mache ich mehr Fehler“) | Fehler + Patzer pro Zug (1) bzw. Patzer pro Zug (2) unter 10 % Restzeit mindestens 1,5-mal so hoch **und** 3 Prozentpunkte über sonst; nur Partien mit Uhr | 10 Partien mit Zügen in Zeitnot |
+| Eröffnung („Französisch liegt mir, aber als Schwarz verliere ich dort oft Material“) | Eröffnung mit dieser Farbe gegen meine **anderen** Partien mit dieser Farbe: (1) Punkte-Quote ≥ 10 Prozentpunkte höher (bzw. niedriger bei „liegt mir nicht“); (2) optional: Fehler mit Materialverlust (Figur eingestellt/ungedeckt/Gabel) pro Partie klar höher | je Gruppe 10 analysierte Partien |
+| Fortschritt („Seit ca. 2 Wochen werde ich besser“) | Letzte N Tage gegen davor: (1) Patzer pro Partie klar niedriger; (2) Genauigkeit ≥ 3 Punkte höher | je 10 analysierte Partien; fehlt ein „Davor“, Hinweis auf „Alles“ |
+
+**Urteils-Regel:** alle Teilaussagen gestützt → „stimmt“, manche → „teilweise“, keine → „stimmt nicht“ (auch wenn es einfach keinen klaren Unterschied gibt). „Klar niedriger“ bei Pro-Partie-Werten = mindestens 0,25 und 20 % weniger. Die Schwellen sind bewusst grob: Bei wenigen Dutzend Partien sind kleinere Unterschiede Zufall. Code: `src/stats/hypotheses.ts` (`THRESHOLDS`, `verdictOf`, `evaluate`).
+
+**Entscheidender Fehler** (nur Niederlagen): mein **erster** Fehler oder Patzer, nach dem meine Gewinnchance bis zum Ende **nie wieder über 50 %** stieg (Kurve aus allen Halbzügen, Gegnerzüge umgerechnet). Keiner gefunden = „ohne einzelnen entscheidenden Fehler“ (z. B. Zeit überschritten in guter Stellung, viele kleine Ungenauigkeiten). Phase und Fehlerart kommen aus der Analyse (`src/stats/accuracy.ts`, `decisiveError`).
+
+**Genauigkeit nach der Lichess-Formel** (Quelle: Lichess-Quellcode, Stand master am 13.11.2026: `lichess-org/lila` → `modules/analyse/src/main/AccuracyPercent.scala`; `lichess-org/scalachess` → `core/src/main/scala/eval.scala` (WinPercent); `lichess-org/scalalib` → `lila/src/main/scala/Maths.scala` (Mittelwerte)):
+- Gewinnchance jeder Stellung: `50 + 50 · (2 / (1 + e^(−0,00368208 · cp)) − 1)`, cp auf ±1000 begrenzt, Matt = ±1000.
+- Genauigkeit eines Zugs: `103,1668 · e^(−0,04354 · Verlust) − 3,1669 + 1` („+1 Unsicherheitsbonus“), begrenzt auf 0–100; kein Verlust = 100.
+- Gewicht eines Zugs: Standardabweichung der Gewinnchancen im gleitenden Fenster (Größe (Stellungen − 1) / 10, zwischen 2 und 8), begrenzt auf 0,5–12.
+- Partie: Mittel aus gewichtetem Mittel und harmonischem Mittel (Werte unter 1 zählen als 1). Umsetzung `gameAccuracy()` in `src/stats/accuracy.ts`. Da wir mit Tiefe 16 rechnen (Lichess-Server tiefer), weichen die Werte von Lichess/Chess.com etwas ab.
+
+**Eröffnungen:** freie Liste **`lichess-org/chess-openings`** (Lizenz geprüft: **CC0-1.0**, gemeinfrei; 3 865 Einträge). `node scripts/openings.mjs` erzeugt `src/data/openings.json` (≈ 260 kB, gzip ≈ 37 kB, wird erst mit Statistik/Training/Einstellungen geladen): Stellung (FEN ohne Zugzähler) → Familie und ECO-Code → Familie. Familie = Name vor dem Doppelpunkt, ohne „Accepted/Declined“ (außer beim Damengambit). Chess.com: aus dem **ECO-Header**; bei Sammelcodes mit mehr als drei Familien (A00, A04, A40, A41, A45, A46, A48, A50, B00, B07, C20, C40, C44, E60 – z. B. A00 = alle ungewöhnlichen ersten Züge) und ohne Header entscheiden die Züge. App- und Brettpartien mit Zügen: tiefste Stellung der ersten 40 Halbzüge, die in der Liste steht (erkennt Zugumstellungen). Häufige Familien mit deutschem Namen (`GERMAN` in `src/stats/openings.ts`), sonst englisch.
+
+**Darunter Einzelheiten:** Farbe (Partien, Punkte, S/R/N, Patzer und Fehler pro Partie, Genauigkeit, häufigste Fehlerart) · Spielphase (Fehlerquote je Phase, entscheidende Fehler; Brettpartien mit „Wo entschieden“ als eigene Zeile) · Zeitnot (Fehlerquote nach Restzeit: unter 10 %, 10–25 %, 25–50 %, über 50 %) · Eröffnungen (je Farbe: Partien, Punkte-Quote, Patzer pro Partie, häufigste Fehlerart, „Üben“) · Fortschritt (Patzer pro Partie und Genauigkeit je Kalenderwoche ab Montag als Linie, Partien je Woche darunter) · Zeitklassen im Vergleich und **Chess.com gegen Brett** (Anteil Partien mit Material eingestellt / Drohung übersehen / Matt übersehen / Matt zugelassen / Fehler in Zeitnot; Brett nur aus den eingetragenen Gründen, klar als eigene Einschätzung gekennzeichnet). Am Handy werden Nebenspalten ausgeblendet.
+
+**Jede Erkenntnis führt zu einer Übung:** z. B. „Übe Puzzles aus dem Mittelspiel“, „Übe Puzzles aus deinen Französisch-Partien“, „Übe Puzzles aus deinen Schwarz-Partien“, „Übe Puzzles aus Zeitnot-Stellungen“. Ziel ist das neue gefilterte Training `#/training/auswahl?phase=…&eroeffnung=…&farbe=…&zeitnot=1`: fällige Wiederholungen zuerst, dann neue, dann schon geübte (niedrigster Kasten zuerst); Leitner-Planung wie sonst. Auf der Trainingsseite steht dafür der Bereich **„Meine Fehler gezielt üben“** (Phase, Farbe, Eröffnung mit Anzahl, Zeitnot). Code: `src/training/filter.ts`, `src/components/PuzzleFilter.tsx`.
+
+**Vermutungen bearbeiten:** Einstellungen → „Deine Vermutungen“ (Bearbeiten, Löschen, eigene aus fünf Vorlagen mit Einstellungen und eigenem Text anlegen, Vorschläge übernehmen). Gespeichert in `settings` unter `hypotheses` (synchronisiert, im Backup). Ohne gespeicherte Liste startet der Chess.com-Name `niklasehren` mit den fünf eigenen Vermutungen, **Freunde starten leer mit den fünf als Vorschlägen**.
+
+**Erste Ergebnisse mit meinen echten Daten** (105 Chess.com-Partien, alle mit Tiefe 16 analysiert, 13.11.2026; „letzte 4 Wochen“ = 77 Partien ab 6.11.):
+- Weiß: 45 % Punkte (41 Partien), Schwarz 46 % (36); Patzer 3,8 gegen 3,2 → **stimmt nicht** (über „Alles“: 52 % gegen 42 %, aber mehr Patzer mit Weiß → ebenfalls stimmt nicht).
+- Entscheidender Fehler in 37 Niederlagen: Eröffnung 21, Mittelspiel 11, Endspiel 3; vor dem Endspiel 27 von 32 Übersehen → **teilweise** (das „Übersehen“ stimmt, das Endspiel nicht).
+- Zeitnot: 18 % Fehler pro Zug (102 Züge, 10 Partien) gegen 15 % sonst → **stimmt nicht**.
+- Französisch mit Schwarz: 1 Partie → **noch zu wenig Daten**.
+- Seit 2 Wochen besser: im 4-Wochen-Zeitraum kein „Davor“ → **noch zu wenig Daten**; über „Alles“ (gegen Februar/März) 3,5 gegen 3,5 Patzer, 66 % gegen 65 % → stimmt nicht.
+
+Tests: `tests/unit/stats.test.ts` (entscheidender Fehler, Phasen, Zeitnot-Quote, Eröffnungszuordnung inkl. Sammelcodes und Zugumstellung, Genauigkeit, Urteils-Regeln inkl. „zu wenig Daten“, Filter, Adresse, Puzzle-Filter), `tests/e2e/statistik.spec.ts` (Mac und Handy: Urteile mit erfundenen analysierten Partien, Filter, Aktion → gefiltertes Training, Trainingsfilter, Vermutungen eines Freundes anlegen/bearbeiten/löschen).
+
 ---
 
 ## 5. Datenmodell (IndexedDB)
@@ -256,7 +301,9 @@ schach/
 │   ├── engine/             ← Stockfish-Anbindung (Worker, UCI-Befehle, Warteschlange)
 │   ├── chess/              ← Spiellogik, Uhr, PGN mit Zeiten
 │   ├── analysis/           ← Klassifizierung, Phase, Taktik-Erkennung, Zeitnot
-│   ├── training/           ← Puzzle-Erzeugung, Leitner-System
+│   ├── training/           ← Puzzle-Erzeugung, Leitner-System, Filter „Meine Fehler“
+│   ├── stats/              ← Coach, Wertung, Statistik (Vermutungen, Genauigkeit, Eröffnungen)
+│   ├── data/               ← Lichess-Puzzles und Eröffnungsliste (CC0)
 │   ├── db/                 ← Datenbank-Schema und Zugriffe (Dexie)
 │   └── styles/             ← Farben, Schrift, Abstände
 └── tests/                  ← automatische Tests (Vitest + Playwright)
@@ -321,7 +368,7 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 | **13 Konten & Synchronisierung** ✅ (vorgezogen) | Supabase (Gratis-Plan, Frankfurt): Registrierung nur mit Einladungscode, Login mit Benutzername/E-Mail, Row Level Security, Offline-zuerst-Abgleich aller fünf Tabellen, Konto löschen, Datenschutzhinweis (s. Abschnitt 5b) | Gleiche Daten auf Mac und iPhone; Freunde einladen |
 | **10 Lichess-Puzzles** ✅ (vorgezogen) | Allgemeines Training aus der Lichess-Datenbank (CC0): 14 Themen, Puzzle-Rating, „Passend zu meinen Schwächen“ oder Thema wählen; „Weiter üben“ ohne Tageslimit (s. Abschnitt 4b) | Zwei Trainingsarten mit eigenem Startknopf |
 | **12 Brettpartien eintragen** ✅ (vorgezogen) | Schnell-Eintrag am Handy: Ergebnis, Farbe, Gegner, Anlass, Phase, Hauptgründe, Notiz, optional Züge (PGN → Analyse); Abzeichen und Filter „Brett“, bearbeiten/löschen, synchronisiert (s. Abschnitt 4c) | Brettpartie in ca. 30 s eintragen |
-| **9 Statistik** | (siehe unten, vorgezogen) | Wo/wie ich verliere |
+| **9 Statistik** ✅ | Vermutungen gegen die Daten (Urteil mit Anzahl Partien, „noch zu wenig Daten“ unter 10), Einzelheiten nach Farbe, Phase, Zeitnot, Eröffnung, Woche, Zeitklasse und Quelle, Übung zu jeder Erkenntnis (s. Abschnitt 4d) | Wo/wie ich verliere – und ob meine Einschätzung stimmt |
 | **3 Uhr & Partieende** | Schachuhr mit Inkrement (Standard 15+10, wählbar), Partieende durch Zeit, keine Zugrücknahme, keine Hinweise | Vollständige Partie mit Uhr |
 | **8 App fürs iPhone** ✅ | PWA (Homescreen, offline, Update-Meldung, Safe Areas, Installationshinweis) – s. Abschnitt 7b | App aufs iPhone installieren und nutzen |
 
@@ -329,7 +376,6 @@ Reihenfolge: **4 Speichern + Chess.com-Import** → 5 Analyse-Rechnung → 6 Ana
 
 | Schritt | Inhalt | Vorbereitet durch |
 |---|---|---|
-| 9 Statistik (vorgezogen, s. o.) | Wo/wie ich verliere: nach Phase, Fehlertyp, Zeitnot, Farbe, Eröffnung, Quelle (inkl. Brettpartien über `boardFindings()`, s. Abschnitt 4c). Sinnvoll ab ca. 15–20 Partien (App zeigt bis dahin „noch zu wenig Daten“). | Merkmale ab Block 5, Brett-Gründe ab Schritt 12 |
 | 13b Freundesgruppe | Rangliste (z. B. gelöste Puzzles, Serien) auf Basis der Konten aus Schritt 13. | Konten, Profile (Abschnitt 5b) |
 | 14 Maia (optional) | Menschlich spielender Gegner (trainiert auf Lichess-Partien). Im Browser technisch aufwendiger → vorher kurze Machbarkeitsprüfung. | Engine-Anbindung ist austauschbar gebaut |
 
@@ -342,6 +388,7 @@ Bewusst **nicht** geplant: Online-Spiel gegeneinander.
 - Laufende Kosten: **0 €**. GitHub (Repo + Pages) und Supabase-Gratis-Plan (500 MB Datenbank, 50 000 aktive Nutzer/Monat, Edge Functions inklusive) ohne Kreditkarte.
 - Lizenz des Repos: **GPL-3.0** (wegen Stockfish und chessground).
 - Lichess-Puzzles: **CC0** (gemeinfrei); Hinweis „Puzzles: Lichess, CC0“ in der App.
+- Eröffnungsliste `lichess-org/chess-openings`: **CC0-1.0**; Hinweis unten auf der Statistik-Seite.
 - Ohne Konto bleiben die Daten ausschließlich auf dem Gerät; mit Konto bei Supabase in Frankfurt (EU), siehe Abschnitt 5b.
 
 ## 10. Offene Punkte / Annahmen
@@ -352,3 +399,4 @@ Bewusst **nicht** geplant: Online-Spiel gegeneinander.
 - Ladezeit: Seiten und Puzzle-Themen werden bei Bedarf geladen, die PWA speichert alles nach dem ersten Besuch; Recharts (ca. 330 kB) ist der größte Brocken.
 - Puzzle-Rating: Startwert (+400 auf Chess.com) und K-Faktor sind Annahmen → nach einigen Wochen am eigenen Verlauf prüfen.
 - Schwellen für Spielphase und „Figur eingestellt“ → an echten Partien feinjustieren.
+- Statistik: Phase „Eröffnung“ endet spätestens mit Zug 12 – 21 von 37 entscheidenden Fehlern lagen dort; prüfen, ob die Grenze für meine Partien passt. Schwellen der Urteile (`THRESHOLDS`) nach einigen Wochen mit mehr Partien überprüfen.

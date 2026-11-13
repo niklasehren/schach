@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { analysisQueue } from '../analysis/queue';
 import { backfillErrorTypes } from '../analysis/errorTypes';
 import { maybeAutoImport } from '../chesscom/autoImport';
-import { ChessKnight, Download, House, List, Settings, Target, type LucideIcon } from 'lucide-react';
+import { ChartNoAxesColumn, ChessKnight, Download, House, List, Settings, Target, type LucideIcon } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -17,6 +17,7 @@ const GameViewPage = lazy(() => import('../pages/GameViewPage').then((m) => ({ d
 const TrainingPage = lazy(() => import('../pages/TrainingPage').then((m) => ({ default: m.TrainingPage })));
 const ImportPage = lazy(() => import('../pages/ImportPage').then((m) => ({ default: m.ImportPage })));
 const BoardEntryPage = lazy(() => import('../pages/BoardEntryPage').then((m) => ({ default: m.BoardEntryPage })));
+const StatsPage = lazy(() => import('../pages/StatsPage').then((m) => ({ default: m.StatsPage })));
 const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 
 const links: { route: Route; label: string; icon: LucideIcon; match: Route['page'][] }[] = [
@@ -24,6 +25,7 @@ const links: { route: Route; label: string; icon: LucideIcon; match: Route['page
   { route: { page: 'spielen' }, label: 'Spielen', icon: ChessKnight, match: ['spielen'] },
   { route: { page: 'partien' }, label: 'Partien', icon: List, match: ['partien', 'partie', 'brett'] },
   { route: { page: 'training' }, label: 'Training', icon: Target, match: ['training'] },
+  { route: { page: 'statistik' }, label: 'Statistik', icon: ChartNoAxesColumn, match: ['statistik'] },
   { route: { page: 'import' }, label: 'Import', icon: Download, match: ['import'] },
 ];
 
@@ -126,7 +128,8 @@ export function App() {
           {route.page === 'uebersicht' && <OverviewPage />}
           {route.page === 'partien' && <GamesPage />}
           {route.page === 'partie' && <GameViewPage id={route.id} ply={route.ply} />}
-          {route.page === 'training' && <TrainingPage mode={route.mode} theme={route.theme} />}
+          {route.page === 'training' && <TrainingPage key={route.mode === 'auswahl' ? window.location.hash : 'training'} mode={route.mode} theme={route.theme} filter={route.filter} />}
+          {route.page === 'statistik' && <StatsPage />}
           {route.page === 'einstellungen' && <SettingsPage />}
           {route.page === 'brett' && <BoardEntryPage key={route.id ?? 'neu'} id={route.id} />}
         </Suspense>
@@ -144,7 +147,7 @@ export function App() {
               key={l.label}
               href={href(l.route)}
               aria-current={active ? 'page' : undefined}
-              className={cn('flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-xs font-semibold no-underline', active ? 'text-brass-text' : 'text-muted-foreground')}
+              className={cn('flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[11px] font-semibold no-underline min-[400px]:text-xs', active ? 'text-brass-text' : 'text-muted-foreground')}
             >
               <l.icon className="size-6" strokeWidth={1.8} />
               {l.label}

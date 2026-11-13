@@ -15,20 +15,22 @@ import { isAcceptable, winFor } from '../training/puzzles';
 import { dueText, INTERVALS, NEW_PER_DAY, practicedToday, practiceQueue, startOfDay, todaysQueue } from '../training/leitner';
 import { finishPuzzle, logAttempt, markSeen, syncAllPuzzles } from '../training/store';
 import { usePuzzleSolver } from '../training/usePuzzleSolver';
-import { href, type TrainingMode } from '../app/router';
+import { href, type PuzzleFilter, type TrainingMode } from '../app/router';
+import { FilteredSession, PuzzleFilterSection } from '../components/PuzzleFilter';
 import { buttonVariants } from '@/components/ui/button';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const exitToHub = () => (window.location.hash = href({ page: 'training' }));
 
-export function TrainingPage({ mode, theme }: { mode?: TrainingMode; theme?: string }) {
+export function TrainingPage({ mode, theme, filter }: { mode?: TrainingMode; theme?: string; filter?: PuzzleFilter }) {
   // Puzzles aus allen schon analysierten Partien nachziehen
   useEffect(() => {
     void syncAllPuzzles();
   }, []);
   if (mode === 'allgemein') return <GeneralSession theme={theme === 'schwaechen' ? undefined : theme} />;
   if (mode === 'fehler' || mode === 'mehr') return <MyErrorsSession key={mode} extra={mode === 'mehr'} />;
+  if (mode === 'auswahl') return <FilteredSession filter={filter ?? {}} render={(p) => <MyPuzzleView key={p.puzzle.id} {...p} />} />;
   return <TrainingHub />;
 }
 
@@ -92,6 +94,8 @@ function TrainingHub() {
         </div>
       </section>
 
+      <PuzzleFilterSection />
+
       <GeneralCard />
 
       <section className="mt-12 border-t pt-8">
@@ -151,7 +155,9 @@ function MyErrorsSession({ extra }: { extra: boolean }) {
   );
 }
 
-function MyPuzzleView({ puzzle, status, hasNext, onNext }: { puzzle: PuzzleRecord; status: string; hasNext: boolean; onNext: () => void }) {
+export type MyPuzzleProps = { puzzle: PuzzleRecord; status: string; hasNext: boolean; onNext: () => void; onExit?: () => void };
+
+function MyPuzzleView({ puzzle, status, hasNext, onNext, onExit = exitToHub }: MyPuzzleProps) {
   const game = useLive(() => db.games.get(puzzle.gameId).then((g) => g ?? null), [puzzle.gameId]);
   const analysis = useLive(() => db.analyses.get(puzzle.gameId).then((a) => a ?? null), [puzzle.gameId]);
   const [nextDue, setNextDue] = useState<number | null>(null);
@@ -187,7 +193,7 @@ function MyPuzzleView({ puzzle, status, hasNext, onNext }: { puzzle: PuzzleRecor
     <PuzzleLayout
       solver={s}
       status={status}
-      onExit={exitToHub}
+      onExit={onExit}
       task={
         <>
           <h1 className="font-heading text-4xl leading-tight">Finde einen besseren Zug</h1>
@@ -209,7 +215,7 @@ function MyPuzzleView({ puzzle, status, hasNext, onNext }: { puzzle: PuzzleRecor
           >
             Zur Originalpartie
           </a>
-          <Button size="lg" className="h-11" onClick={hasNext ? onNext : exitToHub} data-testid="next-puzzle">
+          <Button size="lg" className="h-11" onClick={hasNext ? onNext : onExit} data-testid="next-puzzle">
             {hasNext ? 'Nächstes Puzzle' : 'Fertig'}
           </Button>
         </>

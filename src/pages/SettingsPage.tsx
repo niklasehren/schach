@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { AccountCard, AdminCard, PrivacyCard } from '../components/AccountSettings';
 import { InstallCard } from '../components/InstallHint';
+import { HypothesesCard } from '../components/HypothesesSettings';
 
 /** Einstellungen dieses Geräts: heller Modus, Brett-Theme */
 export function SettingsPage() {
@@ -17,6 +18,7 @@ export function SettingsPage() {
       <div className="flex flex-col gap-12">
       <AccountCard />
       <AdminCard />
+      <HypothesesCard />
       <Section>
         <SectionHeader>
           <SectionTitle>Darstellung</SectionTitle>
