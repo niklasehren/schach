@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { db, type AnalysisRecord, type GameRecord, type PuzzleRecord } from '../../db/schema';
 import { useLive } from '../../db/useLive';
 import { useQueueState } from '../../analysis/useQueue';
-import { parseGame } from '../../analysis/analyze';
 import { ERROR_TYPE_LABELS } from '../../analysis/errorTypes';
 import { practicedToday, practiceQueue, startOfDay, todaysQueue } from '../../training/leitner';
 import { getPuzzleRating, previewLichessPuzzle } from '../../training/general';
@@ -22,18 +21,6 @@ export type Preview = {
 };
 
 const sideToMove = (fen: string) => (fen.split(' ')[1] === 'b' ? 'black' : 'white');
-
-/** Endstellung einer Partie (für kleine Bretter in Listen); null bei Brettpartien ohne Züge */
-export function finalPosition(g: GameRecord): { fen: string; lastMove?: [string, string] } | null {
-  if (!g.pgn || g.plies === 0) return null;
-  try {
-    const p = parseGame(g);
-    const last = p.moves.at(-1);
-    return { fen: p.fens.at(-1)!, lastMove: last ? [last.from, last.to] : undefined };
-  } catch {
-    return null;
-  }
-}
 
 function puzzleTopic(p: PuzzleRecord, analyses: AnalysisRecord[]): string | null {
   const a = analyses.find((x) => x.gameId === p.gameId);

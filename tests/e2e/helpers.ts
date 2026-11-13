@@ -81,5 +81,5 @@ export async function importZwischenzug(page: Page) {
   await page.getByRole('button', { name: 'Partien importieren' }).click();
   await expect(page.getByTestId('import-result')).toContainText('1 neue Partie');
   await page.getByRole('link', { name: 'Partien', exact: true }).click();
-  await expect(page.getByTestId('analysis-count')).toHaveText('Analyse: 1 von 1 Partien', { timeout: 90000 });
+  await expect(page.getByTestId('analysis-count')).toHaveText('Alle Partien analysiert', { timeout: 90000 });
 }

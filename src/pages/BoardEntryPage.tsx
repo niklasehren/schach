@@ -284,7 +284,7 @@ function EntryForm({ existing }: { existing?: GameRecord }) {
         </Field>
 
         <section className="flex flex-col gap-2">
-          <button type="button" className="flex items-center gap-1.5 self-start text-[15px] font-semibold text-primary" aria-expanded={showPgn} onClick={() => setShowPgn((s) => !s)}>
+          <button type="button" className="flex items-center gap-1.5 self-start text-[15px] font-semibold text-brass-text" aria-expanded={showPgn} onClick={() => setShowPgn((s) => !s)}>
             <ChevronDown className={cn('size-4 transition-transform', !showPgn && '-rotate-90')} />
             Züge einfügen (PGN)
           </button>

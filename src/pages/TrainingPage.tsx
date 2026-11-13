@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
-import { Repeat, Target } from 'lucide-react';
 import { ErrorCard, explainMove } from '../components/ErrorExplain';
 import { GeneralCard, GeneralSession } from '../components/GeneralTraining';
 import { PuzzleLayout } from '../components/PuzzleLayout';
+import { MiniBoard } from '../components/MiniBoard';
 import { db, type PuzzleRecord } from '../db/schema';
 import { useLive } from '../db/useLive';
 import { toGermanSan } from '../chess/game';
@@ -18,7 +18,6 @@ import { usePuzzleSolver } from '../training/usePuzzleSolver';
 import { href, type TrainingMode } from '../app/router';
 import { buttonVariants } from '@/components/ui/button';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 const exitToHub = () => (window.location.hash = href({ page: 'training' }));
@@ -44,68 +43,75 @@ function TrainingHub() {
   const practiced = practicedToday(attemptsToday ?? [], Date.now());
   const boxes = INTERVALS.map((_, i) => puzzles.filter((p) => p.box === i + 1).length);
   const fresh = puzzles.filter((p) => p.box === 0).length;
-  const brassButton = cn(buttonVariants({ size: 'lg' }), 'h-13 bg-brass text-[17px] font-bold text-brass-foreground no-underline hover:bg-brass/90');
+  // Erste Stellung: heute fällig, sonst die nächste zum Weiterüben
+  const first = today.due[0] ?? today.fresh[0] ?? practiceQueue(puzzles)[0] ?? null;
+  const startHref = count > 0 ? href({ page: 'training', mode: 'fehler' }) : fresh > 0 ? href({ page: 'training', mode: 'mehr' }) : null;
+  const brassButton = cn(buttonVariants({ size: 'lg' }), 'h-12 self-start bg-brass px-6 text-base font-bold text-brass-foreground no-underline hover:bg-brass/90');
 
   return (
-    <div className="flex w-full max-w-2xl animate-in flex-col gap-4 px-3.5 fade-in-0 slide-in-from-bottom-1 md:px-0">
-      <h1 className="font-heading text-4xl">Training</h1>
-      <Card className="gap-3 bg-hero p-6 text-hero-foreground ring-0">
-        <span className="text-xs font-bold tracking-[0.08em] text-hero-muted uppercase">
-          <Target className="mr-1 inline size-3.5 align-[-2px]" /> Meine Fehler
-        </span>
-        <span className="font-heading text-5xl leading-tight" data-testid="due-count">
-          {count ? `Heute fällig: ${count} ${count === 1 ? 'Puzzle' : 'Puzzles'}` : puzzles.length ? 'Tagesziel geschafft' : 'Noch keine Puzzles'}
-        </span>
-        <span className="text-[15px] text-hero-muted">
-          {count
-            ? `${today.due.length} Wiederholungen · ${today.fresh.length} neue (Tagesziel: ${NEW_PER_DAY} neue)`
-            : fresh
-              ? `Heute geübt: ${practiced} ${practiced === 1 ? 'Puzzle' : 'Puzzles'}. Noch ${fresh} neue aus deinen Fehlern – du kannst weiter üben.`
-              : puzzles.length
-                ? `Heute geübt: ${practiced} ${practiced === 1 ? 'Puzzle' : 'Puzzles'}. Alle Puzzles aus deinen Fehlern sind geübt – weiter geht es mit dem Allgemeinen Training.`
-                : 'Sie entstehen automatisch, sobald deine Partien analysiert sind. Bis dahin: Allgemeines Training.'}
-        </span>
-        {count > 0 ? (
-          <a className={brassButton} href={href({ page: 'training', mode: 'fehler' })} data-testid="start-training">
-            <Target data-icon="inline-start" /> Training starten
-          </a>
-        ) : (
-          fresh > 0 && (
-            <a className={brassButton} href={href({ page: 'training', mode: 'mehr' })} data-testid="practice-more">
-              <Repeat data-icon="inline-start" /> Weiter üben
+    <div className="flex w-full max-w-[1120px] animate-in flex-col px-4 fade-in-0 md:px-0">
+      <h1 className="sr-only">Training</h1>
+      {/* Meine Fehler: grünes Band wie auf der Übersicht */}
+      <section className={cn('grid gap-6 rounded-2xl bg-hero p-4 text-hero-foreground sm:p-6 md:gap-10 md:p-8', first && 'md:grid-cols-[minmax(0,300px)_1fr]')} aria-labelledby="mine-title">
+        {first &&
+          (startHref ? (
+            <a href={startHref} className="block rounded-lg focus-visible:ring-3 focus-visible:ring-brass focus-visible:outline-none" aria-label="Diese Stellung lösen">
+              <MiniBoard fen={first.fen} orientation={first.fen.split(' ')[1] === 'b' ? 'black' : 'white'} coordinates className="w-full rounded-lg shadow-[0_18px_40px_rgba(0,0,0,0.35)]" />
             </a>
-          )
-        )}
-        <p className="text-[13px] text-hero-muted">
-          Jedes Puzzle ist eine Stellung aus deinen eigenen Partien, in der du einen Fehler oder Patzer gemacht hast. Tagesziel: alle fälligen Wiederholungen und {NEW_PER_DAY} neue.
-          Danach kannst du ohne Limit weiter üben. Richtig gelöste Puzzles kommen nach 1, 3, 7, 14 und 30 Tagen wieder, falsch gelöste schon morgen.
-        </p>
-      </Card>
+          ) : (
+            <MiniBoard fen={first.fen} orientation={first.fen.split(' ')[1] === 'b' ? 'black' : 'white'} coordinates className="w-full rounded-lg" />
+          ))}
+        <div className="flex flex-col justify-center gap-5">
+          <h2 id="mine-title" className="font-heading text-[52px] leading-[0.95] font-normal md:text-[68px]" data-testid="due-count">
+            {count ? `${count} ${count === 1 ? 'Puzzle' : 'Puzzles'} für heute` : puzzles.length ? 'Tagesziel geschafft' : 'Noch keine Puzzles'}
+          </h2>
+          <p className="max-w-lg text-[17px] leading-relaxed text-hero-muted">
+            {count
+              ? `Aus deinen eigenen Fehlern: ${today.fresh.length} ${today.fresh.length === 1 ? 'neues' : 'neue'}${today.due.length ? ` und ${today.due.length} zum Wiederholen` : ''}.`
+              : fresh
+                ? `Heute geübt: ${practiced} ${practiced === 1 ? 'Puzzle' : 'Puzzles'}. Noch ${fresh} neue aus deinen Fehlern – du kannst weiter üben.`
+                : puzzles.length
+                  ? `Heute geübt: ${practiced} ${practiced === 1 ? 'Puzzle' : 'Puzzles'}. Alle Puzzles aus deinen Fehlern sind geübt – weiter geht es mit dem Allgemeinen Training.`
+                  : 'Sie entstehen automatisch, sobald deine Partien analysiert sind. Bis dahin: Allgemeines Training.'}
+          </p>
+          {count > 0 ? (
+            <a className={brassButton} href={href({ page: 'training', mode: 'fehler' })} data-testid="start-training">
+              Training starten
+            </a>
+          ) : (
+            fresh > 0 && (
+              <a className={brassButton} href={href({ page: 'training', mode: 'mehr' })} data-testid="practice-more">
+                Weiter üben
+              </a>
+            )
+          )}
+          <p className="max-w-lg text-[15px] leading-relaxed text-hero-muted">
+            Jedes Puzzle ist eine Stellung aus deinen Partien, in der du einen Fehler oder Patzer gemacht hast. Tagesziel: alle fälligen Wiederholungen und {NEW_PER_DAY} neue,
+            danach ohne Limit weiter. Richtig gelöste kommen nach 1, 3, 7, 14 und 30 Tagen wieder, falsch gelöste schon morgen.
+          </p>
+        </div>
+      </section>
 
       <GeneralCard />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Deine Puzzles aus Fehlern</CardTitle>
-          <CardDescription data-testid="puzzle-total">
-            {puzzles.length} Puzzles aus {new Set(puzzles.map((p) => p.gameId)).size} Partien · {fresh} noch nie geübt
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="grid grid-cols-5 gap-2" aria-label="Leitner-Kästen">
-            {boxes.map((n, i) => (
-              <span key={i} className="box flex flex-col items-center gap-0.5 rounded-lg border bg-muted/40 px-1 py-2.5 text-center text-[13px] text-muted-foreground">
-                <strong className="text-2xl text-foreground tabular-nums">{n}</strong>
-                <span>Kasten {i + 1}</span>
-                <span className="text-xs max-sm:hidden">{INTERVALS[i] === 1 ? 'täglich' : `alle ${INTERVALS[i]} Tage`}</span>
-              </span>
-            ))}
-          </div>
-          {queueState.total > queueState.processed && (
-            <p className="text-[13px] text-muted-foreground">Noch {queueState.total - queueState.processed} Partien werden analysiert – danach entstehen daraus weitere Puzzles.</p>
-          )}
-        </CardContent>
-      </Card>
+      <section className="mt-12 border-t pt-8">
+        <h2 className="font-heading text-[28px] leading-tight font-normal">Deine Puzzles aus Fehlern</h2>
+        <p className="mt-1 text-[15px] text-muted-foreground" data-testid="puzzle-total">
+          {puzzles.length} Puzzles aus {new Set(puzzles.map((p) => p.gameId)).size} Partien, {fresh} noch nie geübt
+        </p>
+        <ol className="mt-5 grid list-none grid-cols-5 p-0" aria-label="Leitner-Kästen">
+          {boxes.map((n, i) => (
+            <li key={i} className="box flex flex-col gap-0.5 border-l pl-3 first:border-l-0 first:pl-0">
+              <strong className="font-heading text-[34px] leading-none font-normal tabular-nums">{n}</strong>
+              <span className="text-sm text-muted-foreground">Kasten {i + 1}</span>
+              <span className="text-sm text-muted-foreground max-sm:hidden">{INTERVALS[i] === 1 ? 'täglich' : `alle ${INTERVALS[i]} Tage`}</span>
+            </li>
+          ))}
+        </ol>
+        {queueState.total > queueState.processed && (
+          <p className="mt-4 text-[15px] text-muted-foreground">Noch {queueState.total - queueState.processed} Partien werden analysiert – danach entstehen daraus weitere Puzzles.</p>
+        )}
+      </section>
     </div>
   );
 }
@@ -210,7 +216,7 @@ function MyPuzzleView({ puzzle, status, hasNext, onNext }: { puzzle: PuzzleRecor
       }
     >
       {analysis && original && (
-        <Card className="px-3.5">
+        <div className="border-t pt-4">
           <ErrorCard
             move={original}
             moveLabel={`${toGermanSan(original.san)}${original.class === 'blunder' ? '??' : '?'} (in der Partie)`}
@@ -218,7 +224,7 @@ function MyPuzzleView({ puzzle, status, hasNext, onNext }: { puzzle: PuzzleRecor
             canShowLine={puzzle.line.length > 0}
             onShowLine={() => s.showLine((analysis.evals[puzzle.ply - 1]?.pv ?? puzzle.line).slice(0, 6))}
           />
-        </Card>
+        </div>
       )}
     </PuzzleLayout>
   );

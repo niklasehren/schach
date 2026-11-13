@@ -157,7 +157,7 @@ function ChessComImport() {
                 {state.summary.skipped > 0 && `, ${plural(state.summary.skipped, 'Variante', 'Varianten')} übersprungen`}.
               </span>
               {state.summary.months === 0 && <span> In diesem Zeitraum gibt es keine Partien. Versuch es mit „Alle“.</span>}
-              <a className="font-semibold text-primary" href={href({ page: 'partien' })}>
+              <a className="font-semibold text-brass-text" href={href({ page: 'partien' })}>
                 Zur Partienliste
               </a>
             </AlertDescription>

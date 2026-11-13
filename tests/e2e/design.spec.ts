@@ -15,16 +15,24 @@ test('Übersicht, Filter der Partienliste, Navigation', async ({ page }) => {
   await runImport(page, 'testspieler');
   await expect(page.getByTestId('import-result')).toContainText('6 neue Partien');
   await page.goto('/#/partien');
-  await expect(page.getByTestId('analysis-count')).toHaveText('Analyse: 6 von 6 Partien', { timeout: 120000 });
+  await expect(page.getByTestId('analysis-count')).toHaveText('Alle Partien analysiert', { timeout: 120000 });
 
   // Filter: Zeitklasse und Ergebnis
   await expect(page.getByTestId('game-row')).toHaveCount(6);
-  await page.getByRole('group', { name: 'Zeitklasse' }).getByRole('button', { name: 'Bullet', exact: true }).click();
+  // Kopf ohne Doppelung, Analyse fertig: eine Zeile ohne Pause-Knopf
+  await expect(page.getByRole('heading', { name: 'Partien', exact: true })).toBeVisible();
+  await expect(page.getByTestId('games-count')).toHaveText('6 insgesamt');
+  await expect(page.getByTestId('analysis-toggle')).toHaveCount(0);
+  // Quelle als Reiter, Zeit und Ergebnis als Auswahlmenüs
+  await expect(page.getByRole('tab', { name: 'Alle', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByText('Zeit:')).toBeVisible();
+  await page.getByLabel('Zeitklasse').selectOption({ label: 'Bullet' });
   await expect(page.getByTestId('game-row')).toHaveCount(2);
-  await page.getByRole('group', { name: 'Ergebnis' }).getByRole('button', { name: 'Niederlagen', exact: true }).click();
+  await expect(page.getByTestId('games-count')).toHaveText('2 von 6');
+  await page.getByLabel('Ergebnis').selectOption({ label: 'Niederlagen' });
   await expect(page.getByTestId('game-row')).toHaveCount(0);
   await expect(page.getByText('Keine Partien für diese Filter.')).toBeVisible();
-  await page.getByRole('group', { name: 'Zeitklasse' }).getByRole('button', { name: 'Alle Zeiten', exact: true }).click();
+  await page.getByLabel('Zeitklasse').selectOption({ label: 'alle' });
   await expect(page.getByTestId('game-row')).toHaveCount(1);
   await expect(page.getByTestId('game-row')).toContainText('Niederlage');
 

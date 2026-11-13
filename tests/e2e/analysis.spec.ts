@@ -21,9 +21,9 @@ test('Schäfermatt wird analysiert: Markierungen, Zusammenfassung, Zum ersten Fe
     await move(page, from, to);
   }
   await page.getByRole('link', { name: 'Partien', exact: true }).click();
-  await expect(count(page)).toHaveText('Analyse: 1 von 1 Partien', { timeout: 30000 });
-  await expect(page.getByTestId('analysis-status')).toHaveText('alle Partien analysiert');
-  await expect(page.getByTestId('badge-done')).toBeVisible();
+  await expect(count(page)).toHaveText('Alle Partien analysiert', { timeout: 30000 });
+  await expect(page.getByTestId('analysis-toggle')).toHaveCount(0);
+  await expect(page.getByTestId('game-errors')).toBeVisible();
 
   await page.getByTestId('game-row').click();
   // Gegen Freund: beide Seiten werden bewertet (Zusammenfassung im Reiter „Fehler“)
@@ -64,13 +64,13 @@ test('Chess.com-Partien: Fortschritt bleibt nach Neuladen, Pause bleibt Pause, W
   await page.reload();
   await expect(count(page)).toHaveText(`Analyse: ${before} von 6 Partien`);
   await expect(page.getByTestId('analysis-status')).toHaveText('pausiert');
-  await expect(page.getByTestId('badge-done')).toHaveCount(before);
+  await expect(page.getByTestId('game-errors')).toHaveCount(before);
   await page.waitForTimeout(1500);
   await expect(count(page)).toHaveText(`Analyse: ${before} von 6 Partien`);
 
   await page.getByTestId('analysis-toggle').click();
-  await expect(count(page)).toHaveText('Analyse: 6 von 6 Partien', { timeout: 90000 });
-  await expect(page.getByTestId('badge-done')).toHaveCount(6);
+  await expect(count(page)).toHaveText('Alle Partien analysiert', { timeout: 90000 });
+  await expect(page.getByTestId('game-errors')).toHaveCount(6);
   await shot(page, 'analyse-fertig');
 
   // Partie, in der ich mit Schwarz verloren habe: nur meine Züge (Schwarz = gerade Halbzüge) sind markiert

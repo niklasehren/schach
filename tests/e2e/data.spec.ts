@@ -76,9 +76,9 @@ test('Chess.com-Import mit nachgestellter API, erneuter Import holt nur Neues', 
 
   await page.getByRole('link', { name: 'Zur Partienliste' }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(6);
-  await page.getByRole('button', { name: 'App', exact: true }).click();
+  await page.getByRole('tab', { name: 'App', exact: true }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Chess.com', exact: true }).click();
+  await page.getByRole('tab', { name: 'Chess.com', exact: true }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(6);
   await shot(page, 'partien-chesscom');
 

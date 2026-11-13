@@ -18,7 +18,7 @@ async function importZwischenzug(page: Page) {
   await expect(page.getByTestId('import-result')).toContainText('1 neue Partie');
   await page.getByRole('link', { name: 'Partien', exact: true }).click();
   // Echte Analyse mit Standardtiefe 16
-  await expect(page.getByTestId('analysis-count')).toHaveText('Analyse: 1 von 1 Partien', { timeout: 90000 });
+  await expect(page.getByTestId('analysis-count')).toHaveText('Alle Partien analysiert', { timeout: 90000 });
   await page.getByTestId('game-row').click();
   await expect(page.getByTestId('analysis-summary')).toBeVisible();
 }

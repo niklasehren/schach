@@ -76,8 +76,9 @@
     --card-foreground: #1c1f1b;
     --popover: #fffcf6;
     --popover-foreground: #1c1f1b;
-    --primary: #1d5a43;
-    --primary-foreground: #fbf6ea;
+    /* Messing ist die einzige Akzentfarbe: Knöpfe, Auswahl, Fortschritt */
+    --primary: #c99a3a;
+    --primary-foreground: #1c1f1b;
     --secondary: #f1eadc;
     --secondary-foreground: #1c1f1b;
     --muted: #f1eadc;
@@ -119,8 +120,8 @@
     --card-foreground: #efe9dc;
     --popover: #1f242a;
     --popover-foreground: #efe9dc;
-    --primary: #6cc79f;
-    --primary-foreground: #0f1a15;
+    --primary: #e0b24f;
+    --primary-foreground: #1c1f1b;
     --secondary: #22272e;
     --secondary-foreground: #efe9dc;
     --muted: #22272e;

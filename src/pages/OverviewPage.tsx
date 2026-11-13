@@ -8,7 +8,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useOverview, type OverviewData } from './overview/useOverview';
 import { RatingTrend } from './overview/RatingTrend';
-import { EndBoard, errorsText, gameHref, myErrors, opponentOf, resultColor, resultWord, shortDate, TrendMark } from './overview/parts';
+import { EndBoard, errorsText, gameHref, myErrors, opponentOf, resultColor, resultWord, shortDate, TrendMark } from '../components/GameBits';
 
 const brassButton = 'h-12 bg-brass px-6 text-base font-bold text-brass-foreground no-underline hover:bg-brass/90';
 const heroLink = 'text-base text-hero-foreground underline decoration-hero-foreground/50 underline-offset-4 hover:decoration-hero-foreground';

@@ -5,14 +5,15 @@ import { pov } from '../analysis/rules';
 import { toGermanSan } from '../chess/game';
 import { RichText } from './RichText';
 import { ChevronLeft, ChevronRight, Lightbulb, Play, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const classColor: Record<MoveClass, { border: string; badge: string }> = {
-  blunder: { border: 'border-l-blunder', badge: 'bg-blunder text-background' },
-  mistake: { border: 'border-l-mistake', badge: 'bg-mistake text-background' },
-  inaccuracy: { border: 'border-l-inaccuracy', badge: 'bg-inaccuracy text-background' },
+/** Zugbewertung nur als kleiner Farbpunkt (Patzer rot, Fehler orange, Ungenauigkeit blau) */
+export const classDot: Record<MoveClass, string> = { blunder: 'bg-blunder', mistake: 'bg-mistake', inaccuracy: 'bg-inaccuracy' };
+const classColor: Record<MoveClass, { dot: string }> = {
+  blunder: { dot: classDot.blunder },
+  mistake: { dot: classDot.mistake },
+  inaccuracy: { dot: classDot.inaccuracy },
 };
 
 export const markSym: Record<MoveClass, string> = { blunder: '??', mistake: '?', inaccuracy: '?!' };
@@ -63,23 +64,21 @@ export function ErrorCard({
   const best = move.bestSan ? toGermanSan(move.bestSan) : null;
   return (
     <section
-      className={cn('error-card flex animate-in flex-col gap-3 border-l-4 pl-3 text-[15.5px] fade-in-0', classColor[move.class!].border)}
+      className="error-card flex animate-in flex-col gap-3 text-base leading-relaxed fade-in-0"
       data-testid="error-card"
       aria-label="Fehleranalyse"
     >
       <header className="flex flex-col gap-1">
-        <span className="flex flex-wrap items-center gap-2">
-          <Badge className={cn('h-5 text-[11px] font-bold tracking-wide uppercase', classColor[move.class!].badge)}>{classText[move.class!]}</Badge>
-          <strong className="text-lg">
-            {moveLabel} – {classText[move.class!]}
-          </strong>
-        </span>
-        {tags.length > 0 && <span className="font-semibold">{tags.join(' · ')}</span>}
-        <span className="text-sm text-muted-foreground" data-testid="win-words">
+        <h2 className="flex items-center gap-2.5 font-heading text-[28px] leading-tight font-normal">
+          <span className={cn('size-2.5 shrink-0 rounded-full', classColor[move.class!].dot)} aria-hidden />
+          {moveLabel} – {classText[move.class!]}
+        </h2>
+        {tags.length > 0 && <span className="font-semibold">{tags.join(', ')}</span>}
+        <span className="text-[15px] text-muted-foreground" data-testid="win-words">
           {winSentence(move.winBefore, move.winAfter)} (Gewinnchance {Math.round(move.winBefore)} % → {Math.round(move.winAfter)} %)
         </span>
       </header>
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-muted-foreground">
         <span className="h-1.5 w-6 rounded-full bg-[#e53935]" aria-hidden /> dein Zug {san}
         {best && (
           <>
@@ -112,12 +111,12 @@ export function ErrorCard({
         </div>
       )}
       {explanation.merke && (
-        <p className="merke rounded-lg border-l-4 border-l-brass bg-brass/12 px-3 py-2.5" data-testid="merke">
+        <p className="merke border-t pt-3" data-testid="merke">
           <strong>Merke:</strong> {explanation.merke}
         </p>
       )}
       {canShowLine && (
-        <Button size="lg" className="h-11 text-[15px]" onClick={onShowLine} data-testid="show-line">
+        <Button variant="outline" size="lg" className="h-11 self-start text-[15px]" onClick={onShowLine} data-testid="show-line">
           <Play data-icon="inline-start" /> Beste Fortsetzung zeigen
         </Button>
       )}
@@ -149,12 +148,12 @@ export function VariationCard({
   let n = Number(full) || 1;
   let white = turn === 'w';
   return (
-    <section className="variation-card flex animate-in flex-col gap-3 rounded-xl border-2 border-dashed border-brass p-3 fade-in-0" data-testid="variation" aria-label="Variante">
+    <section className="variation-card flex animate-in flex-col gap-3 fade-in-0" data-testid="variation" aria-label="Variante">
       <header className="flex flex-col">
-        <strong className="flex items-center gap-1.5">
-          <Lightbulb className="size-4 text-brass" /> {title}
+        <strong className="flex items-center gap-1.5 font-heading text-[26px] leading-tight font-normal">
+          <Lightbulb className="size-5 text-brass-text" /> {title}
         </strong>
-        <span className="text-sm text-muted-foreground">{subtitle}</span>
+        <span className="text-[15px] text-muted-foreground">{subtitle}</span>
       </header>
       <ol className="m-0 flex list-none flex-wrap items-center gap-x-1 gap-y-0.5 p-0 tabular-nums">
         {moves.map((m, i) => {

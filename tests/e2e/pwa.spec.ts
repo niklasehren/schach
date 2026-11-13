@@ -76,7 +76,7 @@ test.describe('PWA (Build)', () => {
     for (const [f, t] of [['e2', 'e4'], ['e7', 'e5'], ['f1', 'c4'], ['b8', 'c6'], ['d1', 'h5'], ['g8', 'f6'], ['h5', 'f7']]) await move(p2, f, t);
     await expect(p2.getByTestId('result')).toContainText('1-0');
     await p2.goto(`${server.url}#/partien`);
-    await expect(p2.getByTestId('analysis-count')).toHaveText('Analyse: 1 von 1 Partien', { timeout: 90_000 });
+    await expect(p2.getByTestId('analysis-count')).toHaveText('Alle Partien analysiert', { timeout: 90_000 });
     await p2.getByTestId('game-row').first().click();
     await expect(p2.getByTestId('evalbar').filter({ visible: true })).toHaveAttribute('aria-label', /Bewertung/);
 

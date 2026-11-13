@@ -5,7 +5,6 @@ import { ColorSwatch } from './PlayerBar';
 import { VariationCard } from './ErrorExplain';
 import { toGermanSan } from '../chess/game';
 import type { usePuzzleSolver } from '../training/usePuzzleSolver';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -38,7 +37,7 @@ export function PuzzleLayout({ solver: s, status, onExit, task, result, variatio
         <div className="flex h-(--bar-height) items-center gap-2 px-0.5 max-md:px-3.5">
           <ColorSwatch color={s.me} />
           <strong>{s.me === 'white' ? 'Weiß' : 'Schwarz'} am Zug</strong>
-          <span className="ml-auto text-sm text-muted-foreground" data-testid="puzzle-status">
+          <span className="ml-auto text-[15px] text-muted-foreground" data-testid="puzzle-status">
             {status}
           </span>
         </div>
@@ -49,22 +48,22 @@ export function PuzzleLayout({ solver: s, status, onExit, task, result, variatio
       </section>
 
       <aside className="flex flex-col gap-3.5 max-md:px-3.5 md:pt-[calc(var(--bar-height)+6px)]">
-        <Button variant="ghost" size="sm" className="self-start text-muted-foreground max-md:order-last" onClick={onExit}>
+        <Button variant="ghost" size="sm" className="-ml-2.5 self-start text-[15px] text-muted-foreground max-md:order-last" onClick={onExit}>
           ← Training
         </Button>
         {!s.finished && (
           <section className="flex flex-col gap-2 max-md:order-first" data-testid="puzzle-task">
             {task}
             {s.phase === 'intro' && (
-              <p className="rounded-lg bg-primary/12 px-3 py-2.5 font-semibold" role="status" data-testid="puzzle-message">
+              <p className="text-[17px] text-muted-foreground" role="status" data-testid="puzzle-message">
                 Der Gegner zieht …
               </p>
             )}
             {s.message && (
               <p
                 className={cn(
-                  'rounded-lg px-3 py-2.5 font-semibold',
-                  s.tries > 0 && s.phase !== 'checking' && !s.message.startsWith('Richtig') ? 'bg-loss-bg text-loss' : 'bg-primary/12',
+                  'border-t pt-3 text-[17px] font-semibold',
+                  s.tries > 0 && s.phase !== 'checking' && !s.message.startsWith('Richtig') ? 'text-loss' : 'text-foreground',
                 )}
                 role="status"
                 data-testid="puzzle-message"
@@ -76,24 +75,24 @@ export function PuzzleLayout({ solver: s, status, onExit, task, result, variatio
         )}
 
         {s.finished && (
-          <Alert className={cn('max-md:order-first', s.phase === 'solved' ? 'border-win/40 bg-win-bg' : 'border-loss/40 bg-loss-bg')} role="status" data-testid="puzzle-result">
-            {s.phase === 'solved' ? <CircleCheck className="text-win" /> : <CircleX className="text-loss" />}
-            <AlertTitle className={cn('text-base', s.phase === 'solved' ? 'text-win' : 'text-loss')}>
+          <section className="flex flex-col gap-1.5 max-md:order-first" role="status" data-testid="puzzle-result">
+            <h2 className="flex items-center gap-2.5 font-heading text-[30px] leading-tight font-normal">
+              {s.phase === 'solved' ? <CircleCheck className="size-6 shrink-0 text-win" /> : <CircleX className="size-6 shrink-0 text-loss" />}
               {s.phase === 'solved'
                 ? s.tries === 0
                   ? 'Richtig gelöst!'
                   : 'Richtig – im zweiten Versuch.'
                 : `Nicht gelöst. Besser war ${s.bestSan ? toGermanSan(s.bestSan) : '…'}.`}
-            </AlertTitle>
-            <AlertDescription className="text-foreground">
+            </h2>
+            <p className="text-[15px] text-muted-foreground">
               {s.alt && s.bestSan && s.alt !== toGermanSan(s.bestSan) && (
                 <span>
                   Auch gut: {s.alt} ist fast so stark wie {toGermanSan(s.bestSan)}.
                 </span>
               )}
               {result}
-            </AlertDescription>
-          </Alert>
+            </p>
+          </section>
         )}
 
         {s.finished && !s.variation && children}
@@ -111,7 +110,7 @@ export function PuzzleLayout({ solver: s, status, onExit, task, result, variatio
         )}
 
         {s.finished && <div className="grid grid-cols-2 gap-2">{actions}</div>}
-        {footer && <p className="text-xs text-muted-foreground max-md:order-last">{footer}</p>}
+        {footer && <p className="text-sm text-muted-foreground max-md:order-last">{footer}</p>}
       </aside>
     </div>
   );

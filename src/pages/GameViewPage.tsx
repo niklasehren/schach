@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowUpDown, ChevronLeft, Download, Ellipsis, ExternalLink, Flag, NotebookPen } from 'lucide-react';
-import { ResultBadge } from '../components/GameRow';
+import { ResultMark } from '../components/GameRow';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
@@ -34,7 +33,7 @@ import { playLine } from '../analysis/explain';
 import { pov, povChances, toPercent } from '../analysis/rules';
 import { EvalBar } from '../components/EvalBar';
 import { EvalChart } from '../components/EvalChart';
-import { classText, ErrorCard, explainMove, markSym, moveNumber, VariationCard } from '../components/ErrorExplain';
+import { classDot, classText, ErrorCard, explainMove, markSym, moveNumber, VariationCard } from '../components/ErrorExplain';
 import { summaryText } from '../analysis/analyze';
 import { analysisQueue } from '../analysis/queue';
 import { useQueueState } from '../analysis/useQueue';
@@ -224,7 +223,7 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
   const headline = game.myResult ? myResultText[game.myResult] : game.result === '1/2-1/2' ? 'Remis' : game.result === '1-0' ? `${game.white.name} gewinnt` : `${game.black.name} gewinnt`;
   const meta = [formatDateTime(game.date), sourceText[game.source], game.timeControl ? formatTimeControl(game.timeControl) : null]
     .filter(Boolean)
-    .join(' · ');
+    .join(', ');
 
   // Bewertung je Stellung (Weiß-Sicht, 0–100 %) für Balken und Kurve
   const whiteValues: (number | null)[] = fens.map((f, i) => (done?.evals[i] ? whitePercent(done.evals[i]!, f) : null));
@@ -286,10 +285,10 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
         </div>
       </section>
 
-      <Card className="side-panel gap-0 overflow-hidden py-0 max-md:mx-3 md:h-(--side-h) md:min-h-[460px]" aria-label="Analyse">
-        <header className="flex items-start gap-2.5 p-3.5 pb-2.5">
+      <section className="side-panel flex flex-col overflow-hidden max-md:mx-4 max-md:mt-3 max-md:border-t md:h-(--side-h) md:min-h-[460px] md:border-l md:pl-7" aria-label="Analyse">
+        <header className="flex items-start gap-2.5 pt-3 pb-3 md:pt-0">
           <a
-            className={cn(buttonVariants({ variant: 'outline', size: 'icon' }), 'shrink-0 text-foreground max-md:hidden')}
+            className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), '-ml-2 shrink-0 text-muted-foreground max-md:hidden')}
             href={href({ page: 'partien' })}
             aria-label="Alle Partien"
             title="Alle Partien"
@@ -297,29 +296,31 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
             <ChevronLeft />
           </a>
           <div className="flex min-w-0 flex-1 items-start gap-2.5" data-testid="game-header">
-            <ResultBadge result={game.myResult ?? 'neutral'} className="mt-0.5">
-              {headline}
-            </ResultBadge>
-            <div className="flex min-w-0 flex-col">
-              <strong className="text-[15px]">
-                {scoreText(game.result)} · durch {terminationText[game.termination]}
-              </strong>
-              <span className="truncate text-[13.5px] text-muted-foreground max-md:whitespace-nowrap md:whitespace-normal">{meta}</span>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex flex-wrap items-baseline gap-x-2.5">
+                <ResultMark result={game.myResult} className="font-heading text-[28px] leading-tight">
+                  {headline}
+                </ResultMark>
+                <span className="text-[15px] text-muted-foreground">
+                  {scoreText(game.result)} durch {terminationText[game.termination]}
+                </span>
+              </span>
+              <span className="truncate text-[15px] text-muted-foreground max-md:whitespace-nowrap md:whitespace-normal">{meta}</span>
               {game.board && (
-                <span className="text-[13.5px] text-muted-foreground" data-testid="board-info">
-                  {[OCCASION_LABELS[game.board.occasion], ...game.board.reasons.map((r) => REASON_LABELS[r])].join(' · ')}
+                <span className="text-[15px] text-muted-foreground" data-testid="board-info">
+                  {[OCCASION_LABELS[game.board.occasion], ...game.board.reasons.map((r) => REASON_LABELS[r])].join(', ')}
                   {game.board.note && <> – „{game.board.note}“</>}
                 </span>
               )}
               {(game.opening || game.eco) && (
-                <span className="truncate text-[13.5px] text-muted-foreground max-md:whitespace-nowrap md:whitespace-normal">
-                  {[game.eco, game.opening].filter(Boolean).join(' · ')}
+                <span className="truncate text-[15px] text-muted-foreground max-md:whitespace-nowrap md:whitespace-normal">
+                  {[game.eco, game.opening].filter(Boolean).join(', ')}
                 </span>
               )}
             </div>
           </div>
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="icon" aria-label="Weitere Aktionen" data-testid="more-menu" />}>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Weitere Aktionen" data-testid="more-menu" />}>
               <Ellipsis />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-56">
@@ -344,10 +345,10 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
         </header>
 
         <Tabs value={tab} onValueChange={(v) => pickTab(v as Tab)} className="min-h-0 flex-1 gap-0">
-          <TabsList variant="line" className="h-10 w-full justify-start border-b px-3.5" aria-label="Ansicht">
+          <TabsList variant="line" className="h-11 w-full justify-start border-b px-0" aria-label="Ansicht">
             <TabsTrigger value="fehler" className="flex-none px-3 text-[15px]" data-testid="tab-fehler">
               Fehler
-              {errorCount > 0 && <Badge className="h-5 min-w-5 bg-blunder px-1.5 text-background">{errorCount}</Badge>}
+              {errorCount > 0 && <span className="font-normal text-muted-foreground tabular-nums">{errorCount}</span>}
             </TabsTrigger>
             <TabsTrigger value="zuege" className="flex-none px-3 text-[15px]" data-testid="tab-zuege">
               Züge
@@ -357,7 +358,7 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="fehler" className="flex min-h-0 animate-in flex-col gap-3 overflow-y-auto p-3.5 text-[15px] fade-in-0">
+          <TabsContent value="fehler" className="flex min-h-0 animate-in flex-col gap-4 overflow-y-auto py-4 pr-1 text-base fade-in-0">
             {!done && <AnalysisBox game={game} analysis={analysis} />}
             {done && variation && (
               <VariationCard fen={fens[variation.base]} moves={variation.moves} step={variation.step} onStep={stepVariation} onClose={() => setVariation(null)} />
@@ -373,16 +374,14 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
             )}
             {done && !variation && !upcoming && justPlayed && (
               <p
-                className={cn(
-                  'flex flex-wrap gap-x-2 gap-y-1 rounded-md border-l-4 bg-muted px-3 py-2.5',
-                  justPlayed.class === 'blunder' ? 'border-l-blunder' : justPlayed.class === 'mistake' ? 'border-l-mistake' : 'border-l-inaccuracy',
-                )}
+                className="flex flex-wrap items-center gap-x-2 gap-y-1"
                 data-testid="move-note"
               >
+                <span className={cn('size-2 rounded-full', classDot[justPlayed.class!])} aria-hidden />
                 <strong>
                   {labels[justPlayed.ply - 1]} {classText[justPlayed.class!]}
                 </strong>
-                <button className="font-semibold text-primary underline" onClick={() => goTo(justPlayed.ply - 1)}>
+                <button className="font-semibold text-brass-text underline" onClick={() => goTo(justPlayed.ply - 1)}>
                   Stellung davor mit Pfeilen und Erklärung
                 </button>
               </p>
@@ -402,7 +401,7 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
           <TabsContent value="zuege" className="flex min-h-0 flex-col overflow-y-auto">
             <MoveList moves={parsed.moves.map((m) => m.san)} currentPly={ply} onSelect={goTo} marks={marks} />
           </TabsContent>
-          <TabsContent value="verlauf" className="flex min-h-0 animate-in flex-col gap-3 overflow-y-auto p-3.5 fade-in-0">
+          <TabsContent value="verlauf" className="flex min-h-0 animate-in flex-col gap-4 overflow-y-auto py-4 pr-1 fade-in-0">
             {done ? (
               <>
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[15px] text-muted-foreground tabular-nums" data-testid="eval-readout">
@@ -418,7 +417,7 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
             )}
           </TabsContent>
         </Tabs>
-      </Card>
+      </section>
     </div>
   );
 }
@@ -429,22 +428,21 @@ type Tab = 'fehler' | 'zuege' | 'verlauf';
 function ErrorList({ moves, labels, current, onPick }: { moves: MoveAnalysis[]; labels: string[]; current: number; onPick: (m: MoveAnalysis) => void }) {
   if (moves.length === 0) return null;
   return (
-    <ol className="m-0 flex list-none flex-col gap-1.5 p-0" data-testid="error-list">
+    <ol className="m-0 flex list-none flex-col p-0" data-testid="error-list">
       {moves.map((m) => (
-        <li key={m.ply}>
+        <li key={m.ply} className="border-t first:border-t-0">
           <button
             className={cn(
-              'flex w-full flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border border-l-4 bg-muted/50 px-3 py-2.5 text-left transition-colors hover:bg-muted',
-              m.class === 'blunder' ? 'border-l-blunder' : 'border-l-mistake',
-              current === m.ply - 1 && 'ring-2 ring-ring',
+              '-mx-2 flex w-[calc(100%+1rem)] flex-wrap items-center gap-x-2.5 gap-y-1 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+              current === m.ply - 1 && 'bg-muted',
             )}
             onClick={() => onPick(m)}
           >
-            <strong>{labels[m.ply - 1]}</strong>
-            <span className="text-muted-foreground">{classText[m.class!]}</span>
-            {m.hanging && <Badge variant="secondary">Figur eingestellt</Badge>}
-            {m.allowedMate && <Badge variant="secondary">Matt zugelassen</Badge>}
-            {m.timeTrouble && <Badge variant="secondary">Zeitnot</Badge>}
+            <span className={cn('size-2 shrink-0 rounded-full', classDot[m.class!])} aria-hidden />
+            <strong className="tabular-nums">{labels[m.ply - 1]}</strong>
+            <span className="text-muted-foreground">
+              {[classText[m.class!], m.hanging && 'Figur eingestellt', m.allowedMate && 'Matt zugelassen', m.timeTrouble && 'Zeitnot'].filter(Boolean).join(', ')}
+            </span>
           </button>
         </li>
       ))}
@@ -475,7 +473,7 @@ function AnalysisBox({ game, analysis }: { game: GameRecord; analysis: AnalysisR
     const sides: Side[] = game.myColor ? [game.myColor] : ['white', 'black'];
     const depth = 'depth' in analysis.limit ? `Tiefe ${analysis.limit.depth}` : `${analysis.limit.movetime} ms/Stellung`;
     return (
-      <div className="flex flex-col gap-1.5 rounded-lg border bg-muted/40 px-3.5 py-3" data-testid="analysis-summary">
+      <div className="flex flex-col gap-1 border-t pt-3" data-testid="analysis-summary">
         {sides.map((s) => (
           <p key={s}>
             <strong>{game.myColor ? 'Deine Fehler' : game[s].name}:</strong> {summaryText(analysis.summary![s])}
@@ -483,15 +481,15 @@ function AnalysisBox({ game, analysis }: { game: GameRecord; analysis: AnalysisR
         ))}
         <span className="text-sm text-muted-foreground">
           Stockfish, {depth}
-          {analysis.baseTime === null && game.timeClass === 'daily' ? ' · Fernschach: keine Zeitnot-Auswertung' : ''}
+          {analysis.baseTime === null && game.timeClass === 'daily' ? ', Fernschach: keine Zeitnot-Auswertung' : ''}
         </span>
       </div>
     );
   }
-  if (analysis?.status === 'failed') return <div className="rounded-lg border bg-muted/40 px-3.5 py-3">Diese Partie konnte nicht analysiert werden.</div>;
+  if (analysis?.status === 'failed') return <p className="border-t pt-3 text-muted-foreground">Diese Partie konnte nicht analysiert werden.</p>;
   const running = queue.current?.gameId === game.id;
   return (
-    <div className="flex flex-col items-start gap-2 rounded-lg border bg-muted/40 px-3.5 py-3 text-muted-foreground" data-testid="analysis-pending">
+    <div className="flex flex-col items-start gap-2 text-muted-foreground" data-testid="analysis-pending">
       {running ? (
         <span>
           Wird gerade analysiert … Stellung {Math.min(queue.current!.position + 1, queue.current!.positions)} von {queue.current!.positions}

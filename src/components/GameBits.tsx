@@ -1,11 +1,11 @@
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
-import type { AnalysisRecord, GameRecord } from '../../db/schema';
-import { formatDate } from '../../chess/format';
-import { href } from '../../app/router';
-import { MiniBoard } from '../../components/MiniBoard';
+import type { AnalysisRecord, GameRecord } from '../db/schema';
+import { formatDate } from '../chess/format';
+import { href } from '../app/router';
+import { MiniBoard } from './MiniBoard';
+import { parseGame } from '../analysis/analyze';
 import { cn } from '@/lib/utils';
-import type { Trend } from '../../stats/coach';
-import { finalPosition } from './useOverview';
+import type { Trend } from '../stats/coach';
 
 export const opponentOf = (g: GameRecord) => {
   const opp = g.myColor ? (g.myColor === 'white' ? g.black : g.white) : null;
@@ -51,4 +51,16 @@ export function TrendMark({ trend }: { trend: Trend }) {
       {trendText[trend]}
     </span>
   );
+}
+
+/** Endstellung einer Partie (für kleine Bretter in Listen); null bei Brettpartien ohne Züge */
+export function finalPosition(g: GameRecord): { fen: string; lastMove?: [string, string] } | null {
+  if (!g.pgn || g.plies === 0) return null;
+  try {
+    const p = parseGame(g);
+    const last = p.moves.at(-1);
+    return { fen: p.fens.at(-1)!, lastMove: last ? [last.from, last.to] : undefined };
+  } catch {
+    return null;
+  }
 }

@@ -59,9 +59,9 @@ test('Brettpartie in wenigen Schritten eintragen, in der Liste finden, Filter �
   // Filter „Brett“ zeigt nur Brettpartien
   await page.getByRole('link', { name: 'Partien', exact: true }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(2);
-  await page.getByRole('button', { name: 'Chess.com' }).click();
+  await page.getByRole('tab', { name: 'Chess.com' }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Brett', exact: true }).click();
+  await page.getByRole('tab', { name: 'Brett', exact: true }).click();
   await expect(page.getByTestId('game-row')).toHaveCount(2);
   await shot(page, 'brett-liste');
 

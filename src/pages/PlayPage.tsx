@@ -263,7 +263,7 @@ export function PlayPage({ active = true }: { active?: boolean }) {
                 <span className="text-lg font-bold">{summary.headline}</span>
                 <span className="text-[15px] text-muted-foreground">{summary.detail}</span>
                 {saved?.id && (
-                  <a className="text-[15px] font-semibold text-primary" href={href({ page: 'partie', id: saved.id })} data-testid="saved">
+                  <a className="text-[15px] font-semibold text-brass-text" href={href({ page: 'partie', id: saved.id })} data-testid="saved">
                     Gespeichert · ansehen
                   </a>
                 )}

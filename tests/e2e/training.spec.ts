@@ -7,7 +7,7 @@ const dueCount = async (page: Page) => Number((await page.getByTestId('due-count
 async function openTraining(page: Page) {
   await importZwischenzug(page);
   await page.getByRole('link', { name: 'Training', exact: true }).click();
-  await expect(page.getByTestId('due-count')).toContainText(/Heute fällig: [1-9]/);
+  await expect(page.getByTestId('due-count')).toContainText(/^[1-9]\d* Puzzles? für heute$/);
   const before = await dueCount(page);
   await page.getByTestId('start-training').click();
   // Erstes Puzzle: Patzer zuerst, in Zugreihenfolge → Stellung nach 6...Lg4 (in der Partie 7. Df1??)
@@ -35,7 +35,7 @@ test('Puzzle aus der eigenen Partie richtig lösen: Lxc6+ bxc6 Dxc6+', async ({ 
   await shot(page, 'puzzle-geloest');
 
   await page.getByRole('button', { name: '← Training' }).click();
-  await expect(page.getByTestId('due-count')).toContainText(`Heute fällig: ${before - 1}`);
+  await expect(page.getByTestId('due-count')).toHaveText(new RegExp(`^${before - 1} Puzzles? für heute$`));
 });
 
 test('Puzzle falsch lösen: zweiter Versuch, dann Lösung; morgen wieder fällig', async ({ page }) => {
@@ -60,7 +60,7 @@ test('Puzzle falsch lösen: zweiter Versuch, dann Lösung; morgen wieder fällig
   await shot(page, 'puzzle-falsch');
 
   await page.getByRole('button', { name: '← Training' }).click();
-  await expect(page.getByTestId('due-count')).toContainText(`Heute fällig: ${before - 1}`);
+  await expect(page.getByTestId('due-count')).toHaveText(new RegExp(`^${before - 1} Puzzles? für heute$`));
   // Ein Puzzle liegt jetzt in Kasten 1
   await expect(page.locator('.box').first()).toContainText('1');
 });
@@ -80,7 +80,7 @@ test('Übersicht nach dem Tagesziel: „Tagesziel geschafft“, heute geübt, �
   test.setTimeout(150000);
   await importZwischenzug(page);
   await page.getByRole('link', { name: 'Training', exact: true }).click();
-  await expect(page.getByTestId('due-count')).toContainText(/Heute fällig: [1-9]/);
+  await expect(page.getByTestId('due-count')).toContainText(/^[1-9]\d* Puzzles? für heute$/);
   // So, als wären heute schon 10 neue Puzzles geübt worden (direkt in der lokalen Datenbank)
   await page.evaluate(
     () =>
