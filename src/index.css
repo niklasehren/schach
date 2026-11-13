@@ -16,6 +16,7 @@
     --font-sans: var(--app-font-sans);
     --color-brass: var(--brass);
     --color-brass-foreground: var(--brass-foreground);
+    --color-brass-text: var(--brass-text);
     --color-hero: var(--hero);
     --color-hero-foreground: var(--hero-foreground);
     --color-hero-muted: var(--hero-muted);
@@ -94,6 +95,8 @@
     --chart-5: #4a5048;
     --brass: #c99a3a;
     --brass-foreground: #1c1f1b;
+    /* Messing als Textfarbe (Links, aktive Navigation): auf Papier dunkler, damit WCAG AA erfüllt ist */
+    --brass-text: #7a5810;
     --hero: #1d5a43;
     --hero-foreground: #fbf6ea;
     --hero-muted: #d5e3d9;
@@ -135,6 +138,7 @@
     --chart-5: #b9b2a3;
     --brass: #e0b24f;
     --brass-foreground: #1c1f1b;
+    --brass-text: #e0b24f;
     --hero: #183d30;
     --hero-foreground: #f4ecda;
     --hero-muted: #c9d8cc;

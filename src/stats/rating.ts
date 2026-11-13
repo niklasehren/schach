@@ -1,29 +1,18 @@
-/** Rating-Verlauf auf einer echten Zeitachse: Tages- bzw. Wochenpunkte, Lücken bei Pausen */
-export type RatingRange = 'week' | '4w' | '3m' | 'all';
-
-export const RANGE_LABELS: Record<RatingRange, string> = { week: 'Woche', '4w': '4 Wochen', '3m': '3 Monate', all: 'Alles' };
-/** „+34 in den letzten 4 Wochen“ */
-export const RANGE_PHRASE: Record<RatingRange, string> = {
-  week: 'in der letzten Woche',
-  '4w': 'in den letzten 4 Wochen',
-  '3m': 'in den letzten 3 Monaten',
-  all: 'insgesamt',
-};
-/** Unter so vielen Partien im Zeitraum: Hinweis statt Aussage */
-export const MIN_GAMES = 5;
+/** Rating-Verlauf: Zeitraum passend zu den vorhandenen Daten, Datumsmarken für die Grafik */
+import { formatDate } from '../chess/format';
 
 export type RatingPoint = { date: number; rating: number };
 export type Bucket = { start: number; end: number; rating: number | null; games: number };
 export type RatingSeries = {
-  /** Tage („week“, „4w“) bzw. Wochen („3m“, „all“) – rating null = keine Partie (Lücke) */
+  /** Tage bzw. Wochen – rating null = keine Partie */
   buckets: Bucket[];
   unit: 'day' | 'week';
   from: number;
   to: number;
   games: number;
-  /** Veränderung im Zeitraum: letzte Wertung minus Wertung zu Beginn (letzte Partie davor, sonst erste im Zeitraum) */
+  /** Veränderung im Zeitraum: letzte Wertung minus Wertung zu Beginn */
   delta: number | null;
-  /** Bestwert über alle Partien dieser Zeitklasse (nicht nur im Zeitraum) */
+  /** Bestwert über alle Partien dieser Zeitklasse */
   bestOverall: number | null;
 };
 
@@ -44,17 +33,22 @@ const startOfWeek = (t: number) => {
   return addDays(d.getTime(), -dow);
 };
 
-export function ratingSeries(points: RatingPoint[], range: RatingRange, now = Date.now()): RatingSeries {
-  const sorted = [...points].sort((a, b) => a.date - b.date);
-  const unit: 'day' | 'week' = range === 'week' || range === '4w' ? 'day' : 'week';
-  const today = startOfDay(now);
-  let from: number;
-  if (range === 'week') from = addDays(today, -6);
-  else if (range === '4w') from = addDays(today, -27);
-  else if (range === '3m') from = startOfWeek(addDays(today, -7 * 12));
-  else from = sorted.length ? startOfWeek(sorted[0].date) : startOfWeek(today);
-  const to = addDays(today, 1);
+/** Bis zu so vielen Tagen Daten: ein Punkt pro Tag, darüber einer pro Woche */
+export const AUTO_DAY_LIMIT = 60;
 
+/**
+ * Zeitraum passend zu den vorhandenen Daten: beginnt mit der ersten Partie (keine leere Fläche davor),
+ * Tagespunkte bis 60 Tage, darüber Wochenpunkte.
+ */
+export function fittedSeries(points: RatingPoint[], now = Date.now()): RatingSeries {
+  const sorted = [...points].sort((a, b) => a.date - b.date);
+  const first = sorted[0]?.date ?? now;
+  const unit: 'day' | 'week' = startOfDay(now) - startOfDay(first) <= AUTO_DAY_LIMIT * 86_400_000 ? 'day' : 'week';
+  return seriesFrom(sorted, unit === 'day' ? startOfDay(first) : startOfWeek(first), unit, now);
+}
+
+function seriesFrom(sorted: RatingPoint[], from: number, unit: 'day' | 'week', now: number): RatingSeries {
+  const to = addDays(startOfDay(now), 1);
   const buckets: Bucket[] = [];
   for (let s = from; s < to; s = addDays(s, unit === 'day' ? 1 : 7)) {
     const e = addDays(s, unit === 'day' ? 1 : 7);
@@ -78,16 +72,35 @@ export function ratingSeries(points: RatingPoint[], range: RatingRange, now = Da
   };
 }
 
-/** Linienstücke ohne Lücken (für die Grafik): aufeinanderfolgende Punkte mit Wertung */
-export function segments(buckets: Bucket[]): { index: number; rating: number }[][] {
-  const out: { index: number; rating: number }[][] = [];
-  let cur: { index: number; rating: number }[] = [];
-  buckets.forEach((b, i) => {
-    if (b.rating === null) {
-      if (cur.length) out.push(cur);
-      cur = [];
-    } else cur.push({ index: i, rating: b.rating });
-  });
-  if (cur.length) out.push(cur);
+/** Bis zu so vielen Partien ein Punkt pro Partie, darüber pro Tag bzw. Woche */
+export const PER_GAME_LIMIT = 150;
+
+export type ChartRow = { x: number; date: number; rating: number; games: number };
+
+/** Punkte der Grafik: wenige Partien einzeln (gleichmäßig verteilt, ohne Lücken), viele als Tages- bzw. Wochenwerte */
+export function chartRows(points: RatingPoint[], now = Date.now()): { rows: ChartRow[]; unit: 'game' | 'day' | 'week' } {
+  if (points.length <= PER_GAME_LIMIT) return { rows: points.map((p, i) => ({ x: i, date: p.date, rating: p.rating, games: 1 })), unit: 'game' };
+  const s = fittedSeries(points, now);
+  const rows = s.buckets.filter((b) => b.rating !== null).map((b, i) => ({ x: i, date: b.start, rating: b.rating!, games: b.games }));
+  return { rows, unit: s.unit };
+}
+
+/**
+ * Datumsmarken: höchstens `count` in gleichen Abständen über die ganze Breite,
+ * jede mit einem anderen Datum (bei mehreren Partien am selben Tag sonst doppelt).
+ */
+export function evenTicks(rows: { date: number }[], count: number): number[] {
+  if (rows.length === 0) return [];
+  const n = Math.max(2, Math.min(count, rows.length));
+  const last = rows.length - 1;
+  const out: number[] = [];
+  const seen = new Set<string>();
+  for (let i = 0; i < n; i++) {
+    const x = Math.round((i * last) / (n - 1));
+    const label = formatDate(rows[x].date);
+    if (seen.has(label)) continue;
+    seen.add(label);
+    out.push(x);
+  }
   return out;
 }

@@ -1,6 +1,6 @@
 # Schach-Trainings-App – Plan
 
-Stand: 13. November 2026 · Status: Blöcke 0–2, 4–8, 10 (Lichess-Puzzles), 12 (Brettpartien eintragen) und 13 (Konten + Synchronisierung) fertig, App fürs iPhone installierbar (PWA), Design „Klubhaus“ mit shadcn/ui; als Nächstes: Block 9 (Statistik)
+Stand: 13. November 2026 · Status: Blöcke 0–2, 4–8, 10 (Lichess-Puzzles), 12 (Brettpartien eintragen) und 13 (Konten + Synchronisierung) fertig, App fürs iPhone installierbar (PWA), Design „Klubhaus“ mit shadcn/ui, Übersicht neu im Stil „Klubraum“ (Brett des ersten Puzzles, Coach-Satz aus den eigenen Daten); als Nächstes: Block 9 (Statistik)
 
 ## 1. Idee in einem Satz
 

@@ -106,10 +106,12 @@ test('Übersicht nach dem Tagesziel: „Tagesziel geschafft“, heute geübt, �
   await page.reload();
   await expect(page.getByTestId('overview-goal')).toHaveText('Tagesziel geschafft');
   await expect(page.getByTestId('overview-due')).toHaveCount(0);
-  await expect(page.getByTestId('overview-practiced')).toContainText('Heute geübt: 10 Puzzles. Noch');
-  await expect(page.getByTestId('overview-start')).toHaveText('Weiter üben');
+  await expect(page.getByTestId('overview-practiced')).toContainText('Heute geübt: 10 Puzzles.');
+  // Nichts mehr fällig: Hauptknopf (und Brett) starten das Allgemeine Training, eigene Fehler gehen weiter über den Link
+  await expect(page.getByTestId('overview-start')).toHaveText('Allgemeines Training');
+  await expect(page.getByTestId('overview-start-more')).toHaveText(/^Weiter mit meinen Fehlern \(\d+\)$/);
   await shot(page, 'uebersicht-tagesziel');
-  await page.getByTestId('overview-start').click();
+  await page.getByTestId('overview-start-more').click();
   await expect(page).toHaveURL(/#\/training\/mehr$/);
   await expect(page.getByTestId('puzzle-task')).toContainText('Finde einen besseren Zug');
   await expect(page.getByTestId('puzzle-status')).toContainText(/noch \d+ neue/);

@@ -29,9 +29,26 @@ export async function weightsFromAnalyses() {
   return themeWeights(countErrorTypes(analyses));
 }
 
+/**
+ * Stellung, die die Übersicht zeigt, wenn aus meinen Fehlern nichts fällig ist. Dasselbe Puzzle kommt beim Start
+ * des Allgemeinen Trainings („passend zu meinen Schwächen“) als erstes dran – Antippen des Bretts startet also genau diese Stellung.
+ */
+let preview: LichessPuzzle | null = null;
+
+export async function previewLichessPuzzle(): Promise<LichessPuzzle | null> {
+  if (preview && !(await seenLichess()).has(preview.id)) return preview;
+  preview = await nextLichessPuzzle('weak');
+  return preview;
+}
+
 export async function nextLichessPuzzle(mode: GeneralMode, skip: string[] = [], rand = Math.random): Promise<LichessPuzzle | null> {
   const [state, seen] = await Promise.all([getPuzzleRating(), seenLichess()]);
   for (const id of skip) seen.add(id);
+  if (mode === 'weak' && preview && !seen.has(preview.id)) {
+    const p = preview;
+    preview = null;
+    return p;
+  }
   const theme = mode === 'weak' ? pickTheme(await weightsFromAnalyses(), rand()) : mode;
   return choosePuzzle(await loadTheme(theme), state.rating, seen, rand());
 }

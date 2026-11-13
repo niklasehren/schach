@@ -70,7 +70,7 @@ export function App() {
           <a className="font-heading text-[28px] leading-none text-foreground no-underline" href={href({ page: 'uebersicht' })}>
             Schach
           </a>
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Hauptnavigation">
+          <nav className="hidden items-center gap-1 self-stretch md:flex" aria-label="Hauptnavigation">
             {links.map((l) => {
               const active = l.match.includes(route.page);
               return (
@@ -78,9 +78,12 @@ export function App() {
                   key={l.label}
                   href={href(l.route)}
                   aria-current={active ? 'page' : undefined}
-                  className={cn(buttonVariants({ variant: active ? 'default' : 'ghost', size: 'lg' }), 'rounded-full px-3.5 text-[15px] no-underline', !active && 'text-muted-foreground')}
+                  className={cn(
+                    'relative flex h-16 items-center gap-2 px-3 text-[15px] font-medium no-underline transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                    active ? 'text-brass-text after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brass' : 'text-muted-foreground hover:text-foreground',
+                  )}
                 >
-                  <l.icon data-icon="inline-start" />
+                  <l.icon className="size-[18px]" strokeWidth={1.9} />
                   {l.label}
                 </a>
               );
@@ -141,7 +144,7 @@ export function App() {
               key={l.label}
               href={href(l.route)}
               aria-current={active ? 'page' : undefined}
-              className={cn('flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[11.5px] font-semibold no-underline', active ? 'text-primary' : 'text-muted-foreground')}
+              className={cn('flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-xs font-semibold no-underline', active ? 'text-brass-text' : 'text-muted-foreground')}
             >
               <l.icon className="size-6" strokeWidth={1.8} />
               {l.label}

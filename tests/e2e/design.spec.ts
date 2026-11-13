@@ -38,15 +38,32 @@ test('Übersicht, Filter der Partienliste, Navigation', async ({ page }) => {
   // Top 3 nur konkrete Fehlerarten; Fehler ohne klare Taktik als eigene Zeile
   await expect(page.getByTestId('error-types')).not.toContainText('Stellungsfehler');
   await expect(page.getByTestId('error-types').locator('li').first()).not.toHaveText('');
-  await expect(page.getByTestId('positional-errors')).toHaveText(/^Dazu \d+ Fehler ohne klare Taktik \(Stellung, Plan\)$/);
-  await expect(page.locator('.recent-card').getByTestId('game-row')).toHaveCount(5);
-  await expect(page.getByTestId('overview-analysis')).toContainText('6 von 6');
+  await expect(page.getByTestId('positional-errors')).toHaveText(/^Dazu \d+ Stellungsfehler ohne klare Taktik\.$/);
+  // Letzte Partien: kleines Brett der Endstellung mit markiertem letzten Zug, Patzer als ruhige Angabe
+  const recent = page.getByTestId('recent-games').getByTestId('game-row');
+  await expect(recent).toHaveCount(5);
+  await expect(recent.first().locator('square.last-move')).toHaveCount(2);
+  await expect(page.getByTestId('game-errors').first()).toHaveText(/^, (\d+ Patzer|ohne Patzer|fehlerfrei)$/);
+  await expect(page.getByTestId('overview-analysis')).toHaveText('Alle 6 Partien analysiert.');
+  // Coach: ehrlich bei wenig Daten (6 Partien reichen für keinen Vergleich)
+  await expect(page.getByTestId('coach-blunders')).toHaveText(/^Diese Woche (erst|\d)/);
+  // Navigation: aktive Seite markiert, ohne Pille
+  await expect(nav.getByRole('link', { name: 'Übersicht' })).toHaveAttribute('aria-current', 'page');
   await page.waitForTimeout(400);
   await shot(page, 'uebersicht');
   // Beide Trainingsarten mit eigenem Startknopf und Puzzle-Rating (Startwert aus der Chess.com-Wertung)
   await expect(page.getByTestId('overview-puzzle-rating')).toHaveText(/^\d{3,4}$/);
   await page.getByTestId('overview-start').click();
   await expect(page.getByTestId('puzzle-task')).toContainText('Finde einen besseren Zug');
+  await page.goBack();
+  // Antippen des großen Bretts startet ebenfalls das erste Puzzle
+  await page.getByTestId('overview-board').click();
+  await expect(page).toHaveURL(/#\/training\/fehler$/);
+  await expect(page.getByTestId('puzzle-task')).toContainText('Finde einen besseren Zug');
+  await page.goBack();
+  // Antippen einer letzten Partie öffnet die Analyse
+  await page.getByTestId('recent-games').getByTestId('game-row').first().click();
+  await expect(page).toHaveURL(/#\/partien\/.+/);
   await page.goBack();
   await page.getByTestId('overview-start-general').click();
   await expect(page.getByTestId('puzzle-theme')).toContainText('passend zu deinen Schwächen');
@@ -78,11 +95,11 @@ test('Analyse am Mac (1440×900) ohne Scrollen', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(0);
 });
 
-test('Rating-Grafik: Zeitachse mit Lücke, Zeitraum-Wechsel, Erklärung der Wertung', async ({ page }) => {
+test('Rating-Grafik: Zeitraum passt sich an die Daten an, Datumsmarken ohne Überlappung, Erklärung der Wertung', async ({ page }) => {
   test.setTimeout(120000);
   await page.clock.setFixedTime(new Date(2026, 10, 12, 18));
   await page.addInitScript(() => localStorage.setItem('schach.analysisLimit', JSON.stringify({ depth: 6 })));
-  // 9 Rapid-Partien: 1.–3.11., Pause, 9.–12.11.
+  // 9 Rapid-Partien: 1.–3.11., Pause, 9.–12.11. (mehrere am selben Tag)
   const base = JSON.parse(readFileSync(new URL('../fixtures/chesscom-2026-11.json', import.meta.url), 'utf8')).games[0];
   const days: [number, number][] = [[1, 300], [2, 310], [3, 305], [9, 320], [10, 330], [10, 340], [11, 335], [12, 345], [12, 351]];
   const games = days.map(([d, r], i) => ({
@@ -102,25 +119,24 @@ test('Rating-Grafik: Zeitachse mit Lücke, Zeitraum-Wechsel, Erklärung der Wert
   await page.goto('/#/uebersicht');
 
   const card = page.getByTestId('rating-card');
-  await expect(card).toContainText('Rapid-Wertung');
+  await expect(card).toContainText('Chess.com, Rapid');
   await expect(page.getByTestId('rating-now')).toHaveText('351');
-  // Standard 4 Wochen: ein Punkt pro Tag, Linie an der Pause unterbrochen
-  await expect(card.getByRole('button', { name: '4 Wochen', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByTestId('rating-delta')).toHaveText('+51 in den letzten 4 Wochen');
-  await expect(page.getByTestId('rating-stats')).toHaveText('9 Rapid-Partien in diesem Zeitraum');
-  await expect(page.getByTestId('rating-best')).toHaveText('Bestwert 351 (gesamt)');
-  await expect(page.getByTestId('rating-chart')).toHaveAttribute('data-segments', '2'); // 1.–3.11. | Pause | 9.–12.11.
-  await expect(card).toContainText('ein Punkt pro Tag');
+  // Ab der ersten Partie, ein Punkt pro Partie, keine Lücke
+  await expect(page.getByTestId('rating-delta')).toHaveText('+51 seit 01.11.');
+  await expect(page.getByTestId('rating-best')).toHaveText('Bestwert 351');
+  await expect(page.getByTestId('rating-stats')).toHaveText('Ein Punkt pro Partie, 9 Rapid-Partien');
+  await expect(page.getByTestId('rating-chart')).toHaveAttribute('data-points', '9');
+  // Nur ein Monat Daten: keine Zeitraum-Knöpfe, die dasselbe zeigen würden
+  await expect(card.getByRole('group', { name: 'Zeitraum' })).toHaveCount(0);
+  // Datumsmarken: verschieden, gleichmäßig verteilt, ohne Überlappung
+  const ticks = page.getByTestId('rating-chart').locator('svg text').filter({ hasText: /^\d\d\.\d\d\.$/ });
+  await expect(ticks.first()).toBeVisible();
+  const labels = await ticks.allTextContents();
+  expect(new Set(labels).size).toBe(labels.length);
+  const boxes = await ticks.evaluateAll((els) => els.map((e) => e.getBoundingClientRect()).map((r) => ({ left: r.left, right: r.right })));
+  for (let i = 1; i < boxes.length; i++) expect(boxes[i].left).toBeGreaterThan(boxes[i - 1].right);
   await page.waitForTimeout(300);
-  await shot(page, 'rating-4wochen', false);
-
-  // Woche: 9.–12.11. hat 6 Partien → Veränderung gegenüber der letzten Partie davor (305)
-  await card.getByRole('button', { name: 'Woche', exact: true }).click();
-  await expect(page.getByTestId('rating-delta')).toHaveText('+46 in der letzten Woche');
-  // Alles: Wochenpunkte
-  await card.getByRole('button', { name: 'Alles', exact: true }).click();
-  await expect(card).toContainText('ein Punkt pro Woche');
-  await expect(page.getByTestId('rating-delta')).toHaveText('+51 insgesamt');
+  await shot(page, 'rating', false);
 
   // Erklärung der Wertung per Info-Symbol (auch am Handy)
   const info = card.getByTestId('info-btn');
@@ -128,14 +144,17 @@ test('Rating-Grafik: Zeitachse mit Lücke, Zeitraum-Wechsel, Erklärung der Wert
   await expect(page.getByTestId('info-text')).toContainText('Jede Zeitklasse (Rapid, Blitz, Bullet, Täglich) hat ihre eigene Wertung.');
 });
 
-test('Rating-Grafik: Hinweis bei weniger als 5 Partien', async ({ page }) => {
+test('Rating-Grafik: Zeitklassen wechseln, auch mit wenigen Partien', async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 12, 18));
   await page.addInitScript(() => localStorage.setItem('schach.analysisLimit', JSON.stringify({ depth: 6 })));
   await mockChessCom(page);
   await runImport(page, 'testspieler');
   await expect(page.getByTestId('import-result')).toContainText('6 neue Partien');
   await page.goto('/#/uebersicht');
-  // 3 Rapid-Partien im Zeitraum
-  await expect(page.getByTestId('rating-few')).toHaveText('Zu wenige Partien in diesem Zeitraum (3 Rapid-Partien).');
-  await expect(page.getByTestId('rating-delta')).toHaveCount(0);
+  const classes = page.getByTestId('rating-card').getByRole('group', { name: 'Zeitklasse' });
+  await expect(classes.getByRole('button', { name: 'Rapid' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('rating-chart')).toHaveAttribute('data-points', /^[2-9]$/);
+  await classes.getByRole('button', { name: 'Bullet' }).click();
+  await expect(page.getByTestId('rating-card')).toContainText('Chess.com, Bullet');
+  await expect(page.getByTestId('rating-stats')).toHaveText(/^Ein Punkt pro Partie, 2 Bullet-Partien$/);
 });
