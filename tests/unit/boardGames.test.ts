@@ -87,9 +87,14 @@ describe('Brett-Eintrag bauen', () => {
     expect(hasMoves(g)).toBe(true);
   });
 
-  it('unlesbare Züge → verständliche Fehlermeldung', () => {
-    expect(() => buildBoardGame(form({ pgn: '1. e4 e5 2. Sf3' }), { myName: 'Ich', now: NOW })).toThrow(PgnError);
-    expect(() => buildBoardGame(form({ pgn: '1. e5' }), { myName: 'Ich', now: NOW })).toThrow(PgnError);
+  it('deutsche Schreibweise wird umgewandelt, gespeichert wird englisch (wie Chess.com-Partien)', () => {
+    const g = buildBoardGame(form({ myColor: 'white', myResult: 'win', pgn: '1. e4 e5 2. Lc4 Sc6 3. Dh5 Sf6 4. Dxf7#' }), { myName: 'Ich', now: NOW });
+    expect(g.plies).toBe(7);
+    expect(g.pgn).toContain('4. Qxf7# 1-0');
+  });
+
+  it('ungültiger Zug → Fehlermeldung mit Zugnummer', () => {
+    expect(() => buildBoardGame(form({ pgn: '1. e4 e5 2. Sf3 Sf5' }), { myName: 'Ich', now: NOW })).toThrow(new PgnError('Zug 2 … Sf5 (Schwarz) ist in dieser Stellung nicht möglich.'));
   });
 
   it('Formular aus gespeichertem Eintrag ergibt wieder denselben Eintrag', () => {

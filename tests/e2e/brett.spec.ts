@@ -42,14 +42,19 @@ test('Brettpartie in wenigen Schritten eintragen, in der Liste finden, Filter �
   await page.getByRole('group', { name: 'Ergebnis' }).getByRole('button', { name: 'Sieg' }).click();
   await page.getByRole('group', { name: 'Meine Farbe' }).getByRole('button', { name: 'Weiß' }).click();
   await page.getByRole('button', { name: 'Züge einfügen (PGN)' }).click();
-  await page.getByLabel('Züge (PGN)').fill('1. e4 e5 2. Sf3');
+  // Ungültiger Zug → Meldung mit Zugnummer; danach deutsche Schreibweise (gemischt mit englisch)
+  await page.getByLabel('Züge (PGN)').fill('1. e4 e5 2. Lc4 Sf5');
   await page.getByTestId('board-save').click();
-  await expect(page.getByTestId('board-error')).toContainText('nicht gelesen');
-  await page.getByLabel('Züge (PGN)').fill('1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#');
+  await expect(page.getByTestId('board-error')).toHaveText('Zug 2 … Sf5 (Schwarz) ist in dieser Stellung nicht möglich.');
+  await page.getByLabel('Züge (PGN)').fill('1. e4 e5 2. Lc4 Nc6 3. Dh5 Sf6 4. Dxf7#');
   await page.getByTestId('board-save').click();
   // Mit Zügen geht es direkt zur Partie
   await expect(page.getByTestId('game-header')).toContainText('Sieg');
   await expect(page.getByTestId('board-info')).toContainText('Schülerliga');
+  // Zugliste zeigt die Züge (deutsch, wie überall in der App)
+  await page.getByTestId('tab-zuege').click();
+  await page.keyboard.press('End');
+  await expect(page.locator('.movelist-move.is-current').filter({ visible: true })).toHaveText(/^Dxf7#/);
 
   // Filter „Brett“ zeigt nur Brettpartien
   await page.getByRole('link', { name: 'Partien', exact: true }).click();

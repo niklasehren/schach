@@ -295,10 +295,10 @@ function EntryForm({ existing }: { existing?: GameRecord }) {
                 rows={4}
                 value={f.pgn}
                 onChange={(e) => set({ pgn: e.target.value })}
-                placeholder="1. e4 e5 2. Nf3 Nc6 …"
+                placeholder="1. e4 e5 2. Sf3 Sc6 …"
                 className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
               />
-              <p className="text-sm text-muted-foreground">Mit Zügen wird die Partie wie jede andere analysiert und es entstehen Puzzles aus deinen Fehlern.</p>
+              <p className="text-sm text-muted-foreground">Deutsche (Sf3, Lxc6+, e8=D) oder englische Schreibweise (Nf3, Bxc6+, e8=Q). Mit Zügen wird die Partie wie jede andere analysiert und es entstehen Puzzles aus deinen Fehlern.</p>
             </>
           )}
         </section>

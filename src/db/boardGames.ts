@@ -1,4 +1,5 @@
-import { Chess } from 'chess.js';
+import type { Chess } from 'chess.js';
+import { parseMoveInput } from '../chess/pgnInput';
 import { db as defaultDb, type BoardEntry, type BoardOccasion, type BoardReason, type GameRecord, type Phase, type SchachDB, type Side } from './schema';
 import { myResultOf, newId, pgnDate } from './games';
 
@@ -92,21 +93,10 @@ export function dateOf(day: string, now = Date.now()): number {
   return new Date(y, m - 1, d, 18, 0, 0).getTime();
 }
 
-export class PgnError extends Error {}
+export { MoveInputError as PgnError } from '../chess/pgnInput';
 
-/** Züge prüfen; gibt chess.js mit allen Zügen zurück. Leerer Text = keine Züge. */
-export function readMoves(text: string): Chess | null {
-  const t = text.trim();
-  if (!t) return null;
-  const chess = new Chess();
-  try {
-    chess.loadPgn(t);
-  } catch {
-    throw new PgnError('Die Züge konnten nicht gelesen werden. Bitte als PGN einfügen, z. B. „1. e4 e5 2. Sf3“ in englischer Schreibweise (1. e4 e5 2. Nf3).');
-  }
-  if (chess.history().length === 0) throw new PgnError('Im eingefügten Text stehen keine Züge.');
-  return chess;
-}
+/** Züge prüfen (deutsche, englische oder gemischte Schreibweise); leerer Text = keine Züge. Wirft PgnError mit Zugnummer. */
+export const readMoves = (text: string): Chess | null => parseMoveInput(text);
 
 const scoreFor = (myColor: Side, r: BoardForm['myResult']): GameRecord['result'] =>
   r === 'draw' ? '1/2-1/2' : (r === 'win') === (myColor === 'white') ? '1-0' : '0-1';
