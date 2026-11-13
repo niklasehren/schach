@@ -100,3 +100,17 @@ describe('Wertung: Grafikpunkte und Datumsmarken', () => {
     expect(evenTicks([], 4)).toEqual([]);
   });
 });
+
+describe('Empfohlene Spielstärke aus der Chess.com-Wertung', () => {
+  it('ca. 350 → Einsteiger 1/4, nicht Elo 1500', async () => {
+    const { recommendedStrengthIndex, strengthLabel, strengthLevels } = await import('../../src/engine/strength');
+    const label = (r: number | null) => strengthLabel(strengthLevels[recommendedStrengthIndex(r)]);
+    expect(label(350)).toBe('Einsteiger 1/4');
+    expect(label(750)).toBe('Einsteiger 2/4');
+    expect(label(1000)).toBe('Einsteiger 3/4');
+    expect(label(1300)).toBe('Einsteiger 4/4');
+    expect(label(1450)).toBe('Elo 1400');
+    expect(label(1800)).toBe('Elo 1800');
+    expect(label(null)).toBe('Einsteiger 2/4');
+  });
+});

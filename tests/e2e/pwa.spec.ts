@@ -130,7 +130,7 @@ test.describe('iPhone', () => {
     await page.screenshot({ path: `test-results/install-hinweis-handy.png`, fullPage: true });
 
     // Safe Areas: Kopfzeile oben, Navigation unten und seitlich
-    const header = page.locator('header');
+    const header = page.locator('body > div header').first();
     await expect(header).toHaveClass(/safe-area-inset-top/);
     const nav = page.getByRole('navigation', { name: 'Hauptnavigation unten' });
     await expect(nav).toHaveClass(/safe-area-inset-bottom/);

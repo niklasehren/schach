@@ -18,15 +18,18 @@ type Props = {
   clock?: string;
 };
 
+/** Farbe eines Spielers als kleiner gefüllter Kreis (Weiß, Schwarz oder halb/halb für „Zufall“) – überall gleich */
 export function ColorSwatch({ color, className }: { color: Color | 'random'; className?: string }) {
   return (
     <span
       aria-hidden
+      data-color={color}
       className={cn(
-        'size-3.5 shrink-0 rounded-[4px]',
-        color === 'white' && 'bg-[#f7f5ef] ring-1 ring-muted-foreground',
-        color === 'black' && 'bg-[#0e1012] ring-2 ring-muted-foreground',
-        color === 'random' && 'bg-[linear-gradient(135deg,#f7f5ef_50%,#0e1012_50%)] ring-1 ring-muted-foreground',
+        // Leicht gewölbt wie ein Spielstein, damit der Kreis eindeutig gefüllt wirkt (kein leeres Kästchen/Radio-Knopf)
+        'color-dot inline-block size-3.5 shrink-0 rounded-full shadow-[inset_0_-1px_1px_rgba(0,0,0,0.35),0_0_0_1px_rgba(128,128,128,0.55)]',
+        color === 'white' && 'bg-[radial-gradient(circle_at_35%_30%,#ffffff,#e4ddcc_70%)]',
+        color === 'black' && 'bg-[radial-gradient(circle_at_35%_30%,#6b717b,#1a1d22_55%,#0b0c0e)]',
+        color === 'random' && 'bg-[linear-gradient(90deg,#f4efe3_50%,#22252b_50%)]',
         className,
       )}
     />
@@ -41,7 +44,7 @@ export function PlayerBar({ player, color, captured, advantage, active, thinking
       <ColorSwatch color={color} />
       <span className="truncate font-bold">
         {player.name}
-        {active && <span className="ml-2 inline-block size-2 rounded-full bg-brass align-middle" aria-label="am Zug" />}
+        {active && <span className="ml-2 text-[15px] font-normal text-muted-foreground">am Zug</span>}
       </span>
       {player.detail && <span className="text-[15px] whitespace-nowrap text-muted-foreground">{player.detail}</span>}
       {thinking && <span className="size-3.5 animate-spin rounded-full border-2 border-border border-t-primary" aria-label="denkt nach" />}

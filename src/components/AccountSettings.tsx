@@ -2,9 +2,8 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { CloudCheck, CloudOff, Copy, KeyRound, LoaderCircle, LogOut, RefreshCw, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
 import { loadAccount, useAccount } from '../sync/state';
 import type { Invite } from '../sync/account';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { fieldLabel, Section, SectionContent, SectionDescription, SectionHeader, SectionTitle } from '@/components/Section';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,7 +33,9 @@ function useAction() {
 function Field({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className={fieldLabel}>
+        {label}
+      </Label>
       {children}
     </div>
   );
@@ -43,9 +44,9 @@ function Field({ id, label, children }: { id: string; label: string; children: R
 function ErrorText({ error }: { error: string | null }) {
   if (!error) return null;
   return (
-    <Alert variant="destructive" data-testid="account-error">
-      <AlertDescription>{error}</AlertDescription>
-    </Alert>
+    <p className="font-semibold text-destructive" role="alert" data-testid="account-error">
+      {error}
+    </p>
   );
 }
 
@@ -53,14 +54,14 @@ function ErrorText({ error }: { error: string | null }) {
 export function AccountCard() {
   const account = useAccount();
   return (
-    <Card data-testid="account-card">
-      <CardHeader>
-        <CardTitle>Konto & Synchronisierung</CardTitle>
-        <CardDescription>
+    <Section data-testid="account-card">
+      <SectionHeader>
+        <SectionTitle>Konto & Synchronisierung</SectionTitle>
+        <SectionDescription>
           Freiwillig. Ohne Konto bleibt alles nur auf diesem Gerät. Mit Konto werden deine Partien, Analysen und Puzzles zwischen deinen Geräten abgeglichen.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </SectionDescription>
+      </SectionHeader>
+      <SectionContent>
         {account.status === 'unknown' ? (
           <p className="text-muted-foreground">Lädt …</p>
         ) : account.status === 'signed-in' && account.user ? (
@@ -68,8 +69,8 @@ export function AccountCard() {
         ) : (
           <SignInForms />
         )}
-      </CardContent>
-    </Card>
+      </SectionContent>
+    </Section>
   );
 }
 
@@ -91,9 +92,13 @@ function SignInForms() {
 
   return (
     <Tabs defaultValue="login" className="gap-4">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="login">Anmelden</TabsTrigger>
-        <TabsTrigger value="register">Registrieren</TabsTrigger>
+      <TabsList variant="line" className="h-10 justify-start gap-1">
+        <TabsTrigger value="login" className="px-2.5 text-[15px]">
+          Anmelden
+        </TabsTrigger>
+        <TabsTrigger value="register" className="px-2.5 text-[15px]">
+          Registrieren
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="login">
         <form className="flex flex-col gap-3" onSubmit={onLogin} data-testid="login-form">
@@ -104,10 +109,10 @@ function SignInForms() {
             <Input id="password" type="password" autoComplete="current-password" value={form.password} onChange={set('password')} required className="h-11 text-base" />
           </Field>
           <ErrorText error={login.error} />
-          <Button type="submit" size="lg" className="h-11" disabled={login.busy}>
+          <Button type="submit" size="lg" className="h-12 self-start px-6 text-base font-bold max-md:self-stretch" disabled={login.busy}>
             {login.busy && <LoaderCircle className="animate-spin" data-icon="inline-start" />} Anmelden
           </Button>
-          <p className="text-[13px] text-muted-foreground">Passwort vergessen? Frag Niklas – er setzt dir ein vorläufiges Passwort, das du danach hier änderst.</p>
+          <p className="text-sm text-muted-foreground">Passwort vergessen? Frag Niklas – er setzt dir ein vorläufiges Passwort, das du danach hier änderst.</p>
         </form>
       </TabsContent>
       <TabsContent value="register">
@@ -134,10 +139,10 @@ function SignInForms() {
             <Input id="reg-password" type="password" autoComplete="new-password" value={form.newPassword} onChange={set('newPassword')} required className="h-11 text-base" />
           </Field>
           <ErrorText error={reg.error} />
-          <Button type="submit" size="lg" className="h-11" disabled={reg.busy}>
+          <Button type="submit" size="lg" className="h-12 self-start px-6 text-base font-bold max-md:self-stretch" disabled={reg.busy}>
             {reg.busy && <LoaderCircle className="animate-spin" data-icon="inline-start" />} Konto anlegen
           </Button>
-          <p className="text-[13px] text-muted-foreground">Deine Partien und dein Training auf diesem Gerät werden ins neue Konto übernommen.</p>
+          <p className="text-sm text-muted-foreground">Deine Partien und dein Training auf diesem Gerät werden ins neue Konto übernommen.</p>
         </form>
       </TabsContent>
     </Tabs>
@@ -173,13 +178,13 @@ function SignedIn() {
           Angemeldet als {user.username || user.email}
         </span>
         {user.isAdmin && (
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-brass uppercase">
-            <ShieldCheck className="size-3.5" /> Admin
+          <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+            <ShieldCheck className="size-4" /> Admin
           </span>
         )}
-        <span className="w-full text-sm text-muted-foreground">{user.email}</span>
+        <span className="w-full text-[15px] text-muted-foreground">{user.email}</span>
       </div>
-      <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2.5 text-sm" role="status" data-testid="sync-status">
+      <div className="flex items-center gap-2 text-[15px] text-muted-foreground" role="status" data-testid="sync-status">
         {account.sync === 'syncing' ? (
           <LoaderCircle className="size-4 animate-spin" />
         ) : account.sync === 'idle' ? (
@@ -215,10 +220,10 @@ function SignedIn() {
           </div>
         </Field>
         <ErrorText error={pw.error} />
-        {pwDone && <p className="text-sm text-win">Passwort geändert.</p>}
+        {pwDone && <p className="text-[15px] text-win">Passwort geändert.</p>}
       </form>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-wrap gap-2 border-t pt-4">
         <Button variant="outline" className="h-10" onClick={() => setConfirmOut(true)} data-testid="sign-out">
           <LogOut data-icon="inline-start" /> Abmelden
         </Button>
@@ -317,14 +322,14 @@ export function AdminCard() {
     : '';
 
   return (
-    <Card data-testid="admin-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Section data-testid="admin-card">
+      <SectionHeader>
+        <SectionTitle className="flex items-center gap-2">
           <ShieldCheck className="size-5 text-brass" /> Freunde einladen
-        </CardTitle>
-        <CardDescription>Nur du siehst diese Karte. Registrieren kann sich nur, wessen E-Mail hier freigegeben ist – mit dem passenden Code.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+        </SectionTitle>
+        <SectionDescription>Nur du siehst diese Karte. Registrieren kann sich nur, wessen E-Mail hier freigegeben ist – mit dem passenden Code.</SectionDescription>
+      </SectionHeader>
+      <SectionContent className="flex flex-col gap-4">
         <form
           className="flex flex-col gap-2"
           onSubmit={(e) => {
@@ -350,10 +355,10 @@ export function AdminCard() {
         </form>
 
         {created && (
-          <div className="flex flex-col gap-2 rounded-xl border-2 border-dashed border-brass p-3" data-testid="invite-code">
-            <span className="text-sm text-muted-foreground">Einladungscode für {created.email} – nur jetzt sichtbar:</span>
+          <div className="flex flex-col gap-2 border-t pt-4" data-testid="invite-code">
+            <span className="text-[15px] text-muted-foreground">Einladungscode für {created.email} – nur jetzt sichtbar:</span>
             <span className="font-mono text-3xl font-bold tracking-widest">{formatCode(created.code)}</span>
-            <p className="text-sm">{message}</p>
+            <p className="text-[15px]">{message}</p>
             <Button
               variant="outline"
               className="self-start"
@@ -367,7 +372,7 @@ export function AdminCard() {
         )}
 
         <div className="flex flex-col">
-          <span className="mb-1 text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">Freigaben</span>
+          <span className={`${fieldLabel} mb-1`}>Freigaben</span>
           {invites === null ? (
             <p className="text-sm text-muted-foreground">Lädt …</p>
           ) : invites.length === 0 ? (
@@ -375,7 +380,7 @@ export function AdminCard() {
           ) : (
             <ul className="m-0 list-none p-0" data-testid="invite-list">
               {invites.map((i) => (
-                <li key={i.email} className="flex items-center gap-2 border-t py-2 text-sm first:border-t-0">
+                <li key={i.email} className="flex items-center gap-2 border-t py-2 text-[15px] first:border-t-0">
                   <span className="min-w-0 grow">
                     <span className="block truncate font-semibold">{i.email}</span>
                     <span className="text-muted-foreground">
@@ -415,7 +420,7 @@ export function AdminCard() {
             });
           }}
         >
-          <span className="text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">Passwort vergessen</span>
+          <span className={fieldLabel}>Passwort vergessen</span>
           <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <Input placeholder="Benutzername" aria-label="Benutzername" value={reset.username} onChange={(e) => setReset((r) => ({ ...r, username: e.target.value }))} required className="h-10" />
             <Input
@@ -434,19 +439,19 @@ export function AdminCard() {
           <ErrorText error={rst.error} />
           {resetDone && <p className="text-sm text-win">{resetDone}</p>}
         </form>
-      </CardContent>
-    </Card>
+      </SectionContent>
+    </Section>
   );
 }
 
 /** Datenschutzhinweis: welche Daten, wo, wer sie sieht */
 export function PrivacyCard() {
   return (
-    <Card data-testid="privacy-card">
-      <CardHeader>
-        <CardTitle>Datenschutz</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2.5 text-sm leading-relaxed">
+    <Section data-testid="privacy-card">
+      <SectionHeader>
+        <SectionTitle>Datenschutz</SectionTitle>
+      </SectionHeader>
+      <SectionContent className="flex flex-col gap-2.5 text-sm leading-relaxed">
         <p>
           <strong>Ohne Konto</strong> bleiben alle Daten nur in diesem Browser auf diesem Gerät. Nichts wird übertragen, außer beim Chess.com-Import (Abruf deiner öffentlichen
           Partien bei Chess.com).
@@ -465,7 +470,7 @@ export function PrivacyCard() {
         <p>
           <strong>Löschen:</strong> „Konto löschen“ entfernt das Konto und alle Daten darin sofort. Fragen: direkt an Niklas.
         </p>
-      </CardContent>
-    </Card>
+      </SectionContent>
+    </Section>
   );
 }

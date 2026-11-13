@@ -5,6 +5,7 @@ import { formatDate, formatTimeControl, myResultText, scoreText } from '../chess
 import { hasMoves, OCCASION_LABELS } from '../db/boardGames';
 import { EndBoard, errorsText, gameHref, myErrors, opponentOf, resultColor } from './GameBits';
 import { cn } from '@/lib/utils';
+import { ColorSwatch } from './PlayerBar';
 
 const tcName: Record<string, string> = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', daily: 'Täglich', classical: 'Klassisch' };
 
@@ -40,6 +41,11 @@ export function GameRow({ game: g, analysis, analysing }: { game: GameRecord; an
       <EndBoard game={g} className="w-full" />
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="flex min-w-0 items-baseline gap-2">
+          {g.myColor && (
+            <span className="self-center" role="img" aria-label={g.myColor === 'white' ? 'mit Weiß' : 'mit Schwarz'} title={g.myColor === 'white' ? 'Ich spielte Weiß' : 'Ich spielte Schwarz'}>
+              <ColorSwatch color={g.myColor} className="block" />
+            </span>
+          )}
           <span className="truncate font-semibold">{opponentOf(g)}</span>
           {opp?.rating !== undefined && (
             <span className="shrink-0 text-[15px] whitespace-nowrap text-muted-foreground tabular-nums">

@@ -6,14 +6,13 @@ import { AUTO_KEY } from '../chesscom/autoImport';
 import { useLive } from '../db/useLive';
 import { href } from '../app/router';
 import { CircleAlert, CircleCheck } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Choice, fieldLabel, PageTitle, Section, SectionContent, SectionDescription, SectionHeader, SectionTitle } from '@/components/Section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Progress as ProgressBar } from '@/components/ui/progress';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
 
 const USERNAME_KEY = 'chesscomUsername';
 
@@ -25,10 +24,12 @@ type State =
 
 export function ImportPage() {
   return (
-    <div className="flex w-full max-w-2xl animate-in flex-col gap-4 px-3.5 fade-in-0 slide-in-from-bottom-1 md:px-0">
-      <h1 className="font-heading text-4xl">Import</h1>
-      <ChessComImport />
-      <BackupSection />
+    <div className="flex w-full max-w-[760px] animate-in flex-col gap-10 px-4 fade-in-0 md:px-0">
+      <PageTitle sub="Partien von Chess.com holen, Daten sichern und auf ein anderes Gerät übertragen.">Import</PageTitle>
+      <div className="flex flex-col gap-12">
+        <ChessComImport />
+        <BackupSection />
+      </div>
     </div>
   );
 }
@@ -85,19 +86,21 @@ function ChessComImport() {
   const running = state.kind === 'running';
 
   return (
-    <Card aria-labelledby="cc-title">
-      <CardHeader>
-        <CardTitle id="cc-title" className="text-lg">
+    <Section aria-labelledby="cc-title">
+      <SectionHeader>
+        <SectionTitle id="cc-title">
           Partien von Chess.com
-        </CardTitle>
-        <CardDescription>
+        </SectionTitle>
+        <SectionDescription>
           Holt deine Partien über die öffentliche Chess.com-Schnittstelle – ohne Passwort. Bereits importierte Partien werden übersprungen, ein erneuter Import holt also nur neue.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
+        </SectionDescription>
+      </SectionHeader>
+      <SectionContent className="flex flex-col gap-5">
         <form className="flex flex-col gap-4" onSubmit={run}>
           <div className="grid gap-2">
-            <Label htmlFor="cc-username">Chess.com-Benutzername</Label>
+            <Label htmlFor="cc-username" className={fieldLabel}>
+              Chess.com-Benutzername
+            </Label>
             <Input
               id="cc-username"
               className="h-11 text-base"
@@ -114,27 +117,28 @@ function ChessComImport() {
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
-          <ToggleGroup
-            variant="outline"
-            value={[range]}
-            onValueChange={(v: string[]) => v[0] && setRange(v[0] as Range)}
-            aria-label="Zeitraum"
-            className="grid w-full grid-cols-2"
-            disabled={running}
-          >
-            <ToggleGroupItem value="last3" className="h-10">
-              Letzte 3 Monate
-            </ToggleGroupItem>
-            <ToggleGroupItem value="all" className="h-10">
-              Alle
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <div className="flex flex-col gap-1.5">
+            <span className={fieldLabel} id="range-label">
+              Zeitraum
+            </span>
+            <Choice
+              label="Zeitraum"
+              value={range}
+              onChange={setRange}
+              disabled={running}
+              className="md:-ml-3"
+              options={[
+                { value: 'last3', label: 'Letzte 3 Monate' },
+                { value: 'all', label: 'Alle' },
+              ]}
+            />
+          </div>
           {running ? (
-            <Button type="button" variant="outline" size="lg" className="h-11 text-base" onClick={() => abort.current?.abort()}>
+            <Button type="button" variant="outline" size="lg" className="h-12 self-start px-6 text-base max-md:self-stretch" onClick={() => abort.current?.abort()}>
               Abbrechen
             </Button>
           ) : (
-            <Button type="submit" size="lg" className="h-11 text-base" disabled={!username.trim()}>
+            <Button type="submit" size="lg" className="h-12 self-start px-6 text-base font-bold max-md:self-stretch" disabled={!username.trim()}>
               Partien importieren
             </Button>
           )}
@@ -145,34 +149,37 @@ function ChessComImport() {
         {state.kind === 'running' && <ProgressView progress={state.progress} />}
 
         {state.kind === 'done' && (
-          <Alert role="status" data-testid="import-result" className="border-primary/40 bg-primary/10">
-            <CircleCheck />
-            <AlertTitle>
+          <div role="status" data-testid="import-result" className="flex flex-col gap-1">
+            <p className="flex items-center gap-2 font-heading text-[26px] leading-tight">
+              <CircleCheck className="size-5 shrink-0 text-win" />
               {state.summary.added === 0 ? 'Keine neuen Partien.' : `${plural(state.summary.added, 'neue Partie', 'neue Partien')} importiert.`}
-            </AlertTitle>
-            <AlertDescription>
+            </p>
+            <p className="text-[15px] text-muted-foreground">
               <span>
                 {plural(state.summary.months, 'Monat', 'Monate')} durchsucht
                 {state.summary.duplicates > 0 && `, ${state.summary.duplicates} schon vorhanden`}
                 {state.summary.skipped > 0 && `, ${plural(state.summary.skipped, 'Variante', 'Varianten')} übersprungen`}.
               </span>
               {state.summary.months === 0 && <span> In diesem Zeitraum gibt es keine Partien. Versuch es mit „Alle“.</span>}
+              {' '}
               <a className="font-semibold text-brass-text" href={href({ page: 'partien' })}>
                 Zur Partienliste
               </a>
-            </AlertDescription>
-          </Alert>
+            </p>
+          </div>
         )}
 
         {state.kind === 'error' && (
-          <Alert variant="destructive" role="alert" data-testid="import-error">
-            <CircleAlert />
-            <AlertTitle>{state.message}</AlertTitle>
-            {state.added > 0 && <AlertDescription>{plural(state.added, 'neue Partie wurde', 'neue Partien wurden')} vorher schon gespeichert.</AlertDescription>}
-          </Alert>
+          <div role="alert" data-testid="import-error" className="flex flex-col gap-1">
+            <p className="flex items-center gap-2 font-semibold text-destructive">
+              <CircleAlert className="size-5 shrink-0" />
+              {state.message}
+            </p>
+            {state.added > 0 && <p className="text-[15px] text-muted-foreground">{plural(state.added, 'neue Partie wurde', 'neue Partien wurden')} vorher schon gespeichert.</p>}
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </SectionContent>
+    </Section>
   );
 }
 
@@ -182,7 +189,7 @@ function ProgressView({ progress: p }: { progress: Progress }) {
       ? 'Frage Chess.com nach deinen Monaten …'
       : `Monat ${p.month} von ${p.months}${p.label ? ` (${p.label.replace('/', '-')})` : ''}, ${plural(p.added, 'Partie', 'Partien')} neu`;
   return (
-    <div className="flex flex-col gap-2 text-sm tabular-nums" role="status" aria-live="polite" data-testid="import-progress">
+    <div className="flex flex-col gap-2 text-[15px] text-muted-foreground tabular-nums" role="status" aria-live="polite" data-testid="import-progress">
       <span>{text}</span>
       <ProgressBar value={p.months ? (p.month / p.months) * 100 : null} aria-label="Import-Fortschritt" />
     </div>
@@ -230,21 +237,21 @@ function BackupSection() {
   }
 
   return (
-    <Card aria-labelledby="backup-title">
-      <CardHeader>
-        <CardTitle id="backup-title" className="text-lg">
+    <Section aria-labelledby="backup-title">
+      <SectionHeader>
+        <SectionTitle id="backup-title">
           Datensicherung
-        </CardTitle>
-        <CardDescription>
+        </SectionTitle>
+        <SectionDescription>
           Alle Daten liegen nur in diesem Browser. Lösche den Browserverlauf nicht ohne Sicherung. Mit einer Sicherungsdatei kannst du die Daten auch auf ein anderes Gerät übertragen; beim Einlesen wird zusammengeführt, nichts gelöscht.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Button variant="outline" size="lg" className="h-11" onClick={doExport} disabled={busy}>
+        </SectionDescription>
+      </SectionHeader>
+      <SectionContent className="flex flex-col gap-3">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="lg" className="h-11 px-5 max-sm:flex-1" onClick={doExport} disabled={busy}>
             Alle Daten sichern
           </Button>
-          <Button variant="outline" size="lg" className="h-11" onClick={() => fileInput.current?.click()} disabled={busy}>
+          <Button variant="outline" size="lg" className="h-11 px-5 max-sm:flex-1" onClick={() => fileInput.current?.click()} disabled={busy}>
             Sicherung einlesen
           </Button>
           <input
@@ -257,12 +264,12 @@ function BackupSection() {
           />
         </div>
         {message && (
-          <Alert variant={message.error ? 'destructive' : 'default'} role={message.error ? 'alert' : 'status'} data-testid="backup-message">
-            <AlertDescription>{message.text}</AlertDescription>
-          </Alert>
+          <p className={message.error ? 'font-semibold text-destructive' : 'text-[15px]'} role={message.error ? 'alert' : 'status'} data-testid="backup-message">
+            {message.text}
+          </p>
         )}
-      </CardContent>
-    </Card>
+      </SectionContent>
+    </Section>
   );
 }
 
@@ -271,10 +278,10 @@ function AutoImportToggle() {
   const value = useLive(() => getSetting<boolean>(AUTO_KEY).then((v) => v ?? true), []);
   if (value === undefined) return null;
   return (
-    <div className="flex items-start justify-between gap-4 rounded-lg border bg-muted/30 p-3">
+    <div className="flex items-start justify-between gap-6 border-t pt-5">
       <Label htmlFor="auto-import" className="flex flex-col items-start gap-1">
         <span className="text-[15px] font-semibold">Neue Partien automatisch laden</span>
-        <span className="text-[13px] leading-snug font-normal text-muted-foreground">
+        <span className="max-w-[60ch] text-[15px] leading-relaxed font-normal text-muted-foreground">
           Beim Öffnen der App und wenn du zu ihr zurückkehrst, höchstens alle 10 Minuten (aktueller und letzter Monat). Chess.com zeigt eine beendete Partie in der
           Regel nach wenigen Minuten an; ganz frische Partien können also beim ersten Nachsehen noch fehlen.
         </span>

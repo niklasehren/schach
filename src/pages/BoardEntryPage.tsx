@@ -18,12 +18,12 @@ import {
   type BoardForm,
 } from '../db/boardGames';
 import { href } from '../app/router';
-import { Card } from '@/components/ui/card';
+import { fieldLabel } from '@/components/Section';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-const label = 'text-xs font-bold tracking-[0.08em] text-muted-foreground uppercase';
+const label = fieldLabel;
 
 /** Große Antipp-Knöpfe statt Tippen (Einfach- oder Mehrfachauswahl) */
 function Chips<T extends string>({
@@ -53,7 +53,7 @@ function Chips<T extends string>({
             onClick={() => onToggle(v)}
             className={cn(
               'min-h-11 rounded-lg border border-input px-3 py-2 text-[15px] font-semibold transition-colors outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:min-w-28',
-              on ? cn('border-primary bg-primary/15 text-foreground', tone?.(v)) : 'text-muted-foreground hover:bg-muted',
+              on ? cn('border-foreground/50 bg-muted text-foreground', tone?.(v)) : 'text-muted-foreground hover:bg-muted/60',
             )}
           >
             {text}
@@ -154,20 +154,20 @@ function EntryForm({ existing }: { existing?: GameRecord }) {
   const otherDay = !days.some(([d]) => d === f.day);
 
   return (
-    <div className="flex w-full max-w-[720px] animate-in flex-col gap-4 px-3.5 fade-in-0 slide-in-from-bottom-1 md:px-0">
-      <div className="flex items-center gap-2.5">
+    <div className="flex w-full max-w-[720px] animate-in flex-col gap-8 px-4 fade-in-0 md:px-0">
+      <div className="flex items-center gap-2">
         <a
-          className={cn(buttonVariants({ variant: 'outline', size: 'icon' }), 'shrink-0 text-foreground')}
+          className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), '-ml-2 shrink-0 text-muted-foreground')}
           href={existing && hasMoves(existing) ? href({ page: 'partie', id: existing.id }) : href({ page: 'partien' })}
           aria-label="Zurück"
           title="Zurück"
         >
           <ChevronLeft />
         </a>
-        <h1 className="font-heading text-3xl md:text-4xl">{existing ? 'Brettpartie bearbeiten' : 'Brettpartie eintragen'}</h1>
+        <h1 className="font-heading text-[40px] leading-tight font-normal md:text-[52px]">{existing ? 'Brettpartie bearbeiten' : 'Brettpartie eintragen'}</h1>
       </div>
 
-      <Card className="gap-5 p-4 md:p-6" data-testid="board-form">
+      <div className="flex flex-col gap-7" data-testid="board-form">
         <Field title="Ergebnis">
           <Chips
             name="Ergebnis"
@@ -236,7 +236,7 @@ function EntryForm({ existing }: { existing?: GameRecord }) {
                 onClick={() => set({ day: d })}
                 className={cn(
                   'min-h-11 rounded-lg border border-input px-3 text-[15px] font-semibold',
-                  f.day === d ? 'border-primary bg-primary/15' : 'text-muted-foreground hover:bg-muted',
+                  f.day === d ? 'border-foreground/50 bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/60',
                 )}
               >
                 {text}
@@ -248,7 +248,7 @@ function EntryForm({ existing }: { existing?: GameRecord }) {
               max={todayKey()}
               value={f.day}
               onChange={(e) => e.target.value && set({ day: e.target.value })}
-              className={cn('min-h-11 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-[15px]', otherDay ? 'border-primary bg-primary/15' : 'text-muted-foreground')}
+              className={cn('min-h-11 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-[15px]', otherDay ? 'border-foreground/50 bg-muted' : 'text-muted-foreground')}
             />
           </div>
         </Field>
@@ -328,7 +328,7 @@ function EntryForm({ existing }: { existing?: GameRecord }) {
             )}
           </div>
         )}
-      </Card>
+      </div>
 
       {/* Speichern bleibt am Handy über der Navigationsleiste sichtbar */}
       <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-20 flex flex-col gap-1 md:static">

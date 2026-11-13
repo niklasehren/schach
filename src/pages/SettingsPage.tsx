@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BOARD_THEMES, getBoardTheme, getTheme, setBoardTheme, setTheme, type BoardTheme } from '../app/theme';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageTitle, Section, SectionContent, SectionDescription, SectionHeader, SectionTitle } from '@/components/Section';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -12,19 +12,20 @@ export function SettingsPage() {
   const [light, setLight] = useState(getTheme() === 'light');
   const [board, setBoard] = useState<BoardTheme>(getBoardTheme());
   return (
-    <div className="flex w-full max-w-2xl animate-in flex-col gap-4 px-3.5 fade-in-0 slide-in-from-bottom-1 md:px-0">
-      <h1 className="font-heading text-4xl">Einstellungen</h1>
+    <div className="flex w-full max-w-[760px] animate-in flex-col gap-10 px-4 fade-in-0 md:px-0">
+      <PageTitle>Einstellungen</PageTitle>
+      <div className="flex flex-col gap-12">
       <AccountCard />
       <AdminCard />
-      <Card>
-        <CardHeader>
-          <CardTitle>Darstellung</CardTitle>
-          <CardDescription>Gilt für dieses Gerät.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between gap-4">
+      <Section>
+        <SectionHeader>
+          <SectionTitle>Darstellung</SectionTitle>
+          <SectionDescription>Gilt für dieses Gerät.</SectionDescription>
+        </SectionHeader>
+        <SectionContent className="flex-row items-center justify-between gap-4">
           <Label htmlFor="light-mode" className="flex flex-col items-start gap-0.5">
             <span className="text-[15px] font-semibold">Heller Modus</span>
-            <span className="text-sm font-normal text-muted-foreground">Standard ist dunkel.</span>
+            <span className="text-[15px] font-normal text-muted-foreground">Standard ist dunkel.</span>
           </Label>
           <Switch
             id="light-mode"
@@ -35,15 +36,15 @@ export function SettingsPage() {
               setTheme(on ? 'light' : 'dark');
             }}
           />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Brett</CardTitle>
-          <CardDescription>Farben der Felder.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Brett-Farben">
+        </SectionContent>
+      </Section>
+      <Section>
+        <SectionHeader>
+          <SectionTitle>Brett</SectionTitle>
+          <SectionDescription>Farben der Felder.</SectionDescription>
+        </SectionHeader>
+        <SectionContent>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Brett-Farben">
             {BOARD_THEMES.map((t) => (
               <button
                 key={t.id}
@@ -56,23 +57,24 @@ export function SettingsPage() {
                   setBoardTheme(t.id);
                 }}
                 className={cn(
-                  'flex flex-col items-center gap-2 rounded-xl border-[1.5px] bg-muted/40 p-3 text-sm font-semibold transition-colors hover:bg-muted',
-                  board === t.id ? 'border-brass ring-1 ring-brass' : 'border-border',
+                  'flex flex-col items-center gap-2 rounded-lg px-3 py-3 text-[15px] text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                  board === t.id && 'bg-muted font-semibold text-foreground',
                 )}
               >
                 <span
                   aria-hidden
-                  className="aspect-square w-14 rounded-md sm:w-18"
+                  className="aspect-square w-16 rounded-md sm:w-20"
                   style={{ background: `repeating-conic-gradient(${t.dark} 0 25%, ${t.light} 0 50%) 0 0 / 50% 50%` }}
                 />
                 {t.label}
               </button>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </SectionContent>
+      </Section>
       <InstallCard />
       <PrivacyCard />
+      </div>
     </div>
   );
 }

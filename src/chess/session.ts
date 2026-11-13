@@ -8,6 +8,8 @@ export type GameSetup = {
   /** Gegen Computer: gewünschte Farbe */
   colorChoice: Color | 'random';
   strengthIndex: number;
+  /** true, sobald ich die Stärke selbst gewählt habe – vorher gilt die Empfehlung aus meiner Chess.com-Wertung */
+  strengthChosen?: boolean;
   /** Gegen Freund: Namen der beiden Spieler */
   whiteName: string;
   blackName: string;

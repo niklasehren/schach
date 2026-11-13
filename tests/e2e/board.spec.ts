@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { clickSquare, move, startFriendGame } from './helpers';
+import { clickSquare, mockChessCom, move, runImport, startFriendGame } from './helpers';
 
 // Keine React-Warnungen in der Konsole (z. B. „The tag <piece> is unrecognized“ bei geschlagenen Figuren/Umwandlung)
 let warnings: string[] = [];
@@ -112,4 +112,37 @@ test('Bauernumwandlung mit Auswahl', async ({ page }) => {
   await page.getByRole('button', { name: 'Springer' }).click();
   await expect(page.getByTestId('movelist')).toContainText('gxh8=S');
   await expect(page.getByTestId('status')).toHaveText('Ben ist am Zug');
+});
+
+test('Spielstärke: Empfehlung aus der Chess.com-Wertung, eigene Wahl wird gemerkt; Farbe als Kreis', async ({ page }) => {
+  // Ohne Chess.com-Partien: Einstiegs-Empfehlung statt Elo 1500
+  await page.goto('/#/spielen');
+  await expect(page.locator('.strength-label')).toHaveText('Einsteiger 2/4');
+  await expect(page.getByTestId('strength-note')).toHaveText('Stockfish-Elo ist nicht mit einer Chess.com-Wertung vergleichbar. Empfohlen zum Einstieg: Einsteiger 2/4 (gewählt).');
+
+  // Mit Chess.com-Partien (Wertung um 350): Einsteiger 1/4
+  await mockChessCom(page);
+  await runImport(page, 'testspieler');
+  await expect(page.getByTestId('import-result')).toContainText('6 neue Partien');
+  await page.goto('/#/spielen');
+  await page.reload();
+  await expect(page.locator('.strength-label')).toHaveText('Einsteiger 1/4');
+  await expect(page.getByTestId('strength-note')).toContainText('nicht mit deiner Chess.com-Wertung vergleichbar. Empfohlen für dich: Einsteiger 1/4 (gewählt).');
+
+  // Eigene Wahl bleibt nach Neuladen; Antippen der Empfehlung setzt sie wieder
+  const slider = page.getByRole('slider', { name: 'Spielstärke' });
+  await slider.focus();
+  await slider.press('End');
+  await expect(page.locator('.strength-label')).toHaveText('Elo 3000');
+  await page.reload();
+  await expect(page.locator('.strength-label')).toHaveText('Elo 3000');
+  await page.getByTestId('strength-recommended').click();
+  await expect(page.locator('.strength-label')).toHaveText('Einsteiger 1/4');
+  await page.reload();
+  await expect(page.locator('.strength-label')).toHaveText('Einsteiger 1/4');
+
+  // Farbe der Spieler als gefüllter Kreis
+  const dot = page.getByTestId('player-white').locator('.color-dot');
+  await expect(dot).toHaveAttribute('data-color', 'white');
+  await expect(dot).toHaveClass(/rounded-full/);
 });

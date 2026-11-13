@@ -27,7 +27,6 @@ import { buildAppGame, saveGame, setSetting } from '../db/games';
 import { href } from '../app/router';
 import { analysisQueue } from '../analysis/queue';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { strengthLabel, strengthLevels, strengthOptions } from '../engine/strength';
 
@@ -37,6 +36,11 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** active = Seite ist sichtbar. Die Seite bleibt beim Wechsel erhalten, damit eine laufende Partie nicht verloren geht. */
 export function PlayPage({ active = true }: { active?: boolean }) {
   const [setup, setSetup] = useState<GameSetup>(loadSetup);
+  // Auswahl sofort merken (auch ohne Partiestart), z. B. die selbst gewählte Spielstärke
+  const changeSetup = useCallback((s: GameSetup) => {
+    setSetup(s);
+    saveSetup(s);
+  }, []);
   const [session, setSession] = useState<Session | null>(null);
   const chess = useRef(new Chess());
   // chess.js ändert sich „innen“; dieser Zähler sagt React, dass neu gezeichnet werden muss
@@ -254,13 +258,13 @@ export function PlayPage({ active = true }: { active?: boolean }) {
 
       <aside className={cn('flex min-h-0 flex-col gap-3.5 max-md:px-3.5 md:max-h-[calc(var(--board-size)+2*var(--bar-height)+12px)] md:pt-[calc(var(--bar-height)+6px)]', !session && 'max-md:order-first max-md:pb-2')}>
         {!session ? (
-          <SetupPanel setup={setup} onChange={setSetup} onStart={start} />
+          <SetupPanel setup={setup} onChange={changeSetup} onStart={start} />
         ) : (
           <>
             {summary && result ? (
-              <Card size="sm" className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-0.5 px-4" data-testid="result" role="status">
-                <span className="row-span-3 font-heading text-4xl leading-none text-brass">{resultScore(result)}</span>
-                <span className="text-lg font-bold">{summary.headline}</span>
+              <section className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-0.5" data-testid="result" role="status">
+                <span className="row-span-3 font-heading text-[56px] leading-none tabular-nums">{resultScore(result)}</span>
+                <span className="font-heading text-[28px] leading-tight">{summary.headline}</span>
                 <span className="text-[15px] text-muted-foreground">{summary.detail}</span>
                 {saved?.id && (
                   <a className="text-[15px] font-semibold text-brass-text" href={href({ page: 'partie', id: saved.id })} data-testid="saved">
@@ -268,7 +272,7 @@ export function PlayPage({ active = true }: { active?: boolean }) {
                   </a>
                 )}
                 {saved?.error && <span className="text-[15px] font-semibold text-destructive">Speichern fehlgeschlagen</span>}
-              </Card>
+              </section>
             ) : (
               <p className="min-h-7 text-lg font-semibold" data-testid="status" aria-live="polite">
                 {statusLine()}
