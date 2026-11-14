@@ -65,9 +65,11 @@ export function Board({ config, onMove }: Props) {
 
   // Pfeile zusätzlich als Attribut, damit Tests und Screenreader-Hilfen sie lesen können
   const arrows = (config.drawable?.autoShapes ?? []).map((sh) => `${sh.brush}:${sh.orig}${sh.dest ?? ''}`).join(',');
+  const marked = [...(config.highlight?.custom?.entries() ?? [])].map(([k, c]) => `${c}:${k}`).join(',');
+  const last = config.lastMove?.join('');
   return (
     <div className="board-frame">
-      <div ref={el} className="board" data-testid="board" data-arrows={arrows || undefined} />
+      <div ref={el} className="board" data-testid="board" data-arrows={arrows || undefined} data-marked={marked || undefined} data-last-move={last || undefined} />
     </div>
   );
 }

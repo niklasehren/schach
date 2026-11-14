@@ -6,6 +6,7 @@
  */
 import { Chess, type Move, type PieceSymbol, type Square } from 'chess.js';
 import { toGermanSan } from '../chess/game';
+import { pieceNouns } from '../chess/moveWords';
 import type { Side } from '../db/schema';
 import { materialBalance, type Pov } from './rules';
 import type { TermKey } from './terms';
@@ -124,14 +125,7 @@ export function winWords(percent: number): string {
 
 const values: Record<PieceSymbol, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 100 };
 
-const nouns: Record<PieceSymbol, { noun: string; acc: string; fem: boolean }> = {
-  p: { noun: 'Bauer', acc: 'Bauern', fem: false },
-  n: { noun: 'Springer', acc: 'Springer', fem: false },
-  b: { noun: 'Läufer', acc: 'Läufer', fem: false },
-  r: { noun: 'Turm', acc: 'Turm', fem: false },
-  q: { noun: 'Dame', acc: 'Dame', fem: true },
-  k: { noun: 'König', acc: 'König', fem: false },
-};
+const nouns = pieceNouns;
 
 const my = (t: PieceSymbol) => `${nouns[t].fem ? 'deine' : 'dein'} ${nouns[t].noun}`;
 const myAcc = (t: PieceSymbol) => `${nouns[t].fem ? 'deine' : 'deinen'} ${nouns[t].acc}`;
@@ -155,12 +149,14 @@ function phrase(m: Move, mine: boolean): { subject: string; verb: string; rest: 
   }
   if (m.captured) {
     const target = mine ? theAcc(m.captured) : myAcc(m.captured);
-    return { subject, verb: 'schlägt', rest: `${target} auf ${m.to}${m.flags.includes('e') ? ' (en passant)' : ''}` };
+    return { subject, verb: 'schlägt', rest: `von ${m.from} aus ${target} auf ${m.to}${m.flags.includes('e') ? ' (en passant)' : ''}` };
   }
-  if (m.promotion) return { subject, verb: 'zieht', rest: `nach ${m.to} und wird zur ${nouns[m.promotion].noun}` };
-  return { subject, verb: 'zieht', rest: `nach ${m.to}` };
+  if (m.promotion) return { subject, verb: 'zieht', rest: `von ${m.from} nach ${m.to} und wird zur ${nouns[m.promotion].noun}` };
+  return { subject, verb: 'zieht', rest: `von ${m.from} nach ${m.to}` };
 }
 /** Notation nur in Klammern hinter dem Satzteil */
+/** „(Dame von f3 nach f1, Df1)“ – für Stellen, an denen nur auf den Zug verwiesen wird */
+const phraseText = (m: Move) => `(${nouns[m.piece].noun} von ${m.from} nach ${m.to}, ${toGermanSan(m.san)})`;
 const san = (m: Move) => `(${toGermanSan(m.san)})`;
 const isCheck = (m: Move) => m.san.includes('+') || m.san.includes('#');
 
@@ -282,8 +278,8 @@ export function explain(input: ExplainInput): Explanation {
         // Hat mein Zug sogar die Deckung weggenommen?
         const lostCover = !undefendedBefore && !defended(afterChess, square, me) && playedMove.from !== p.square;
         const notSolved = lostCover
-          ? ` Dein Zug löst das nicht – im Gegenteil: ${cap(my(playedMove.piece))} zieht weg ${san(playedMove)} und deckt ${theAcc(p.type)} danach nicht mehr.`
-          : ` Dein Zug ${san(playedMove)} ändert daran nichts.`;
+          ? ` Dein Zug löst das nicht – im Gegenteil: ${cap(my(playedMove.piece))} zieht von ${playedMove.from} nach ${playedMove.to} weg ${san(playedMove)} und deckt ${theAcc(p.type)} danach nicht mehr.`
+          : ` Dein Zug ${phraseText(playedMove)} ändert daran nichts.`;
         played.push({
           rule: 'threatMissed',
           text: `${cap(theNom(attacker.type))} auf ${attacker.square} greift ${myAcc(p.type)} auf ${p.square} an. ${why}${notSolved}`,
@@ -318,9 +314,9 @@ export function explain(input: ExplainInput): Explanation {
       // Wie antwortet der Gegner?
       let how: string;
       if (isCheck(playedMove)) {
-        if (r0.piece === 'k') how = `${oppName} zieht einfach den König weg ${san(r0)}`;
-        else if (r0.captured && r0.to === playedMove.to) how = `${oppName} schlägt ${myAcc(r0.captured)} ${san(r0)}`;
-        else how = `${oppName} stellt ${theAcc(r0.piece)} dazwischen ${san(r0)}`;
+        if (r0.piece === 'k') how = `${oppName} zieht einfach den König von ${r0.from} nach ${r0.to} weg ${san(r0)}`;
+        else if (r0.captured && r0.to === playedMove.to) how = `${oppName} schlägt ${myAcc(r0.captured)} auf ${r0.to} mit ${nouns[r0.piece].fem ? 'der' : 'dem'} ${nouns[r0.piece].acc} von ${r0.from} ${san(r0)}`;
+        else how = `${oppName} stellt ${theAcc(r0.piece)} von ${r0.from} nach ${r0.to} dazwischen ${san(r0)}`;
       } else {
         const p = phrase(r0, false);
         how = `${oppName} antwortet: ${p.subject} ${p.verb} ${p.rest} ${san(r0)}`;

@@ -2,14 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Lightbulb } from 'lucide-react';
 import { useLive } from '../db/useLive';
 import { href } from '../app/router';
-import { playLine } from '../analysis/explain';
-import { toGermanSan } from '../chess/game';
+import { movedPhrase, uciMove } from '../chess/moveWords';
 import { logAttempt } from '../training/store';
 import { getPuzzleRating, lichessAttemptId, nextLichessPuzzle, recordLichessResult, weightsFromAnalyses, type GeneralMode } from '../training/general';
 import type { LichessPuzzle } from '../training/lichess';
 import { THEMES, themeOf, type ThemeKey } from '../training/themes';
 import { usePuzzleSolver } from '../training/usePuzzleSolver';
-import { PuzzleLayout } from './PuzzleLayout';
+import { MoveNote, MoveNotes, PuzzleLayout, PuzzleMeta, PuzzleTitle } from './PuzzleLayout';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -136,7 +135,7 @@ function LichessPuzzleView({ puzzle, rating, mode, onNext }: { puzzle: LichessPu
     onFinish: async (solved, firstTry) => setChange(await recordLichessResult(puzzle, solved, firstTry)),
   });
   const theme = themeOf(puzzle.theme)!;
-  const oppSan = playLine(puzzle.startFen, [puzzle.opponentMove])[0]?.san;
+  const oppMove = uciMove(puzzle.startFen, puzzle.opponentMove);
   const diff = change ? change.after - change.before : 0;
 
   return (
@@ -146,13 +145,20 @@ function LichessPuzzleView({ puzzle, rating, mode, onNext }: { puzzle: LichessPu
       onExit={exitToHub}
       task={
         <>
-          <span className="text-[15px] text-muted-foreground" data-testid="puzzle-theme">
-            {mode === 'weak' ? `${theme.label}, passend zu deinen Schwächen` : theme.label}
-          </span>
-          <h1 className="font-heading text-4xl leading-tight">Finde den besten Zug</h1>
-          <p className="text-muted-foreground">
-            {oppSan ? `Der Gegner hat ${toGermanSan(oppSan)} gespielt. ` : ''}Puzzle-Schwierigkeit {puzzle.rating}.
-          </p>
+          <PuzzleMeta>
+            <span className="font-semibold text-foreground" data-testid="puzzle-theme">
+              {theme.label}
+            </span>
+            {mode === 'weak' && ', passend zu deinen Schwächen'}, Schwierigkeit {puzzle.rating}
+          </PuzzleMeta>
+          <PuzzleTitle>Finde den besten Zug</PuzzleTitle>
+          {oppMove && (
+            <MoveNotes>
+              <MoveNote kind="last" testId="opponent-move">
+                Dein Gegner hat zuletzt {movedPhrase(oppMove, 'opp')}.
+              </MoveNote>
+            </MoveNotes>
+          )}
         </>
       }
       result={

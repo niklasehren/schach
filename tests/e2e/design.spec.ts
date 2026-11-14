@@ -74,7 +74,7 @@ test('Übersicht, Filter der Partienliste, Navigation', async ({ page }) => {
   await expect(page).toHaveURL(/#\/partien\/.+/);
   await page.goBack();
   await page.getByTestId('overview-start-general').click();
-  await expect(page.getByTestId('puzzle-theme')).toContainText('passend zu deinen Schwächen');
+  await expect(page.getByTestId('puzzle-meta')).toContainText('passend zu deinen Schwächen');
 });
 
 test('Einstellungen: heller Modus und Brett-Theme bleiben nach Neuladen', async ({ page }) => {

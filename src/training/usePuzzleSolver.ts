@@ -4,7 +4,8 @@ import type { Config } from '@lichess-org/chessground/config';
 import type { DrawShape } from '@lichess-org/chessground/draw';
 import type { Color, Key } from '@lichess-org/chessground/types';
 import type { Side } from '../db/schema';
-import { legalDests, toGermanSan } from '../chess/game';
+import { legalDests } from '../chess/game';
+import { movedPhrase, moveNoun } from '../chess/moveWords';
 import { playLine } from '../analysis/explain';
 
 export type Phase = 'intro' | 'solving' | 'reply' | 'checking' | 'solved' | 'failed';
@@ -19,6 +20,10 @@ export type SolverOptions = {
   line: string[];
   /** Lichess: Stellung davor und Zug des Gegners – wird zuerst auf dem Brett vorgespielt */
   intro?: { fen: string; move: string };
+  /** Letzter Zug des Gegners vor der Puzzle-Stellung (UCI) – wird markiert wie üblich; bei intro ist es dessen Zug */
+  lastMove?: string;
+  /** Mein Zug in der Partie (UCI): Start- und Zielfeld dezent rot, solange die Ausgangsstellung zu sehen ist */
+  played?: string;
   /** Anderer Zug als die Lösung: fast gleich gut? (Matt ist immer richtig) */
   checkAlternative?: (fenBefore: string, fenAfter: string, me: Side) => Promise<boolean>;
   /** Roter Pfeil nach dem Ende; Standard: mein erster falscher Zug */
@@ -33,9 +38,11 @@ const keys = (uci: string): [Key, Key] => [uci.slice(0, 2) as Key, uci.slice(2, 
 /** Ablauf eines Puzzles: gleiche Bedienung für „Meine Fehler“ und „Allgemeines Training“ */
 export function usePuzzleSolver(o: SolverOptions) {
   const me: Side = o.fen.split(' ')[1] === 'w' ? 'white' : 'black';
-  const introMove = o.intro ? keys(o.intro.move) : undefined;
+  const baseUci = o.intro?.move ?? o.lastMove;
+  const introMove = baseUci ? keys(baseUci) : undefined;
   const [fen, setFen] = useState(o.intro?.fen ?? o.fen);
-  const [lastMove, setLastMove] = useState<[Key, Key] | undefined>();
+  // 'base' = der letzte Zug des Gegners vor der Puzzle-Stellung (kann nachgeladen werden)
+  const [lastMove, setLastMove] = useState<[Key, Key] | 'base' | undefined>(o.intro ? undefined : 'base');
   const [phase, setPhase] = useState<Phase>(o.intro ? 'intro' : 'solving');
   const [step, setStep] = useState(0);
   const [tries, setTries] = useState(0);
@@ -51,7 +58,7 @@ export function usePuzzleSolver(o: SolverOptions) {
     if (!o.intro) return;
     const t = window.setTimeout(() => {
       setFen(o.fen);
-      setLastMove(introMove);
+      setLastMove('base');
       setPhase('solving');
       started.current = Date.now();
     }, INTRO_DELAY);
@@ -68,7 +75,7 @@ export function usePuzzleSolver(o: SolverOptions) {
     // Brett zurück in die Ausgangsstellung – dort stehen Pfeile und Erklärung
     window.setTimeout(() => {
       setFen(o.fen);
-      setLastMove(introMove);
+      setLastMove('base');
     }, 700);
   }
 
@@ -105,7 +112,7 @@ export function usePuzzleSolver(o: SolverOptions) {
       setFen(chess.fen());
       setLastMove([reply.from as Key, reply.to as Key]);
       setStep(step + 2);
-      setMessage(`Richtig! Der Gegner antwortet mit ${toGermanSan(reply.san)}. Wie geht es weiter?`);
+      setMessage(`Richtig! Dein Gegner hat ${movedPhrase(reply, 'opp')}. Wie geht es weiter?`);
       setPhase('solving');
       return;
     }
@@ -120,18 +127,18 @@ export function usePuzzleSolver(o: SolverOptions) {
     if (acceptable) {
       await o.onAttempt?.(uci, true, tryNo, ms);
       setMessage(null);
-      await finish(true, tryNo, toGermanSan(mv.san));
+      await finish(true, tryNo, moveNoun(mv));
       return;
     }
     await o.onAttempt?.(uci, false, tryNo, ms);
     setTries(tryNo);
     if (step === 0 && !wrong) setWrong(uci);
     if (tryNo < 2) {
-      setMessage(`${toGermanSan(mv.san)} ist nicht der beste Zug. Versuch es noch einmal.`);
+      setMessage(`${moveNoun(mv)} ist nicht der beste Zug. Versuch es noch einmal.`);
       setPhase('reply');
       window.setTimeout(() => {
         setFen(stepFen.current);
-        setLastMove(step === 0 ? introMove : undefined);
+        setLastMove(step === 0 ? 'base' : undefined);
         setPhase('solving');
       }, 700);
     } else {
@@ -144,14 +151,18 @@ export function usePuzzleSolver(o: SolverOptions) {
   const config = useMemo<Config>(() => {
     const shapes: DrawShape[] = [];
     let shown = fen;
-    let last = lastMove;
+    let last = lastMove === 'base' ? introMove : lastMove;
+    const custom = new Map<Key, string>();
     if (variation) {
       shown = variation.step === 0 ? o.fen : variation.moves[variation.step - 1].after;
       const lm = variation.step > 0 ? variation.moves[variation.step - 1] : undefined;
       last = lm ? [lm.from as Key, lm.to as Key] : undefined;
       const next = variation.moves[variation.step];
       if (next) shapes.push({ orig: next.from as Key, dest: next.to as Key, brush: 'good' });
-    } else if (finished && fen === o.fen) {
+    } else if (fen === o.fen && o.played && phase !== 'intro') {
+      for (const k of keys(o.played)) custom.set(k, 'played-move');
+    }
+    if (!variation && finished && fen === o.fen) {
       if (bad && bad !== o.line[0]) shapes.push({ orig: keys(bad)[0], dest: keys(bad)[1], brush: 'bad' });
       shapes.push({ orig: keys(o.line[0])[0], dest: keys(o.line[0])[1], brush: 'good' });
     }
@@ -163,11 +174,12 @@ export function usePuzzleSolver(o: SolverOptions) {
       orientation: me,
       turnColor: turn,
       lastMove: last,
+      highlight: { custom },
       check: chess.inCheck() ? turn : false,
       movable: { color: canMove ? me : undefined, dests: canMove ? legalDests(chess) : new Map() },
       drawable: { autoShapes: shapes },
     };
-  }, [fen, lastMove, phase, variation, finished, o.fen, o.line, bad, me]);
+  }, [fen, lastMove, phase, variation, finished, o.fen, o.line, o.played, bad, me, baseUci]);
 
   return {
     me,
@@ -179,7 +191,11 @@ export function usePuzzleSolver(o: SolverOptions) {
     message,
     alt,
     variation,
-    bestSan: playLine(o.fen, [o.line[0]])[0]?.san,
+    /** Bester erster Zug in Worten, z. B. „Läufer von b5 nach c6“ */
+    best: (() => {
+      const m = playLine(o.fen, [o.line[0]])[0];
+      return m ? moveNoun(m) : undefined;
+    })(),
     /** Variante bzw. Lösung ab der Puzzle-Stellung zeigen */
     showLine: (uci: string[]) => setVariation({ moves: playLine(o.fen, uci), step: 1 }),
     stepVariation: (s: number) => setVariation((v) => (v ? { ...v, step: Math.max(0, Math.min(v.moves.length, s)) } : v)),

@@ -40,9 +40,9 @@ test('Zwischenzug 7. Lxc6+: Pfeile, Erklärung mit Schach, Variante zum Durchkli
   const card = page.getByTestId('error-card');
   await expect(card).toContainText('7. Df1??');
   await expect(card).toContainText('Patzer');
-  await expect(card).toContainText('besser Lxc6+');
+  await expect(card).toContainText('besser: Läufer von b5 nach c6');
   const better = page.getByTestId('explain-better');
-  await expect(better).toContainText('schlägt dein Läufer den Springer auf c6 (Lxc6+), und zwar mit Schach');
+  await expect(better).toContainText('schlägt dein Läufer von b5 aus den Springer auf c6 (Lxc6+), und zwar mit Schach');
   await expect(better).toContainText('Er hat keine Zeit, deine Dame zu schlagen');
   await expect(page.getByTestId('explain-played')).toContainText('dein Bauer auf d4 bleibt ungedeckt');
   await expect(page.getByTestId('explain-played')).toContainText('einen weiteren Bauern');
@@ -103,7 +103,7 @@ test('Zwischenzug 7. Lxc6+: Pfeile, Erklärung mit Schach, Variante zum Durchkli
   await expect(visible(page, '.movelist-move.is-current')).toHaveText(/^Dd8/);
   await page.getByTestId('tab-fehler').click();
   await expect(page.getByTestId('error-card')).toContainText('15. Dxc6+');
-  await expect(page.getByTestId('explain-played').locator('li').first()).toContainText('Dein Schach hilft hier nicht: Schwarz stellt den Läufer dazwischen (Ld7) und greift damit deine Dame an');
+  await expect(page.getByTestId('explain-played').locator('li').first()).toContainText(/Dein Schach hilft hier nicht: Schwarz stellt den Läufer von [a-h][1-8] nach d7 dazwischen \(Ld7\) und greift damit deine Dame an/);
   await expect(page.getByTestId('merke')).toHaveText('Merke: Ein Schach ist nur gut, wenn danach etwas für dich herausspringt. Prüfe vorher, wie der Gegner antworten kann.');
   await page.waitForTimeout(400);
   await shot(page, 'schach-bringt-nichts');

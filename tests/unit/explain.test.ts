@@ -52,8 +52,8 @@ describe('Erklärungen in einfacher Sprache', () => {
       'Deine Dame bringt sich zwar in Sicherheit, aber dein Bauer auf d4 bleibt ungedeckt (keine deiner Figuren schützt ihn). Die schwarze Dame kann ihn einfach schlagen (Dxd4), und du verlierst einen weiteren Bauern.',
     ]);
     expect(e.better.map((i) => plainText(i.text))).toEqual([
-      'Statt die Dame wegzuziehen, schlägt dein Läufer den Springer auf c6 (Lxc6+), und zwar mit Schach. Das ist ein Zwischenzug (ein Zug, auf den der Gegner sofort reagieren muss): Er hat keine Zeit, deine Dame zu schlagen.',
-      'Danach schlägt deine Dame den Bauern auf c6 (Dxc6+), wieder mit Schach. Sie ist aus der Gefahr, und du hast deinen Bauern zurück.',
+      'Statt die Dame wegzuziehen, schlägt dein Läufer von b5 aus den Springer auf c6 (Lxc6+), und zwar mit Schach. Das ist ein Zwischenzug (ein Zug, auf den der Gegner sofort reagieren muss): Er hat keine Zeit, deine Dame zu schlagen.',
+      'Danach schlägt deine Dame von f3 aus den Bauern auf c6 (Dxc6+), wieder mit Schach. Sie ist aus der Gefahr, und du hast deinen Bauern zurück.',
     ]);
     expect(e.merke).toBe('Wird eine deiner Figuren angegriffen, schau zuerst, ob du Schach geben oder etwas schlagen kannst.');
     // Fachbegriffe sind markiert (antippbar)
@@ -65,7 +65,7 @@ describe('Erklärungen in einfacher Sprache', () => {
     const e = explain(se5);
     expect(e.played.map((i) => i.rule)).toEqual(['threatMissed', 'undefendedTaken']);
     expect(plainText(e.played[0].text)).toBe(
-      'Der Bauer auf h6 greift deinen Läufer auf g5 an. Ein Bauer ist weniger wert als ein Läufer, deshalb musst du reagieren, auch wenn der Läufer gedeckt ist. Dein Zug löst das nicht – im Gegenteil: Dein Springer zieht weg (Se5) und deckt den Läufer danach nicht mehr.',
+      'Der Bauer auf h6 greift deinen Läufer auf g5 an. Ein Bauer ist weniger wert als ein Läufer, deshalb musst du reagieren, auch wenn der Läufer gedeckt ist. Dein Zug löst das nicht – im Gegenteil: Dein Springer zieht von f3 nach e5 weg (Se5) und deckt den Läufer danach nicht mehr.',
     );
     expect(plainText(e.played[1].text)).toBe(
       'Dein Bauer auf d4 ist danach ungedeckt (keine deiner Figuren schützt ihn). Die schwarze Dame kann ihn einfach schlagen (Dxd4).',
@@ -124,7 +124,7 @@ describe('Erklärungen in einfacher Sprache', () => {
     const before = fenAfter(['d4', 'h6', 'Nf3', 'a6']);
     const e = explain({ fenBefore: before, played: 'c1g5', bestPv: ['c2c4'], replyPv: ['h6g5'], before: { cp: 40 }, after: { cp: -200 } });
     expect(texts(e)[0]).toBe(
-      'Der schwarze Bauer schlägt deinen Läufer auf g5 (hxg5), und du verlierst deinen Läufer.',
+      'Der schwarze Bauer schlägt von h6 aus deinen Läufer auf g5 (hxg5), und du verlierst deinen Läufer.',
     );
     // ohne Schlagzug in der Antwort: Regel „hängende Figur“ mit Begründung
     const e2 = explain({ fenBefore: before, played: 'c1g5', bestPv: ['c2c4'], replyPv: ['a6a5'], before: { cp: 40 }, after: { cp: -200 } });
@@ -140,7 +140,7 @@ describe('Erklärungen in einfacher Sprache', () => {
     const v = explain(mattVerpasst);
     expect(texts(v)).toEqual([
       'Du hattest ein erzwungenes Matt (der Gegner kann es nicht mehr verhindern): Matt in 1. Mit diesem Zug ist es weg.',
-      'Deine Dame schlägt den Bauern auf f7 – das ist sofort Matt (Dxf7#).',
+      'Deine Dame schlägt von h5 aus den Bauern auf f7 – das ist sofort Matt (Dxf7#).',
     ]);
   });
 

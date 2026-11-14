@@ -11,24 +11,43 @@ async function openTraining(page: Page) {
   const before = await dueCount(page);
   await page.getByTestId('start-training').click();
   // Erstes Puzzle: Patzer zuerst, in Zugreihenfolge → Stellung nach 6...Lg4 (in der Partie 7. Df1??)
-  await expect(page.getByTestId('puzzle-task')).toContainText('Dort hast du hier Df1 gespielt – ein Patzer');
+  const task = page.getByTestId('puzzle-task');
+  await expect(task.getByTestId('played-move')).toHaveText('Du hast hier deine Dame von f3 nach f1 gezogen – ein Patzer.');
+  await expect(task.getByTestId('opponent-move')).toHaveText('Dein Gegner hat zuletzt seinen Läufer von c8 nach g4 gezogen.');
+  // Kopfzeile: Farbe, Gegner, Datum mit Link zur Partie, Zugnummer
+  await expect(task.getByTestId('puzzle-meta')).toHaveText(/^Weiß gegen .+, \d{2}\.\d{2}\.\d{4}, 7\. Zug$/);
+  await expect(task.getByTestId('puzzle-game-link')).toHaveAttribute('href', /#\/partien\/.+\/12$/);
+  // Brett: letzter Gegnerzug wie üblich, mein Partiezug dezent rot (kein Pfeil), mit Legende
+  const board = page.getByTestId('board').filter({ visible: true });
+  await expect(board).toHaveAttribute('data-last-move', 'c8g4');
+  await expect(board).toHaveAttribute('data-marked', 'played-move:f3,played-move:f1');
+  await expect(board).not.toHaveAttribute('data-arrows', /.+/);
+  await expect(board.locator('square.played-move')).toHaveCount(2);
+  await expect(board.locator('square.last-move')).toHaveCount(2);
+  await expect(page.getByTestId('board-legend')).toHaveText('dein Zug in der Partie');
   return before;
 }
 
 test('Puzzle aus der eigenen Partie richtig lösen: Lxc6+ bxc6 Dxc6+', async ({ page }) => {
   test.setTimeout(150000);
   const before = await openTraining(page);
+  await page.waitForTimeout(400);
   await shot(page, 'puzzle-start');
+  // Bildschirmansicht der Aufgabe (am Handy unter dem Brett)
+  await page.getByTestId('played-move').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `test-results/puzzle-aufgabe-${test.info().project.name}.png` });
 
   await clickSquare(page, 'b5');
   await clickSquare(page, 'c6');
-  await expect(page.getByTestId('puzzle-message')).toContainText('Richtig! Der Gegner antwortet mit bxc6');
+  await expect(page.getByTestId('puzzle-message')).toContainText('Richtig! Dein Gegner hat seinen Bauern von b7 nach c6 gezogen und deinen Läufer geschlagen.');
   await clickSquare(page, 'f3');
   await clickSquare(page, 'c6');
   await expect(page.getByTestId('puzzle-result')).toContainText('Richtig gelöst!');
   await expect(page.getByTestId('next-due')).toHaveText('Nächste Wiederholung: in 3 Tagen.');
   // Danach dieselbe Erklärung und Pfeile wie in der Analyse, plus Link zur Originalpartie
   await expect(page.getByTestId('error-card')).toContainText('Zwischenzug');
+  await expect(page.getByTestId('legend-played')).toHaveText('dein Zug: Dame von f3 nach f1');
+  await expect(page.getByTestId('legend-best')).toHaveText('besser: Läufer von b5 nach c6');
   await expect(page.getByTestId('board').filter({ visible: true })).toHaveAttribute('data-arrows', 'bad:f3f1,good:b5c6');
   await expect(page.getByTestId('to-game')).toHaveAttribute('href', /#\/partien\/.+\/12$/);
   await page.waitForTimeout(300);
@@ -46,13 +65,13 @@ test('Puzzle falsch lösen: zweiter Versuch, dann Lösung; morgen wieder fällig
 
   await clickSquare(page, 'f3');
   await clickSquare(page, 'f1');
-  await expect(page.getByTestId('puzzle-message')).toContainText('Df1 ist nicht der beste Zug. Versuch es noch einmal.', { timeout: 20000 });
+  await expect(page.getByTestId('puzzle-message')).toContainText('Dame von f3 nach f1 ist nicht der beste Zug. Versuch es noch einmal.', { timeout: 20000 });
   // Brett ist wieder in der Ausgangsstellung: noch einmal versuchen
   await expect(page.getByTestId('puzzle-result')).toHaveCount(0);
   await page.waitForTimeout(900);
   await clickSquare(page, 'f3');
   await clickSquare(page, 'f1');
-  await expect(page.getByTestId('puzzle-result')).toContainText('Nicht gelöst. Besser war Lxc6+', { timeout: 20000 });
+  await expect(page.getByTestId('puzzle-result')).toContainText('Nicht gelöst. Besser war: Läufer von b5 nach c6.', { timeout: 20000 });
   await expect(page.getByTestId('next-due')).toHaveText('Nächste Wiederholung: morgen.');
   await page.getByTestId('show-line').click();
   await expect(page.getByTestId('variation-move').first()).toHaveText('Lxc6+');

@@ -9,6 +9,9 @@
   --sq-selected: rgba(29, 90, 67, 0.45);
   --sq-dest: rgba(28, 31, 27, 0.28);
   --sq-check: rgba(214, 48, 30, 0.85);
+  /* Mein Zug in der Partie (Puzzle): dezent rot, ohne Pfeil */
+  --sq-played: rgba(200, 40, 30, 0.3);
+  --sq-played-edge: rgba(170, 30, 20, 0.55);
   --coord-on-light: #7a5233;
   --coord-on-dark: #f6e8cd;
 }

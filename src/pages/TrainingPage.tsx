@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
 import { ErrorCard, explainMove } from '../components/ErrorExplain';
 import { GeneralCard, GeneralSession } from '../components/GeneralTraining';
-import { PuzzleLayout } from '../components/PuzzleLayout';
+import { MoveNote, MoveNotes, PuzzleLayout, PuzzleMeta, PuzzleTitle } from '../components/PuzzleLayout';
+import { ColorSwatch } from '../components/PlayerBar';
+import { movedPhrase, uciMove } from '../chess/moveWords';
 import { MiniBoard } from '../components/MiniBoard';
 import { db, type PuzzleRecord } from '../db/schema';
 import { useLive } from '../db/useLive';
-import { toGermanSan } from '../chess/game';
 import { formatDate } from '../chess/format';
-import { playLine } from '../analysis/explain';
 import { analysisQueue } from '../analysis/queue';
 import { useQueueState } from '../analysis/useQueue';
 import { isAcceptable, winFor } from '../training/puzzles';
@@ -166,9 +166,19 @@ function MyPuzzleView({ puzzle, status, hasNext, onNext, onExit = exitToHub }: M
     void markSeen(puzzle);
   }, [puzzle]);
 
+  const gameMoves = useMemo(() => {
+    if (!game) return [];
+    const c = new Chess();
+    c.loadPgn(game.pgn);
+    return c.history({ verbose: true });
+  }, [game]);
+  // Letzter Zug des Gegners vor der Puzzle-Stellung (aus der Partie)
+  const oppMove = gameMoves[puzzle.ply - 2];
   const s = usePuzzleSolver({
     fen: puzzle.fen,
     line: puzzle.line,
+    lastMove: oppMove ? oppMove.from + oppMove.to + (oppMove.promotion ?? '') : undefined,
+    played: puzzle.played,
     badArrow: puzzle.played,
     checkAlternative: async (before, after, me) => {
       const [b, a] = await Promise.all([analysisQueue.evaluate(before), analysisQueue.evaluate(after)]);
@@ -178,31 +188,47 @@ function MyPuzzleView({ puzzle, status, hasNext, onNext, onExit = exitToHub }: M
     onFinish: async (_solved, firstTry) => setNextDue((await finishPuzzle(puzzle, firstTry)).due),
   });
 
-  const gameMoves = useMemo(() => {
-    if (!game) return [];
-    const c = new Chess();
-    c.loadPgn(game.pgn);
-    return c.history({ verbose: true });
-  }, [game]);
   const fens = useMemo(() => (gameMoves.length ? [gameMoves[0].before, ...gameMoves.map((m) => m.after)] : []), [gameMoves]);
   const original = analysis?.sides?.[s.me].find((m) => m.ply === puzzle.ply);
-  const playedSan = playLine(puzzle.fen, [puzzle.played])[0]?.san;
+  const playedMove = uciMove(puzzle.fen, puzzle.played);
   const opponent = game ? (s.me === 'white' ? game.black.name : game.white.name) : '';
+  const gameLink = href({ page: 'partie', id: puzzle.gameId, ply: puzzle.ply - 1 });
 
   return (
     <PuzzleLayout
       solver={s}
       status={status}
       onExit={onExit}
+      legend={
+        <>
+          <span className="sq-swatch" data-kind="played" aria-hidden /> dein Zug in der Partie
+        </>
+      }
       task={
         <>
-          <h1 className="font-heading text-4xl leading-tight">Finde einen besseren Zug</h1>
           {game && (
-            <p className="text-muted-foreground">
-              Aus deiner Partie gegen {opponent} vom {formatDate(game.date)}. Dort hast du hier {playedSan ? toGermanSan(playedSan) : '…'} gespielt –{' '}
-              {puzzle.class === 'blunder' ? 'ein Patzer' : 'ein Fehler'}.
-            </p>
+            <PuzzleMeta>
+              <ColorSwatch color={s.me} className="mr-1.5 align-[-2px]" />
+              {s.me === 'white' ? 'Weiß' : 'Schwarz'} gegen <span className="font-semibold text-foreground">{opponent}</span>,{' '}
+              <a href={gameLink} className="text-brass-text underline-offset-3 hover:underline" data-testid="puzzle-game-link">
+                {formatDate(game.date)}
+              </a>
+              , {puzzle.fen.split(' ')[5]}. Zug
+            </PuzzleMeta>
           )}
+          <PuzzleTitle>Finde einen besseren Zug</PuzzleTitle>
+          <MoveNotes>
+            {oppMove && (
+              <MoveNote kind="last" testId="opponent-move">
+                Dein Gegner hat zuletzt {movedPhrase(oppMove, 'opp')}.
+              </MoveNote>
+            )}
+            {playedMove && (
+              <MoveNote kind="played" testId="played-move">
+                Du hast hier {movedPhrase(playedMove, 'me')} – <strong className="font-semibold">{puzzle.class === 'blunder' ? 'ein Patzer' : 'ein Fehler'}</strong>.
+              </MoveNote>
+            )}
+          </MoveNotes>
         </>
       }
       result={nextDue !== null && <span data-testid="next-due">Nächste Wiederholung: {dueText(nextDue, Date.now())}.</span>}
@@ -210,7 +236,7 @@ function MyPuzzleView({ puzzle, status, hasNext, onNext, onExit = exitToHub }: M
         <>
           <a
             className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 text-foreground no-underline')}
-            href={href({ page: 'partie', id: puzzle.gameId, ply: puzzle.ply - 1 })}
+            href={gameLink}
             data-testid="to-game"
           >
             Zur Originalpartie
@@ -225,7 +251,8 @@ function MyPuzzleView({ puzzle, status, hasNext, onNext, onExit = exitToHub }: M
         <div className="border-t pt-4">
           <ErrorCard
             move={original}
-            moveLabel={`${toGermanSan(original.san)}${original.class === 'blunder' ? '??' : '?'} (in der Partie)`}
+            moveLabel="Dein Zug in der Partie"
+            fenBefore={puzzle.fen}
             explanation={explainMove(original, fens, analysis, gameMoves[puzzle.ply - 2])}
             canShowLine={puzzle.line.length > 0}
             onShowLine={() => s.showLine((analysis.evals[puzzle.ply - 1]?.pv ?? puzzle.line).slice(0, 6))}

@@ -23,6 +23,36 @@
   box-shadow: inset 0 0 0 3px var(--sq-last-edge);
 }
 
+.board cg-board square.played-move {
+  background-color: var(--sq-played);
+  box-shadow: inset 0 0 0 2px var(--sq-played-edge);
+}
+
+/* Fällt mein Partiezug auf ein Feld des letzten Gegnerzugs: beide Farben sichtbar (Rahmen gelb, Fläche rot) */
+.board cg-board square.last-move.played-move {
+  box-shadow: inset 0 0 0 3px var(--sq-last-edge);
+}
+
+/* Kleine Feldmuster für Legenden neben dem Brett – gleiche Farben wie auf dem Brett */
+.sq-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--sq-light);
+}
+
+.sq-swatch[data-kind='last'] {
+  background-image: linear-gradient(var(--sq-last), var(--sq-last));
+  box-shadow: inset 0 0 0 2px var(--sq-last-edge);
+}
+
+.sq-swatch[data-kind='played'] {
+  background-image: linear-gradient(var(--sq-played), var(--sq-played));
+  box-shadow: inset 0 0 0 2px var(--sq-played-edge);
+}
+
 .board cg-board square.selected {
   background-color: var(--sq-selected);
 }

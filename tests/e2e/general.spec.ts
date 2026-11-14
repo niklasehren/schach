@@ -41,17 +41,23 @@ test('Allgemeines Training: Thema wählen, Gegnerzug wird vorgespielt, Lösung, 
   const p = await currentPuzzle(page, 'mateIn2');
   expect(Math.abs(p.rating - 1000)).toBeLessThanOrEqual(100);
   // Der Gegnerzug (erster Zug in „Moves“) wird gespielt; danach bin ich am Zug und markiert ist sein Zug
-  const oppSan = new Chess(p.startFen).move({ from: p.opp.slice(0, 2), to: p.opp.slice(2, 4), promotion: p.opp[4] }).san;
-  await expect(page.getByTestId('puzzle-task')).toContainText(`Der Gegner hat ${oppSan.replace(/[NBRQK]/g, (c) => ({ N: 'S', B: 'L', R: 'T', Q: 'D', K: 'K' })[c]!)} gespielt`);
+  const oppMove = new Chess(p.startFen).move({ from: p.opp.slice(0, 2), to: p.opp.slice(2, 4), promotion: p.opp[4] });
+  await expect(page.getByTestId('opponent-move')).toContainText(new RegExp(`^Dein Gegner hat zuletzt (seinen|seine) \\S+ von ${oppMove.from} nach ${oppMove.to} gezogen`));
   const board = page.getByTestId('board').filter({ visible: true });
   await expect(board.locator('square.last-move')).toHaveCount(2);
+  await expect(board).toHaveAttribute('data-last-move', p.opp.slice(0, 4));
+  // Kein Partiezug bei Lichess-Puzzles: keine roten Felder, keine Legende
+  await expect(board.locator('square.played-move')).toHaveCount(0);
+  await expect(page.getByTestId('board-legend')).toHaveCount(0);
+  await page.waitForTimeout(300);
+  await shot(page, 'lichess-start');
   await expect(page.getByTestId('puzzle-message')).toHaveCount(0);
   const meWhite = p.startFen.split(' ')[1] === 'b';
   await expect(board).toHaveClass(meWhite ? /orientation-white/ : /orientation-black/);
 
   // Lösung: mein Zug, Antwort des Gegners, Matt
   await play(page, p.line[0]);
-  await expect(page.getByTestId('puzzle-message')).toContainText('Richtig! Der Gegner antwortet mit');
+  await expect(page.getByTestId('puzzle-message')).toContainText('Richtig! Dein Gegner hat');
   await play(page, p.line[2]);
   await expect(page.getByTestId('puzzle-result')).toContainText('Richtig gelöst!');
   await expect(page.getByTestId('rating-change')).toHaveText(/^Puzzle-Rating: 1000 → 10[0-3]\d \(\+\d+\)$/);
@@ -73,7 +79,7 @@ test('Allgemeines Training: Thema wählen, Gegnerzug wird vorgespielt, Lösung, 
   await expect(page.getByTestId('puzzle-message')).toContainText('ist nicht der beste Zug. Versuch es noch einmal.');
   await page.waitForTimeout(900);
   await play(page, wrong.from + wrong.to);
-  await expect(page.getByTestId('puzzle-result')).toContainText('Nicht gelöst. Besser war');
+  await expect(page.getByTestId('puzzle-result')).toContainText('Nicht gelöst. Besser war: ');
   await expect(page.getByTestId('rating-change')).toHaveText(/\(−\d+\)$/);
   await expect(board).toHaveAttribute('data-arrows', `bad:${wrong.from + wrong.to},good:${q.line[0]}`);
   await page.getByTestId('show-line').click();
@@ -93,6 +99,6 @@ test('Allgemeines Training startet passend zu meinen Schwächen', async ({ page 
   await page.goto('/#/training');
   await page.getByTestId('start-general').click();
   await expect(page).toHaveURL(/#\/training\/allgemein\/schwaechen$/);
-  await expect(page.getByTestId('puzzle-theme')).toContainText('passend zu deinen Schwächen');
+  await expect(page.getByTestId('puzzle-meta')).toContainText('passend zu deinen Schwächen');
   await expect(page.getByTestId('puzzle-status')).toHaveText('Puzzle-Rating 1000');
 });

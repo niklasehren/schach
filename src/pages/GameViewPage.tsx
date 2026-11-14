@@ -38,6 +38,7 @@ import { summaryText } from '../analysis/analyze';
 import { analysisQueue } from '../analysis/queue';
 import { useQueueState } from '../analysis/useQueue';
 import { toGermanSan } from '../chess/game';
+import { moveNoun } from '../chess/moveWords';
 import { useLive } from '../db/useLive';
 import { href } from '../app/router';
 import { hasMoves, OCCASION_LABELS, REASON_LABELS } from '../db/boardGames';
@@ -367,6 +368,7 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
               <ErrorCard
                 move={upcoming}
                 moveLabel={labels[upcoming.ply - 1]}
+                fenBefore={fens[upcoming.ply - 1]}
                 explanation={explainMove(upcoming, fens, done, parsed.moves[upcoming.ply - 2])}
                 canShowLine={!!(done.evals[upcoming.ply - 1]?.pv?.length || upcoming.best)}
                 onShowLine={() => showVariation(upcoming)}
@@ -381,6 +383,7 @@ function GameView({ game, initialPly }: { game: GameRecord; initialPly: number }
                 <strong>
                   {labels[justPlayed.ply - 1]} {classText[justPlayed.class!]}
                 </strong>
+                <span className="text-muted-foreground">({moveNoun(parsed.moves[justPlayed.ply - 1])})</span>
                 <button className="font-semibold text-brass-text underline" onClick={() => goTo(justPlayed.ply - 1)}>
                   Stellung davor mit Pfeilen und Erklärung
                 </button>

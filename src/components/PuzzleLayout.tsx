@@ -3,7 +3,6 @@ import { CircleCheck, CircleX } from 'lucide-react';
 import { Board } from './Board';
 import { ColorSwatch } from './PlayerBar';
 import { VariationCard } from './ErrorExplain';
-import { toGermanSan } from '../chess/game';
 import type { usePuzzleSolver } from '../training/usePuzzleSolver';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,10 +26,44 @@ type Props = {
   actions: ReactNode;
   /** Kleingedrucktes unten (z. B. Lizenz) */
   footer?: ReactNode;
+  /** Kleine Legende unter dem Brett (z. B. „dein Zug in der Partie“) */
+  legend?: ReactNode;
 };
 
+/** Kopfzeile über der Aufgabe: Partie bzw. Thema, klein und ruhig */
+export function PuzzleMeta({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-[15px] leading-snug text-muted-foreground" data-testid="puzzle-meta">
+      {children}
+    </p>
+  );
+}
+
+/** Die Aufgabe selbst: groß, in der Überschriftenschrift */
+export function PuzzleTitle({ children }: { children: ReactNode }) {
+  return <h1 className="font-heading text-[32px] leading-[1.02] font-normal tracking-[-0.01em] text-balance md:text-[50px]">{children}</h1>;
+}
+
+/** Ein Zug als Zeile, mit Feldmuster in der Farbe seiner Markierung auf dem Brett */
+export function MoveNote({ kind, children, testId }: { kind: 'last' | 'played'; children: ReactNode; testId: string }) {
+  return (
+    <li className="flex items-start gap-3">
+      <span className="sq-swatch mt-[5px]" data-kind={kind} aria-hidden />
+      <span data-testid={testId}>{children}</span>
+    </li>
+  );
+}
+
+export function MoveNotes({ children }: { children: ReactNode }) {
+  return (
+    <ul className="m-0 mt-1.5 flex list-none flex-col gap-2.5 border-t p-0 pt-3.5 text-[17px] leading-snug" data-testid="puzzle-moves">
+      {children}
+    </ul>
+  );
+}
+
 /** Gemeinsames Layout aller Puzzles: links das Brett, rechts Aufgabe, Ergebnis und Erklärung */
-export function PuzzleLayout({ solver: s, status, onExit, task, result, variationTitle, variationSubtitle, children, actions, footer }: Props) {
+export function PuzzleLayout({ solver: s, status, onExit, task, result, variationTitle, variationSubtitle, children, actions, footer, legend }: Props) {
   return (
     <div className={cn('play grid w-full animate-in grid-cols-1 items-start gap-3 fade-in-0 md:w-auto md:grid-cols-[var(--board-size)_380px] md:gap-7', s.variation && 'in-variation')}>
       <section className="flex flex-col gap-0.5 md:gap-1.5">
@@ -45,6 +78,11 @@ export function PuzzleLayout({ solver: s, status, onExit, task, result, variatio
           <Board config={s.config} onMove={s.onMove} />
           {s.variation && <Badge className="variation-badge pointer-events-none absolute top-2.5 right-2.5 z-10 bg-brass text-brass-foreground">Variante</Badge>}
         </div>
+        {legend && !s.variation && (
+          <p className="flex items-center gap-2 px-0.5 pt-1 text-sm text-muted-foreground max-md:px-3.5" data-testid="board-legend">
+            {legend}
+          </p>
+        )}
       </section>
 
       <aside className="flex flex-col gap-3.5 max-md:px-3.5 md:pt-[calc(var(--bar-height)+6px)]">
@@ -52,7 +90,7 @@ export function PuzzleLayout({ solver: s, status, onExit, task, result, variatio
           ← Training
         </Button>
         {!s.finished && (
-          <section className="flex flex-col gap-2 max-md:order-first" data-testid="puzzle-task">
+          <section className="flex flex-col gap-2.5 max-md:order-first" data-testid="puzzle-task">
             {task}
             {s.phase === 'intro' && (
               <p className="text-[17px] text-muted-foreground" role="status" data-testid="puzzle-message">
@@ -82,12 +120,12 @@ export function PuzzleLayout({ solver: s, status, onExit, task, result, variatio
                 ? s.tries === 0
                   ? 'Richtig gelöst!'
                   : 'Richtig – im zweiten Versuch.'
-                : `Nicht gelöst. Besser war ${s.bestSan ? toGermanSan(s.bestSan) : '…'}.`}
+                : `Nicht gelöst. Besser war: ${s.best ?? '…'}.`}
             </h2>
             <p className="text-[15px] text-muted-foreground">
-              {s.alt && s.bestSan && s.alt !== toGermanSan(s.bestSan) && (
+              {s.alt && s.best && s.alt !== s.best && (
                 <span>
-                  Auch gut: {s.alt} ist fast so stark wie {toGermanSan(s.bestSan)}.
+                  Auch gut: dein Zug ({s.alt}) ist fast so stark wie {s.best}.{' '}
                 </span>
               )}
               {result}

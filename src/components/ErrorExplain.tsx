@@ -3,6 +3,7 @@ import type { AnalysisRecord, MoveAnalysis, MoveClass, Side } from '../db/schema
 import { explain, winWords, type Explanation } from '../analysis/explain';
 import { pov } from '../analysis/rules';
 import { toGermanSan } from '../chess/game';
+import { moveNoun, uciMove } from '../chess/moveWords';
 import { RichText } from './RichText';
 import { ChevronLeft, ChevronRight, Lightbulb, Play, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -49,19 +50,24 @@ export const classText: Record<MoveClass, string> = { blunder: 'Patzer', mistake
 export function ErrorCard({
   move,
   moveLabel,
+  fenBefore,
   explanation,
   canShowLine,
   onShowLine,
 }: {
   move: MoveAnalysis;
   moveLabel: string;
+  /** Stellung vor dem Zug – damit beide Züge in Worten (Figur, von, nach) genannt werden können */
+  fenBefore: string;
   explanation: Explanation;
   canShowLine: boolean;
   onShowLine: () => void;
 }) {
   const tags = [move.hanging && 'Figur eingestellt', move.allowedMate && 'Matt zugelassen', move.missedMate && 'Matt übersehen', move.timeTrouble && 'in Zeitnot'].filter(Boolean);
-  const san = toGermanSan(move.san);
-  const best = move.bestSan ? toGermanSan(move.bestSan) : null;
+  const playedMove = uciMove(fenBefore, move.uci);
+  const bestMove = move.best ? uciMove(fenBefore, move.best) : null;
+  const san = playedMove ? moveNoun(playedMove) : toGermanSan(move.san);
+  const best = bestMove ? moveNoun(bestMove) : move.bestSan ? toGermanSan(move.bestSan) : null;
   return (
     <section
       className="error-card flex animate-in flex-col gap-3 text-base leading-relaxed fade-in-0"
@@ -78,17 +84,19 @@ export function ErrorCard({
           {winSentence(move.winBefore, move.winAfter)} (Gewinnchance {Math.round(move.winBefore)} % → {Math.round(move.winAfter)} %)
         </span>
       </header>
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-muted-foreground">
-        <span className="h-1.5 w-6 rounded-full bg-[#e53935]" aria-hidden /> dein Zug {san}
+      <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[15px] text-muted-foreground">
+        <li className="flex items-center gap-2.5">
+          <span className="h-1.5 w-6 shrink-0 rounded-full bg-[#e53935]" aria-hidden /> <span data-testid="legend-played">dein Zug: {san}</span>
+        </li>
         {best && (
-          <>
-            <span className="ml-1 h-1.5 w-6 rounded-full bg-[#1f9d55]" aria-hidden /> besser {best}
-          </>
+          <li className="flex items-center gap-2.5">
+            <span className="h-1.5 w-6 shrink-0 rounded-full bg-[#1f9d55]" aria-hidden /> <span data-testid="legend-best">besser: {best}</span>
+          </li>
         )}
-      </p>
+      </ul>
       {explanation.played.length > 0 && (
         <div className="flex flex-col gap-1">
-          <span className="font-bold">Warum {san} schlecht ist</span>
+          <span className="font-bold">Warum dein Zug schlecht ist</span>
           <ul className="flex list-disc flex-col gap-1.5 pl-5" data-testid="explain-played">
             {explanation.played.map((item) => (
               <li key={item.text}>
@@ -100,7 +108,7 @@ export function ErrorCard({
       )}
       {best && explanation.better.length > 0 && (
         <div className="flex flex-col gap-1">
-          <span className="font-bold">Warum {best} besser ist</span>
+          <span className="font-bold">Was der bessere Zug bringt</span>
           <ul className="flex list-disc flex-col gap-1.5 pl-5" data-testid="explain-better">
             {explanation.better.map((item) => (
               <li key={item.text}>
